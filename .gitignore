@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated import SQL — regenerate with scripts/import-legacy/gen_import_sql.py
+scripts/import-legacy/generated/
