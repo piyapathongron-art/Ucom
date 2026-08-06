@@ -613,6 +613,21 @@ export type Database = {
         }
         Relationships: []
       }
+      v_pos_stock: {
+        Row: {
+          acquisition: string | null
+          category_name: string | null
+          code: string | null
+          id: string | null
+          kind: string | null
+          name: string | null
+          price: number | null
+          qty: number | null
+          sf_order_id: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
       v_pos_top_products: {
         Row: {
           category_name: string | null
@@ -695,6 +710,9 @@ export type Database = {
         Args: { p_commission: number; p_device_id: string }
         Returns: undefined
       }
+      rpc_receive_sf_order: { Args: { payload: Json }; Returns: string }
+      rpc_upsert_device: { Args: { payload: Json }; Returns: string }
+      rpc_upsert_product: { Args: { payload: Json }; Returns: string }
     }
     Enums: {
       [_ in never]: never
