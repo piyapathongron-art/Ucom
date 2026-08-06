@@ -44,10 +44,11 @@ export function Cart({
         {lines.length === 0 && (
           <p className="text-sm text-neutral-500">ตะกร้าว่าง</p>
         )}
-        <ul className="space-y-3">
+        <ul className="space-y-3" data-testid="cart-lines" data-count={lines.length}>
           {lines.map((line) => (
             <li
               key={line.uid}
+              data-testid={`cart-line-${line.kind}`}
               className="rounded border border-neutral-200 p-2"
             >
               <div className="flex items-start justify-between gap-2">
@@ -139,7 +140,10 @@ export function Cart({
 
       <div className="space-y-3 border-t border-neutral-200 p-4">
         {error && (
-          <p className="rounded bg-red-50 p-2 text-sm text-red-600">
+          <p
+            data-testid="checkout-error"
+            className="rounded bg-red-50 p-2 text-sm text-red-600"
+          >
             {error}
           </p>
         )}
@@ -147,6 +151,7 @@ export function Cart({
         <div className="flex gap-2">
           <button
             type="button"
+            data-testid="pay-cash"
             onClick={() => setPaymentMethod("cash")}
             className={`flex-1 rounded border p-2 text-sm ${
               paymentMethod === "cash"
@@ -158,6 +163,7 @@ export function Cart({
           </button>
           <button
             type="button"
+            data-testid="pay-transfer"
             onClick={() => setPaymentMethod("transfer")}
             className={`flex-1 rounded border p-2 text-sm ${
               paymentMethod === "transfer"
@@ -174,6 +180,7 @@ export function Cart({
             value={receivingAccount}
             onChange={(e) => setReceivingAccount(e.target.value)}
             placeholder="บัญชีที่รับเงิน"
+            data-testid="receiving-account"
             className="w-full rounded border border-neutral-300 p-2 text-sm"
           />
         )}
@@ -209,6 +216,7 @@ export function Cart({
 
         <button
           type="button"
+          data-testid="checkout-submit"
           disabled={lines.length === 0 || submitting}
           onClick={() =>
             onSubmit({

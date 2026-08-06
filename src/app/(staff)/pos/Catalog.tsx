@@ -43,6 +43,7 @@ export function Catalog({
           <button
             key={c.id}
             type="button"
+            data-testid={`topup-carrier-${c.name}`}
             onClick={() => setTopupCarrier(c)}
             className="rounded border border-neutral-300 px-3 py-1.5 text-sm font-medium"
           >
@@ -60,11 +61,13 @@ export function Catalog({
               value={topupAmount}
               onChange={(e) => setTopupAmount(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitTopup()}
+              data-testid="topup-amount"
               className="w-24 rounded border border-neutral-300 p-1 text-sm"
             />
             <button
               type="button"
               onClick={submitTopup}
+              data-testid="topup-add"
               className="rounded bg-neutral-900 px-2 py-1 text-sm text-white"
             >
               เพิ่ม
@@ -99,6 +102,7 @@ export function Catalog({
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="ค้นหาสินค้า/เครื่อง"
+        data-testid="catalog-search"
         className="w-full rounded border border-neutral-300 p-2"
       />
 
@@ -107,6 +111,7 @@ export function Catalog({
           <button
             key={`${item.kind}-${item.id}`}
             type="button"
+            data-testid={`catalog-item-${item.kind}-${item.id}`}
             onClick={() => onAddCatalog(item)}
             className="rounded border border-neutral-200 p-3 text-left"
           >
