@@ -52,7 +52,7 @@ grant select on public.v_pos_repairs to authenticated;
 --
 -- 'collected' is deliberately unreachable here: collecting the device means issuing
 -- the bill, which only rpc_close_repair_job does. A job set to 'collected' without a
--- sale_id would be counted by v_pos_pl at quoted_price instead of what was actually
+-- sale_id would be counted by v_monthly_report at quoted_price instead of what was actually
 -- paid.
 -- ─────────────────────────────────────────────────────────────
 create function public.rpc_set_repair_status(p_job_id uuid, p_status text)
@@ -110,7 +110,7 @@ $$;
 --
 -- An abandoned job still accepts a cost: the part was paid for and ADR 0003 says that
 -- money becomes the shop's expense rather than vanishing. A collected job does not —
--- its bill is issued and v_pos_pl has already counted it.
+-- its bill is issued and v_monthly_report has already counted it.
 -- ─────────────────────────────────────────────────────────────
 create function public.rpc_set_part_cost(p_job_id uuid, p_cost numeric)
 returns void
