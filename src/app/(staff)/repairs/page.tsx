@@ -17,7 +17,6 @@ export default function RepairsPage() {
 
   function loadRepairs() {
     return supabase
-      // @ts-expect-error ponytail: database.ts predates the phase 6 migration — drop this after the next `supabase gen types`, tsc will flag it as unnecessary
       .from("v_pos_repairs")
       .select("*")
       .then(({ data }) => setRows((data as RepairRow[]) ?? []));
@@ -42,7 +41,6 @@ export default function RepairsPage() {
 
   async function setStatus(id: string, status: string) {
     setError(null);
-    // @ts-expect-error ponytail: database.ts predates the phase 6 migration — drop this after the next `supabase gen types`, tsc will flag it as unnecessary
     const { error } = await supabase.rpc("rpc_set_repair_status", {
       p_job_id: id,
       p_status: status,
@@ -56,7 +54,6 @@ export default function RepairsPage() {
 
   async function setPartCost(id: string, cost: number) {
     setError(null);
-    // @ts-expect-error ponytail: database.ts predates the phase 6 migration — drop this after the next `supabase gen types`, tsc will flag it as unnecessary
     const { error } = await supabase.rpc("rpc_set_part_cost", {
       p_job_id: id,
       p_cost: cost,
