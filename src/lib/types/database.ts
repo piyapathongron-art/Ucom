@@ -588,6 +588,19 @@ export type Database = {
       }
     }
     Views: {
+      v_daily_report: {
+        Row: {
+          day: string | null
+          expense: number | null
+          net_profit: number | null
+          repair_profit: number | null
+          repair_revenue: number | null
+          sale_profit: number | null
+          sale_revenue: number | null
+          sf_commission: number | null
+        }
+        Relationships: []
+      }
       v_monthly_report: {
         Row: {
           expense: number | null
