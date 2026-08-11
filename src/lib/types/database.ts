@@ -588,6 +588,19 @@ export type Database = {
       }
     }
     Views: {
+      v_daily_report: {
+        Row: {
+          day: string | null
+          expense: number | null
+          net_profit: number | null
+          repair_profit: number | null
+          repair_revenue: number | null
+          sale_profit: number | null
+          sale_revenue: number | null
+          sf_commission: number | null
+        }
+        Relationships: []
+      }
       v_monthly_report: {
         Row: {
           expense: number | null
@@ -612,6 +625,66 @@ export type Database = {
           qty: number | null
         }
         Relationships: []
+      }
+      v_pos_repairs: {
+        Row: {
+          closed_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          device_desc: string | null
+          id: string | null
+          note: string | null
+          part_paid_at: string | null
+          quoted_price: number | null
+          received_at: string | null
+          sale_id: string | null
+          status: string | null
+          symptom: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          device_desc?: string | null
+          id?: string | null
+          note?: string | null
+          part_paid_at?: string | null
+          quoted_price?: number | null
+          received_at?: string | null
+          sale_id?: string | null
+          status?: string | null
+          symptom?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          device_desc?: string | null
+          id?: string | null
+          note?: string | null
+          part_paid_at?: string | null
+          quoted_price?: number | null
+          received_at?: string | null
+          sale_id?: string | null
+          status?: string | null
+          symptom?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_jobs_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_jobs_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "v_sale_profit"
+            referencedColumns: ["sale_id"]
+          },
+        ]
       }
       v_pos_stock: {
         Row: {
@@ -711,6 +784,14 @@ export type Database = {
         Returns: undefined
       }
       rpc_receive_sf_order: { Args: { payload: Json }; Returns: string }
+      rpc_set_part_cost: {
+        Args: { p_cost: number; p_job_id: string }
+        Returns: undefined
+      }
+      rpc_set_repair_status: {
+        Args: { p_job_id: string; p_status: string }
+        Returns: undefined
+      }
       rpc_upsert_device: { Args: { payload: Json }; Returns: string }
       rpc_upsert_product: { Args: { payload: Json }; Returns: string }
     }
