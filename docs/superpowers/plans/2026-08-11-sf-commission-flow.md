@@ -25,7 +25,7 @@
 - Modify: src/app/(staff)/pos/types.ts — local catalog-row acquisition type.
 - Modify: src/app/(staff)/pos/page.tsx — stock metadata loading and finance RPC adapter.
 - Modify: src/app/(staff)/pos/Catalog.tsx — SF device actions and commission form.
-- Create: supabase/migrations/20260811230000_enforce_sf_finance_device.sql — database boundary guard.
+- Create: supabase/migrations/20260811162006_enforce_sf_finance_device.sql — database boundary guard.
 - Verify: tsc, targeted ESLint, targeted Playwright, then full suite only with approval.
 
 ### Task 1: Add the failing SF+ end-to-end test
@@ -232,7 +232,7 @@ Expected: typecheck and ESLint exit 0.
 ### Task 4: Enforce the SF boundary in PostgreSQL
 
 Files:
-- Create supabase/migrations/20260811230000_enforce_sf_finance_device.sql
+- Create supabase/migrations/20260811162006_enforce_sf_finance_device.sql
 
 Interfaces:
 - Preserve rpc_finance_device(uuid, numeric) returns void.
@@ -279,7 +279,7 @@ Run: git diff --check
 Do not run supabase db push, supabase migration up, or production SQL.
 
 ~~~bash
-git add supabase/migrations/20260811230000_enforce_sf_finance_device.sql
+git add supabase/migrations/20260811162006_enforce_sf_finance_device.sql
 git commit -m "fix(db): restrict finance RPC to SF devices"
 ~~~
 
