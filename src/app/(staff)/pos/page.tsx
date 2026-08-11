@@ -17,28 +17,28 @@ export default function PosPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadCatalog() {
-    const [{ data: catalogRows }, { data: stockRows }, { data: topProductRows }] =
-      await Promise.all([
+  function loadCatalog() {
+    return Promise.all([
         supabase.from("v_pos_catalog").select("*"),
         supabase.from("v_pos_stock").select("*"),
         supabase.from("v_pos_top_products").select("*"),
-      ]);
+      ])
+      .then(([{ data: catalogRows }, { data: stockRows }, { data: topProductRows }]) => {
+        const acquisitionById = new Map(
+          (stockRows ?? [])
+            .filter((row) => row.kind === "device" && row.id)
+            .map((row) => [row.id!, row.acquisition] as const),
+        );
+        const enrichDevices = (rows: CatalogRow[] | null): CatalogRow[] =>
+          (rows ?? []).map((row) =>
+            row.kind === "device"
+              ? { ...row, acquisition: acquisitionById.get(row.id ?? "") ?? null }
+              : row,
+          );
 
-    const acquisitionById = new Map(
-      (stockRows ?? [])
-        .filter((row) => row.kind === "device" && row.id)
-        .map((row) => [row.id!, row.acquisition] as const),
-    );
-    const enrichDevices = (rows: CatalogRow[] | null): CatalogRow[] =>
-      (rows ?? []).map((row) =>
-        row.kind === "device"
-          ? { ...row, acquisition: acquisitionById.get(row.id ?? "") ?? null }
-          : row,
-      );
-
-    setCatalog(enrichDevices(catalogRows));
-    setTopProducts(enrichDevices(topProductRows));
+        setCatalog(enrichDevices(catalogRows));
+        setTopProducts(enrichDevices(topProductRows));
+      });
   }
 
   useEffect(() => {
@@ -121,6 +121,16 @@ export default function PosPage() {
     setLines((prev) => prev.filter((l) => l.uid !== uid));
   }
 
+  async function financeDevice(item: CatalogRow, commission: number): Promise<string | null> {
+    const { error } = await supabase.rpc("rpc_finance_device", {
+      p_device_id: item.id!,
+      p_commission: commission,
+    });
+    if (error) return error.message;
+    await loadCatalog();
+    return null;
+  }
+
   async function submit(input: CheckoutInput) {
     setSubmitting(true);
     setError(null);
@@ -180,6 +190,7 @@ export default function PosPage() {
         carriers={carriers}
         onAddCatalog={addCatalogItem}
         onAddTopup={addTopup}
+        onFinanceDevice={financeDevice}
       />
       <Cart
         lines={lines}

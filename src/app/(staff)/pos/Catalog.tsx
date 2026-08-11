@@ -9,16 +9,22 @@ export function Catalog({
   carriers,
   onAddCatalog,
   onAddTopup,
+  onFinanceDevice,
 }: {
   catalog: CatalogRow[];
   topProducts: CatalogRow[];
   carriers: Carrier[];
   onAddCatalog: (item: CatalogRow) => void;
   onAddTopup: (carrier: Carrier, amount: number) => void;
+  onFinanceDevice: (item: CatalogRow, commission: number) => Promise<string | null>;
 }) {
   const [search, setSearch] = useState("");
   const [topupCarrier, setTopupCarrier] = useState<Carrier | null>(null);
   const [topupAmount, setTopupAmount] = useState("");
+  const [financeItem, setFinanceItem] = useState<CatalogRow | null>(null);
+  const [commission, setCommission] = useState("");
+  const [financeError, setFinanceError] = useState<string | null>(null);
+  const [financing, setFinancing] = useState(false);
 
   const filtered = search.trim()
     ? catalog.filter((item) =>
@@ -34,6 +40,30 @@ export function Catalog({
     onAddTopup(topupCarrier, amount);
     setTopupCarrier(null);
     setTopupAmount("");
+  }
+
+  function cancelFinance() {
+    setFinanceItem(null);
+    setCommission("");
+    setFinanceError(null);
+  }
+
+  async function submitFinance() {
+    const value = Number(commission);
+    if (!financeItem || commission.trim() === "" || !Number.isFinite(value) || value < 0) {
+      setFinanceError("ต้องระบุค่าคอมมิชชั่นเป็นตัวเลขไม่ติดลบ");
+      return;
+    }
+
+    setFinancing(true);
+    setFinanceError(null);
+    const error = await onFinanceDevice(financeItem, value);
+    setFinancing(false);
+    if (error) {
+      setFinanceError(error);
+      return;
+    }
+    cancelFinance();
   }
 
   return (
@@ -106,22 +136,91 @@ export function Catalog({
         className="w-full rounded border border-neutral-300 p-2"
       />
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {filtered.map((item) => (
+      {financeItem && (
+        <div data-testid="finance-form" className="flex flex-wrap items-center gap-2 rounded border border-neutral-300 p-2">
+          <span className="text-sm">ผ่อน SF: {financeItem.name}</span>
+          <input
+            autoFocus
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            value={commission}
+            onChange={(e) => setCommission(e.target.value)}
+            placeholder="ค่าคอมมิชชั่น"
+            data-testid="finance-commission"
+            className="w-28 rounded border border-neutral-300 p-1 text-sm"
+          />
           <button
-            key={`${item.kind}-${item.id}`}
             type="button"
-            data-testid={`catalog-item-${item.kind}-${item.id}`}
-            onClick={() => onAddCatalog(item)}
-            className="rounded border border-neutral-200 p-3 text-left"
+            onClick={submitFinance}
+            disabled={financing}
+            data-testid="finance-submit"
+            className="rounded bg-neutral-900 px-2 py-1 text-sm text-white disabled:opacity-40"
           >
-            <div className="font-medium">{item.name}</div>
-            <div className="text-sm text-neutral-500">
-              {item.code} · {item.price?.toLocaleString()} บาท
-              {item.kind === "product" && ` · เหลือ ${item.qty}`}
-            </div>
+            {financing ? "กำลังบันทึก..." : "บันทึก"}
           </button>
-        ))}
+          <button type="button" onClick={cancelFinance} className="text-sm text-neutral-500">
+            ยกเลิก
+          </button>
+          {financeError && (
+            <p data-testid="finance-error" className="basis-full rounded bg-red-50 p-1 text-sm text-red-600">
+              {financeError}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {filtered.map((item) =>
+          item.kind === "device" && item.acquisition === "sf_credit" ? (
+            <div
+              key={`${item.kind}-${item.id}`}
+              data-testid={`catalog-item-device-${item.id}`}
+              className="rounded border border-neutral-200 p-3"
+            >
+              <div className="font-medium">{item.name}</div>
+              <div className="text-sm text-neutral-500">
+                {item.code} · {item.price?.toLocaleString()} บาท
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => onAddCatalog(item)}
+                  className="rounded border border-neutral-300 px-2 py-1 text-sm"
+                >
+                  ขายสด
+                </button>
+                <button
+                  type="button"
+                  data-testid="finance-device"
+                  onClick={() => {
+                    setFinanceItem(item);
+                    setCommission("");
+                    setFinanceError(null);
+                  }}
+                  className="rounded bg-neutral-900 px-2 py-1 text-sm text-white"
+                >
+                  ผ่อน SF
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              key={`${item.kind}-${item.id}`}
+              type="button"
+              data-testid={`catalog-item-${item.kind}-${item.id}`}
+              onClick={() => onAddCatalog(item)}
+              className="rounded border border-neutral-200 p-3 text-left"
+            >
+              <div className="font-medium">{item.name}</div>
+              <div className="text-sm text-neutral-500">
+                {item.code} · {item.price?.toLocaleString()} บาท
+                {item.kind === "product" && ` · เหลือ ${item.qty}`}
+              </div>
+            </button>
+          ),
+        )}
         {filtered.length === 0 && (
           <p className="col-span-full text-sm text-neutral-500">
             ไม่พบสินค้า
