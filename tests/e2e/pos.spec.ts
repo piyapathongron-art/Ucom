@@ -10,6 +10,19 @@ async function loginStaff(page: import('@playwright/test').Page) {
   await page.waitForURL(url => !url.pathname.includes('/login'));
 }
 
+// Creates a product with stock so checkout tests never drain a shared item.
+async function createTestProduct(page: import('@playwright/test').Page): Promise<string> {
+  const name = `ZZTEST-POS-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  await page.goto('/stock');
+  await page.locator('[data-testid="open-add-product"]').click();
+  await page.locator('[data-testid="add-product-name"]').fill(name);
+  await page.locator('[data-testid="add-product-price"]').fill('100');
+  await page.locator('[data-testid="add-product-qty"]').fill('5');
+  await page.locator('[data-testid="add-product-submit"]').click();
+  await page.waitForTimeout(3000);
+  return name;
+}
+
 test.describe('POS — staff', () => {
   test.beforeEach(async ({ page }) => {
     await loginStaff(page);
@@ -48,6 +61,10 @@ test.describe('POS — staff', () => {
   });
 
   test('checkout with cash', async ({ page }) => {
+    const productName = await createTestProduct(page);
+    await page.goto('/pos');
+    await page.locator('[data-testid="catalog-search"]').fill(productName);
+    await expect(page.locator('[data-testid^="catalog-item-product-"]')).toHaveCount(1);
     await page.locator('[data-testid^="catalog-item-product-"]').first().click();
     await page.locator('[data-testid="pay-cash"]').click();
     await page.locator('[data-testid="checkout-submit"]').click();
@@ -62,9 +79,10 @@ test.describe('POS — staff', () => {
   });
 
   test('checkout with transfer shows the account field', async ({ page }) => {
-    // Reload and add a product
-    await page.reload();
-
+    const productName = await createTestProduct(page);
+    await page.goto('/pos');
+    await page.locator('[data-testid="catalog-search"]').fill(productName);
+    await expect(page.locator('[data-testid^="catalog-item-product-"]')).toHaveCount(1);
     await page.locator('[data-testid^="catalog-item-product-"]').first().click();
 
     // Switch to transfer payment
