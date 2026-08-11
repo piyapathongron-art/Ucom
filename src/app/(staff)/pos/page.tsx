@@ -17,15 +17,28 @@ export default function PosPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function loadCatalog() {
-    supabase
-      .from("v_pos_catalog")
-      .select("*")
-      .then(({ data }) => setCatalog(data ?? []));
-    supabase
-      .from("v_pos_top_products")
-      .select("*")
-      .then(({ data }) => setTopProducts(data ?? []));
+  async function loadCatalog() {
+    const [{ data: catalogRows }, { data: stockRows }, { data: topProductRows }] =
+      await Promise.all([
+        supabase.from("v_pos_catalog").select("*"),
+        supabase.from("v_pos_stock").select("*"),
+        supabase.from("v_pos_top_products").select("*"),
+      ]);
+
+    const acquisitionById = new Map(
+      (stockRows ?? [])
+        .filter((row) => row.kind === "device" && row.id)
+        .map((row) => [row.id!, row.acquisition] as const),
+    );
+    const enrichDevices = (rows: CatalogRow[] | null): CatalogRow[] =>
+      (rows ?? []).map((row) =>
+        row.kind === "device"
+          ? { ...row, acquisition: acquisitionById.get(row.id ?? "") ?? null }
+          : row,
+      );
+
+    setCatalog(enrichDevices(catalogRows));
+    setTopProducts(enrichDevices(topProductRows));
   }
 
   useEffect(() => {

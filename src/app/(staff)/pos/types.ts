@@ -1,6 +1,8 @@
 import type { Tables } from "@/lib/types/database";
 
-export type CatalogRow = Tables<"v_pos_catalog">;
+export type CatalogRow = Tables<"v_pos_catalog"> & {
+  acquisition?: string | null;
+};
 export type Carrier = Tables<"v_pos_topup_carriers">;
 
 export type CartLine =
