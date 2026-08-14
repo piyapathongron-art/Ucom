@@ -6,6 +6,33 @@ export type ReportRow = { [K in keyof Tables<"v_daily_report">]: NonNullable<Tab
 
 export type Grouping = "day" | "month" | "year";
 
+// one money event: a bill, a closed repair job, a financed device, an expense. The view
+// it comes from is what v_daily_report sums, so a drilled-open day always adds up to the
+// row above it.
+export type ReportEntry = Tables<"v_report_entries">;
+
+// a day is the smallest bucket the report has; below it there are entries, not buckets.
+export function drillInto(grouping: Grouping): Grouping | null {
+  if (grouping === "year") return "month";
+  if (grouping === "month") return "day";
+  return null;
+}
+
+export function entryRevenue(e: ReportEntry): number {
+  return (e.sale_revenue ?? 0) + (e.repair_revenue ?? 0) + (e.sf_commission ?? 0);
+}
+
+export function entryProfit(e: ReportEntry): number {
+  return (e.sale_profit ?? 0) + (e.repair_profit ?? 0) + (e.sf_commission ?? 0) - (e.expense ?? 0);
+}
+
+export const KIND_LABEL: Record<string, string> = {
+  sale: "ขาย",
+  repair: "งานซ่อม",
+  sf: "ผ่อน SF",
+  expense: "รายจ่าย",
+};
+
 export const GROUPING_LABEL: Record<Grouping, string> = { day: "รายวัน", month: "รายเดือน", year: "รายปี" };
 
 export function todayInBangkok(): string {

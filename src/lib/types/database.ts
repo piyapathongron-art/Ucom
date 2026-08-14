@@ -728,6 +728,23 @@ export type Database = {
         }
         Relationships: []
       }
+      v_report_entries: {
+        Row: {
+          day: string | null
+          detail: string | null
+          expense: number | null
+          kind: string | null
+          label: string | null
+          occurred_at: string | null
+          ref_id: string | null
+          repair_profit: number | null
+          repair_revenue: number | null
+          sale_profit: number | null
+          sale_revenue: number | null
+          sf_commission: number | null
+        }
+        Relationships: []
+      }
       v_sale_profit: {
         Row: {
           bill_discount: number | null
