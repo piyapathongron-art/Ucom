@@ -136,6 +136,52 @@ test.describe("Report", () => {
     expect(fetches).toBe(afterLoad);
   });
 
+  test("drilling year → month → day → bill keeps the numbers of the row above", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/report");
+    await page.locator('[data-testid="quick-year"]').click();
+    await page.locator('[data-testid="group-year"]').click();
+
+    const year = todayInBangkok().slice(0, 4);
+    await page.locator(`[data-testid="report-row-${year}"]`).click();
+
+    // months only exist as rows once the year is open — no refetch, the same summary
+    // re-cut one level down
+    const firstMonth = page.locator(`[data-testid^="report-row-${year}-"]`).first();
+    await expect(firstMonth).toBeVisible({ timeout: 15000 });
+    const monthBucket = (await firstMonth.getAttribute("data-testid"))!.replace("report-row-", "");
+    await firstMonth.click();
+
+    const firstDay = page.locator(`[data-testid^="report-row-${monthBucket}-"]`).first();
+    const dayBucket = (await firstDay.getAttribute("data-testid"))!.replace("report-row-", "");
+    const dayNet = parseMoney(await firstDay.locator("td").nth(COL_NET_PROFIT).textContent());
+    await firstDay.click();
+
+    // the day's entries come from v_report_entries, which is what v_daily_report sums —
+    // if these two ever disagree the drill-down is lying about where the money went
+    await expect(page.locator(`[data-testid="report-detail-${dayBucket}"]`)).toBeVisible({ timeout: 15000 });
+    const profits = page.locator(`[data-testid="day-entries-${dayBucket}"] [data-testid="entry-profit"]`);
+    await expect(profits.first()).toBeVisible({ timeout: 15000 });
+    const texts = await profits.allTextContents();
+    const summed = texts.reduce((acc, t) => acc + parseMoney(t.replace("กำไร", "")), 0);
+    expect(summed).toBeCloseTo(dayNet, 2);
+
+    // the newest day can easily be a repair-only or expense-only day, and skipping the
+    // bill assertion on those days would let the line-item feature rot behind a green
+    // test — walk down the days until one actually has a bill to open.
+    const dayRows = page.locator(`[data-testid^="report-row-${monthBucket}-"]`);
+    let openBill = page.locator('[data-testid^="open-sale-"]').first();
+    for (let i = 1; (await openBill.count()) === 0 && i < (await dayRows.count()); i += 1) {
+      await dayRows.nth(i).click();
+      openBill = page.locator('[data-testid^="open-sale-"]').first();
+    }
+    await expect(openBill).toBeVisible({ timeout: 15000 });
+
+    const saleId = (await openBill.getAttribute("data-testid"))!.replace("open-sale-", "");
+    await openBill.click();
+    await expect(page.locator(`[data-testid="sale-lines-${saleId}"] tr`).first()).toBeVisible({ timeout: 15000 });
+  });
+
   test("a range with no activity says so instead of showing an empty table", async ({ page }) => {
     await loginAs(page, "admin");
     await page.goto("/report");
