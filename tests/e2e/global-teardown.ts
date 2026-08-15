@@ -74,6 +74,18 @@ async function globalTeardown(): Promise<void> {
       }
     }
 
+    // a top-up bill snapshots the carrier's own name, so nothing on its lines says
+    // "test" — the offline spec marks those bills in the note instead
+    const { data: byNote, error: err3 } = await supabase
+      .from("sales")
+      .select("id")
+      .like("note", "%ZZTEST%");
+
+    if (err3) throw err3;
+    if (byNote) {
+      byNote.forEach((s) => saleIds.add(s.id));
+    }
+
     const saleIdsArray = Array.from(saleIds);
     if (saleIdsArray.length > 0) {
       const { data: deletedSales, error: delSaleErr } = await supabase

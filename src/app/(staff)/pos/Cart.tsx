@@ -205,6 +205,7 @@ export function Cart({
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
+          data-testid="bill-note"
           placeholder="โน้ต"
           className="w-full rounded border border-neutral-300 p-2 text-sm"
         />
