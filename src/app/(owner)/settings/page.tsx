@@ -87,19 +87,21 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="p-8 space-y-6">
-      <div>
+    <main className="space-y-6 p-4 md:p-8">
+      <div className="border-b border-border pb-4">
         <h1 className="text-2xl font-semibold">ตั้งค่า</h1>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-ink-muted">
           จัดการและสำรองข้อมูลระบบ
         </p>
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm space-y-4 max-w-xl">
-        <h2 className="text-lg font-medium">สำรองข้อมูลระบบ</h2>
-        <p className="text-sm text-neutral-500">
-          ดาวน์โหลดข้อมูลทั้งหมดในระบบในรูปแบบไฟล์ JSON สำหรับการสำรองข้อมูล
-        </p>
+      <section className="max-w-xl space-y-5 border border-border bg-surface p-4 shadow-sm md:p-6">
+        <div className="border-b border-border pb-3">
+          <h2 className="text-lg font-medium">สำรองข้อมูลระบบ</h2>
+          <p className="mt-1 text-sm text-ink-muted">
+            ดาวน์โหลดข้อมูลทั้งหมดในระบบในรูปแบบไฟล์ JSON สำหรับการสำรองข้อมูล
+          </p>
+        </div>
 
         <div>
           <button
@@ -107,7 +109,7 @@ export default function SettingsPage() {
             data-testid="export-button"
             disabled={isExporting}
             onClick={handleExport}
-            className="rounded bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-ink px-4 py-2 text-sm font-medium text-surface transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isExporting ? "กำลังรวบรวมข้อมูล" : "ดาวน์โหลดไฟล์สำรอง"}
           </button>
@@ -116,7 +118,7 @@ export default function SettingsPage() {
         {error && (
           <div
             data-testid="export-error"
-            className="rounded bg-red-50 p-3 text-sm text-red-600"
+            className="border border-danger bg-danger/10 p-3 text-sm text-danger"
           >
             {error}
           </div>
@@ -125,19 +127,20 @@ export default function SettingsPage() {
         {summary && (
           <div
             data-testid="export-summary"
-            className="rounded bg-neutral-50 p-4 border border-neutral-200 text-sm space-y-1"
+            className="space-y-2 border border-border bg-background p-4 text-sm"
           >
-            <p className="font-medium text-neutral-700 mb-2">
+            <p className="border-b border-border pb-2 font-medium text-ink">
               สรุปจำนวนข้อมูลที่ส่งออก:
             </p>
             {summary.map((item) => (
-              <div key={item.table} className="text-neutral-600">
-                {item.table} — {item.count} แถว
+              <div key={item.table} className="flex justify-between gap-4 text-ink-muted">
+                <span>{item.table}</span>
+                <span className="font-mono text-ink">{item.count} แถว</span>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </section>
     </main>
   );
 }
