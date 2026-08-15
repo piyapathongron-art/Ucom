@@ -26,7 +26,7 @@ test.describe('Stock — staff', () => {
   test('add a product', async ({ page }) => {
     // unique suffix — running this suite repeatedly against prod must not collide
     // with a product left over from a previous run
-    const name = 'เทสสินค้า ' + Date.now();
+    const name = 'ZZTEST-product-' + Date.now();
     await page.locator('[data-testid="open-add-product"]').click();
     await page.locator('[data-testid="add-product-name"]').fill(name);
     await page.locator('[data-testid="add-product-price"]').fill('123');
@@ -43,7 +43,7 @@ test.describe('Stock — staff', () => {
 
   test('add a device', async ({ page }) => {
     const imei = randomImei(1);
-    const name = 'เทสเครื่อง ' + Date.now();
+    const name = 'ZZTEST-device-' + Date.now();
     await page.locator('[data-testid="open-add-device"]').click();
     await page.locator('[data-testid="add-device-imei"]').fill(imei);
     await page.locator('[data-testid="add-device-model"]').fill(name);
@@ -59,9 +59,9 @@ test.describe('Stock — staff', () => {
   });
 
   test('receive an SF order (bulk device intake)', async ({ page }) => {
-    const orderNo = 'TEST-' + Date.now();
+    const orderNo = 'TEST-SF-' + Date.now();
     const imei = randomImei(2);
-    const name = 'เทส SF ' + Date.now();
+    const name = 'ZZTEST-SF-' + Date.now();
     await page.locator('[data-testid="open-sf-intake"]').click();
     await page.locator('[data-testid="sf-order-no"]').fill(orderNo);
     await page.locator('[data-testid="sf-device-imei-0"]').fill(imei);
