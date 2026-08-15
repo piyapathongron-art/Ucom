@@ -75,13 +75,13 @@ export function Catalog({
             type="button"
             data-testid={`topup-carrier-${c.name}`}
             onClick={() => setTopupCarrier(c)}
-            className="rounded border border-neutral-300 px-3 py-1.5 text-sm font-medium"
+            className="rounded border border-border px-3 py-1.5 text-sm font-medium"
           >
             เติมเงิน {c.name}
           </button>
         ))}
         {topupCarrier && (
-          <div className="flex items-center gap-2 rounded border border-neutral-300 p-1.5">
+          <div className="flex items-center gap-2 rounded border border-border p-1.5">
             <span className="text-sm">{topupCarrier.name}</span>
             <input
               autoFocus
@@ -92,20 +92,20 @@ export function Catalog({
               onChange={(e) => setTopupAmount(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitTopup()}
               data-testid="topup-amount"
-              className="w-24 rounded border border-neutral-300 p-1 text-sm"
+              className="w-24 rounded border border-border p-1 text-sm"
             />
             <button
               type="button"
               onClick={submitTopup}
               data-testid="topup-add"
-              className="rounded bg-neutral-900 px-2 py-1 text-sm text-white"
+              className="rounded bg-ink px-2 py-1 text-sm text-surface"
             >
               เพิ่ม
             </button>
             <button
               type="button"
               onClick={() => setTopupCarrier(null)}
-              className="text-sm text-neutral-500"
+              className="text-sm text-ink-muted"
             >
               ยกเลิก
             </button>
@@ -120,7 +120,7 @@ export function Catalog({
               key={item.id}
               type="button"
               onClick={() => onAddCatalog(item)}
-              className="rounded-full border border-neutral-300 px-3 py-1 text-sm"
+              className="rounded-full border border-border px-3 py-1 text-sm"
             >
               {item.name}
             </button>
@@ -133,11 +133,11 @@ export function Catalog({
         onChange={(e) => setSearch(e.target.value)}
         placeholder="ค้นหาสินค้า/เครื่อง"
         data-testid="catalog-search"
-        className="w-full rounded border border-neutral-300 p-2"
+        className="w-full rounded border border-border p-2"
       />
 
       {financeItem && (
-        <div data-testid="finance-form" className="flex flex-wrap items-center gap-2 rounded border border-neutral-300 p-2">
+        <div data-testid="finance-form" className="flex flex-wrap items-center gap-2 rounded border border-border p-2">
           <span className="text-sm">ผ่อน SF: {financeItem.name}</span>
           <input
             autoFocus
@@ -149,22 +149,22 @@ export function Catalog({
             onChange={(e) => setCommission(e.target.value)}
             placeholder="ค่าคอมมิชชั่น"
             data-testid="finance-commission"
-            className="w-28 rounded border border-neutral-300 p-1 text-sm"
+            className="w-28 rounded border border-border p-1 text-sm"
           />
           <button
             type="button"
             onClick={submitFinance}
             disabled={financing}
             data-testid="finance-submit"
-            className="rounded bg-neutral-900 px-2 py-1 text-sm text-white disabled:opacity-40"
+            className="rounded bg-ink px-2 py-1 text-sm text-surface disabled:opacity-40"
           >
             {financing ? "กำลังบันทึก..." : "บันทึก"}
           </button>
-          <button type="button" onClick={cancelFinance} className="text-sm text-neutral-500">
+          <button type="button" onClick={cancelFinance} className="text-sm text-ink-muted">
             ยกเลิก
           </button>
           {financeError && (
-            <p data-testid="finance-error" className="basis-full rounded bg-red-50 p-1 text-sm text-red-600">
+            <p data-testid="finance-error" className="basis-full rounded bg-danger/10 p-1 text-sm text-danger">
               {financeError}
             </p>
           )}
@@ -177,17 +177,17 @@ export function Catalog({
             <div
               key={`${item.kind}-${item.id}`}
               data-testid={`catalog-item-device-${item.id}`}
-              className="rounded border border-neutral-200 p-3"
+              className="rounded border border-border p-3"
             >
               <div className="font-medium">{item.name}</div>
-              <div className="text-sm text-neutral-500">
-                {item.code} · {item.price?.toLocaleString()} บาท
+              <div className="text-sm text-ink-muted">
+                {item.code} · <span className="font-mono tabular-nums">{item.price?.toLocaleString()}</span> บาท
               </div>
               <div className="mt-2 flex gap-2">
                 <button
                   type="button"
                   onClick={() => onAddCatalog(item)}
-                  className="rounded border border-neutral-300 px-2 py-1 text-sm"
+                  className="rounded border border-border px-2 py-1 text-sm"
                 >
                   ขายสด
                 </button>
@@ -199,7 +199,7 @@ export function Catalog({
                     setCommission("");
                     setFinanceError(null);
                   }}
-                  className="rounded bg-neutral-900 px-2 py-1 text-sm text-white"
+                  className="rounded bg-ink px-2 py-1 text-sm text-surface"
                 >
                   ผ่อน SF
                 </button>
@@ -211,18 +211,18 @@ export function Catalog({
               type="button"
               data-testid={`catalog-item-${item.kind}-${item.id}`}
               onClick={() => onAddCatalog(item)}
-              className="rounded border border-neutral-200 p-3 text-left"
+              className="rounded border border-border p-3 text-left"
             >
               <div className="font-medium">{item.name}</div>
-              <div className="text-sm text-neutral-500">
-                {item.code} · {item.price?.toLocaleString()} บาท
+              <div className="text-sm text-ink-muted">
+                {item.code} · <span className="font-mono tabular-nums">{item.price?.toLocaleString()}</span> บาท
                 {item.kind === "product" && ` · เหลือ ${item.qty}`}
               </div>
             </button>
           ),
         )}
         {filtered.length === 0 && (
-          <p className="col-span-full text-sm text-neutral-500">
+          <p className="col-span-full text-sm text-ink-muted">
             ไม่พบสินค้า
           </p>
         )}

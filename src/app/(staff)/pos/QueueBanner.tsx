@@ -20,8 +20,8 @@ export function QueueBanner({
       data-testid="queue-banner"
       className={
         rejected.length > 0
-          ? "border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"
-          : "border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800"
+          ? "border-b border-danger bg-danger/10 px-4 py-2 text-sm text-danger"
+          : "border-b border-warning bg-warning/10 px-4 py-2 text-sm text-warning"
       }
     >
       <div className="flex items-center gap-3">

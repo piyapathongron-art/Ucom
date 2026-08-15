@@ -39,17 +39,17 @@ export function Cart({
   const total = itemsTotal - (Number(billDiscount) || 0);
 
   return (
-    <div className="flex w-96 flex-col border-l border-neutral-200">
+    <div className="flex w-96 flex-col border-l border-border">
       <div className="flex-1 overflow-y-auto p-4">
         {lines.length === 0 && (
-          <p className="text-sm text-neutral-500">ตะกร้าว่าง</p>
+          <p className="text-sm text-ink-muted">ตะกร้าว่าง</p>
         )}
         <ul className="space-y-3" data-testid="cart-lines" data-count={lines.length}>
           {lines.map((line) => (
             <li
               key={line.uid}
               data-testid={`cart-line-${line.kind}`}
-              className="rounded border border-neutral-200 p-2"
+              className="rounded border border-border p-2"
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="font-medium">
@@ -58,7 +58,7 @@ export function Cart({
                 <button
                   type="button"
                   onClick={() => onRemoveLine(line.uid)}
-                  className="text-sm text-red-600"
+                  className="text-sm text-danger"
                 >
                   ลบ
                 </button>
@@ -73,7 +73,7 @@ export function Cart({
                         qty: Math.max(1, line.qty - 1),
                       } as Partial<CartLine>)
                     }
-                    className="rounded border border-neutral-300 px-2"
+                    className="rounded border border-border px-2"
                   >
                     −
                   </button>
@@ -85,18 +85,18 @@ export function Cart({
                         qty: Math.min(line.maxQty, line.qty + 1),
                       } as Partial<CartLine>)
                     }
-                    className="rounded border border-neutral-300 px-2"
+                    className="rounded border border-border px-2"
                   >
                     +
                   </button>
-                  <span className="ml-auto">
+                  <span className="ml-auto font-mono tabular-nums">
                     {(line.unitPrice * line.qty).toLocaleString()} บาท
                   </span>
                 </div>
               )}
 
               {line.kind === "device" && (
-                <div className="mt-1 text-sm">
+                <div className="mt-1 text-sm font-mono tabular-nums">
                   {line.unitPrice.toLocaleString()} บาท
                 </div>
               )}
@@ -113,7 +113,7 @@ export function Cart({
                       } as Partial<CartLine>)
                     }
                     placeholder="ส่วนลด"
-                    className="w-20 rounded border border-neutral-300 p-1 text-sm"
+                    className="w-20 rounded border border-border p-1 text-sm"
                   />
                   <input
                     value={line.discountReason}
@@ -123,13 +123,13 @@ export function Cart({
                       } as Partial<CartLine>)
                     }
                     placeholder="เหตุผลส่วนลด"
-                    className="flex-1 rounded border border-neutral-300 p-1 text-sm"
+                    className="flex-1 rounded border border-border p-1 text-sm"
                   />
                 </div>
               )}
 
               {line.kind === "topup" && (
-                <div className="mt-1 text-sm">
+                <div className="mt-1 text-sm font-mono tabular-nums">
                   {line.amount.toLocaleString()} บาท
                 </div>
               )}
@@ -138,11 +138,11 @@ export function Cart({
         </ul>
       </div>
 
-      <div className="space-y-3 border-t border-neutral-200 p-4">
+      <div className="space-y-3 border-t border-border p-4">
         {error && (
           <p
             data-testid="checkout-error"
-            className="rounded bg-red-50 p-2 text-sm text-red-600"
+            className="rounded bg-danger/10 p-2 text-sm text-danger"
           >
             {error}
           </p>
@@ -155,8 +155,8 @@ export function Cart({
             onClick={() => setPaymentMethod("cash")}
             className={`flex-1 rounded border p-2 text-sm ${
               paymentMethod === "cash"
-                ? "border-neutral-900 bg-neutral-900 text-white"
-                : "border-neutral-300"
+                ? "border-ink bg-ink text-surface"
+                : "border-border"
             }`}
           >
             เงินสด
@@ -167,8 +167,8 @@ export function Cart({
             onClick={() => setPaymentMethod("transfer")}
             className={`flex-1 rounded border p-2 text-sm ${
               paymentMethod === "transfer"
-                ? "border-neutral-900 bg-neutral-900 text-white"
-                : "border-neutral-300"
+                ? "border-ink bg-ink text-surface"
+                : "border-border"
             }`}
           >
             โอน
@@ -181,7 +181,7 @@ export function Cart({
             onChange={(e) => setReceivingAccount(e.target.value)}
             placeholder="บัญชีที่รับเงิน"
             data-testid="receiving-account"
-            className="w-full rounded border border-neutral-300 p-2 text-sm"
+            className="w-full rounded border border-border p-2 text-sm"
           />
         )}
 
@@ -192,13 +192,13 @@ export function Cart({
             value={billDiscount}
             onChange={(e) => setBillDiscount(e.target.value)}
             placeholder="ส่วนลดท้ายบิล"
-            className="w-28 rounded border border-neutral-300 p-2 text-sm"
+            className="w-28 rounded border border-border p-2 text-sm"
           />
           <input
             value={billDiscountReason}
             onChange={(e) => setBillDiscountReason(e.target.value)}
             placeholder="เหตุผลส่วนลดท้ายบิล"
-            className="flex-1 rounded border border-neutral-300 p-2 text-sm"
+            className="flex-1 rounded border border-border p-2 text-sm"
           />
         </div>
 
@@ -207,12 +207,12 @@ export function Cart({
           onChange={(e) => setNote(e.target.value)}
           data-testid="bill-note"
           placeholder="โน้ต"
-          className="w-full rounded border border-neutral-300 p-2 text-sm"
+          className="w-full rounded border border-border p-2 text-sm"
         />
 
-        <div className="flex items-center justify-between font-medium">
-          <span>รวม</span>
-          <span>{total.toLocaleString()} บาท</span>
+        <div className="flex items-center justify-between">
+          <span className="text-lg font-semibold">รวม</span>
+          <span className="font-mono tabular-nums text-lg font-semibold">{total.toLocaleString()} บาท</span>
         </div>
 
         <button
@@ -228,7 +228,7 @@ export function Cart({
               note,
             })
           }
-          className="w-full rounded bg-neutral-900 p-2 text-white disabled:opacity-40"
+          className="w-full rounded bg-ink p-2 text-surface disabled:opacity-40"
         >
           {submitting ? "กำลังบันทึก..." : "ปิดบิล"}
         </button>

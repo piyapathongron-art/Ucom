@@ -314,7 +314,12 @@ export default function PosPage() {
   return (
     <main className="flex h-full flex-1 flex-col">
       <QueueBanner queue={queue} isSyncing={isSyncing} onSync={() => syncQueue()} />
-      <div className="flex flex-1">
+      <div className="flex flex-1 items-center justify-center p-8 text-center md:hidden">
+        <p className="text-ink-muted">
+          หน้าขายต้องใช้จอกว้างขึ้น — กรุณาเปิดด้วยแท็บเล็ตหรือคอมพิวเตอร์
+        </p>
+      </div>
+      <div className="hidden flex-1 md:flex">
       <Catalog
         catalog={catalog}
         topProducts={topProducts}
