@@ -6,12 +6,20 @@ async function globalTeardown(): Promise<void> {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !anonKey) {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local");
   }
+  if (!serviceRoleKey) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY in .env.local — needed to bypass RLS for sf_commission_receipts cleanup (it has no owner-write policy by design, ADR 0016)");
+  }
 
   const supabase = createClient(url, anonKey);
+  // sf_commission_receipts intentionally has no direct-write RLS policy (ADR 0016 — all
+  // writes go through SECURITY DEFINER RPCs to preserve the audit trail). Test cleanup
+  // bypasses RLS with the service role instead of weakening that policy for production.
+  const supabaseAdmin = createClient(url, serviceRoleKey);
 
   const { error: authError } = await supabase.auth.signInWithPassword({
     email: "admin@ucom.local",
@@ -116,6 +124,33 @@ async function globalTeardown(): Promise<void> {
     console.log(`cleanup: repair_jobs removed ${deletedJobs ? deletedJobs.length : 0}`);
   } catch (err) {
     console.error("cleanup: repair_jobs error", err);
+    hasError = true;
+  }
+
+  // Step d-pre: sf_commission_receipts for ZZTEST% device_units (FK is RESTRICT, must go first)
+  try {
+    const { data: zzTestUnits, error: unitsQueryErr } = await supabase
+      .from("device_units")
+      .select("id")
+      .like("model_name", "ZZTEST%");
+
+    if (unitsQueryErr) throw unitsQueryErr;
+    const zzTestUnitIds = (zzTestUnits ?? []).map((u) => u.id);
+
+    if (zzTestUnitIds.length > 0) {
+      const { data: deletedReceipts, error: receiptErr } = await supabaseAdmin
+        .from("sf_commission_receipts")
+        .delete()
+        .in("device_unit_id", zzTestUnitIds)
+        .select("id");
+
+      if (receiptErr) throw receiptErr;
+      console.log(`cleanup: sf_commission_receipts removed ${deletedReceipts ? deletedReceipts.length : 0}`);
+    } else {
+      console.log("cleanup: sf_commission_receipts removed 0");
+    }
+  } catch (err) {
+    console.error("cleanup: sf_commission_receipts error", err);
     hasError = true;
   }
 

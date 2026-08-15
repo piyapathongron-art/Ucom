@@ -29,7 +29,7 @@ export function entryProfit(e: ReportEntry): number {
 export const KIND_LABEL: Record<string, string> = {
   sale: "ขาย",
   repair: "งานซ่อม",
-  sf: "ผ่อน SF",
+  sf: "ค่าคอม SF",
   expense: "รายจ่าย",
 };
 

@@ -163,10 +163,9 @@ export default function PosPage() {
     setLines((prev) => prev.filter((l) => l.uid !== uid));
   }
 
-  async function financeDevice(item: CatalogRow, commission: number): Promise<string | null> {
+  async function financeDevice(item: CatalogRow): Promise<string | null> {
     const { error } = await supabase.rpc("rpc_finance_device", {
       p_device_id: item.id!,
-      p_commission: commission,
     });
     if (error) return error.message;
     await loadCatalog();

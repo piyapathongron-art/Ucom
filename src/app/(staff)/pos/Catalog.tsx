@@ -16,13 +16,12 @@ export function Catalog({
   carriers: Carrier[];
   onAddCatalog: (item: CatalogRow) => void;
   onAddTopup: (carrier: Carrier, amount: number) => void;
-  onFinanceDevice: (item: CatalogRow, commission: number) => Promise<string | null>;
+  onFinanceDevice: (item: CatalogRow) => Promise<string | null>;
 }) {
   const [search, setSearch] = useState("");
   const [topupCarrier, setTopupCarrier] = useState<Carrier | null>(null);
   const [topupAmount, setTopupAmount] = useState("");
   const [financeItem, setFinanceItem] = useState<CatalogRow | null>(null);
-  const [commission, setCommission] = useState("");
   const [financeError, setFinanceError] = useState<string | null>(null);
   const [financing, setFinancing] = useState(false);
 
@@ -44,20 +43,15 @@ export function Catalog({
 
   function cancelFinance() {
     setFinanceItem(null);
-    setCommission("");
     setFinanceError(null);
   }
 
   async function submitFinance() {
-    const value = Number(commission);
-    if (!financeItem || commission.trim() === "" || !Number.isFinite(value) || value < 0) {
-      setFinanceError("ต้องระบุค่าคอมมิชชั่นเป็นตัวเลขไม่ติดลบ");
-      return;
-    }
+    if (!financeItem) return;
 
     setFinancing(true);
     setFinanceError(null);
-    const error = await onFinanceDevice(financeItem, value);
+    const error = await onFinanceDevice(financeItem);
     setFinancing(false);
     if (error) {
       setFinanceError(error);
@@ -139,18 +133,6 @@ export function Catalog({
       {financeItem && (
         <div data-testid="finance-form" className="flex flex-wrap items-center gap-2 rounded border border-border p-2">
           <span className="text-sm">ผ่อน SF: {financeItem.name}</span>
-          <input
-            autoFocus
-            type="number"
-            min="0"
-            step="0.01"
-            inputMode="decimal"
-            value={commission}
-            onChange={(e) => setCommission(e.target.value)}
-            placeholder="ค่าคอมมิชชั่น"
-            data-testid="finance-commission"
-            className="w-28 rounded border border-border p-1 text-sm"
-          />
           <button
             type="button"
             onClick={submitFinance}
@@ -196,7 +178,6 @@ export function Catalog({
                   data-testid="finance-device"
                   onClick={() => {
                     setFinanceItem(item);
-                    setCommission("");
                     setFinanceError(null);
                   }}
                   className="rounded bg-ink px-2 py-1 text-sm text-surface"

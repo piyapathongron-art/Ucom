@@ -437,6 +437,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sale_items_device_unit_id_fkey"
+            columns: ["device_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_sf_pending"
+            referencedColumns: ["device_unit_id"]
+          },
+          {
             foreignKeyName: "sale_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -538,6 +545,71 @@ export type Database = {
           {
             foreignKeyName: "sales_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sf_commission_receipts: {
+        Row: {
+          amount: number
+          device_unit_id: string
+          id: string
+          received_on: string
+          recorded_at: string
+          recorded_by: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          device_unit_id: string
+          id?: string
+          received_on: string
+          recorded_at?: string
+          recorded_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          device_unit_id?: string
+          id?: string
+          received_on?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sf_commission_receipts_device_unit_id_fkey"
+            columns: ["device_unit_id"]
+            isOneToOne: false
+            referencedRelation: "device_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sf_commission_receipts_device_unit_id_fkey"
+            columns: ["device_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_sf_pending"
+            referencedColumns: ["device_unit_id"]
+          },
+          {
+            foreignKeyName: "sf_commission_receipts_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sf_commission_receipts_voided_by_fkey"
+            columns: ["voided_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -911,6 +983,62 @@ export type Database = {
         }
         Relationships: []
       }
+      v_sf_pending: {
+        Row: {
+          device_unit_id: string | null
+          financed_at: string | null
+          imei: string | null
+          model_name: string | null
+        }
+        Insert: {
+          device_unit_id?: string | null
+          financed_at?: string | null
+          imei?: string | null
+          model_name?: string | null
+        }
+        Update: {
+          device_unit_id?: string | null
+          financed_at?: string | null
+          imei?: string | null
+          model_name?: string | null
+        }
+        Relationships: []
+      }
+      v_sf_receipts: {
+        Row: {
+          amount: number | null
+          device_unit_id: string | null
+          id: string | null
+          imei: string | null
+          model_name: string | null
+          received_on: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sf_commission_receipts_device_unit_id_fkey"
+            columns: ["device_unit_id"]
+            isOneToOne: false
+            referencedRelation: "device_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sf_commission_receipts_device_unit_id_fkey"
+            columns: ["device_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_sf_pending"
+            referencedColumns: ["device_unit_id"]
+          },
+          {
+            foreignKeyName: "sf_commission_receipts_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_topup_wallet_balance: {
         Row: {
           balance: number | null
@@ -938,14 +1066,28 @@ export type Database = {
         Args: { p_job_id: string; p_sale_payload: Json }
         Returns: string
       }
+      rpc_correct_sf_commission: {
+        Args: {
+          p_amount: number
+          p_device_unit_id: string
+          p_received_on: string
+          p_void_reason: string
+        }
+        Returns: string
+      }
       rpc_create_repair_job: { Args: { payload: Json }; Returns: string }
       rpc_create_sale: { Args: { payload: Json }; Returns: string }
       rpc_delete_shop_expense: { Args: { p_id: string }; Returns: undefined }
-      rpc_finance_device: {
-        Args: { p_commission: number; p_device_id: string }
-        Returns: undefined
-      }
+      rpc_finance_device: { Args: { p_device_id: string }; Returns: undefined }
       rpc_receive_sf_order: { Args: { payload: Json }; Returns: string }
+      rpc_record_sf_commission: {
+        Args: {
+          p_amount: number
+          p_device_unit_id: string
+          p_received_on: string
+        }
+        Returns: string
+      }
       rpc_set_part_cost: {
         Args: { p_cost: number; p_job_id: string }
         Returns: undefined
