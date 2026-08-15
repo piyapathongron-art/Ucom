@@ -6,6 +6,7 @@ const links = [
   { href: "/stock", label: "สต็อก" },
   { href: "/repairs", label: "งานซ่อม" },
   { href: "/report", label: "รายงาน" },
+  { href: "/expenses", label: "รายจ่าย" },
   { href: "/settings", label: "ตั้งค่า" },
 ];
 

@@ -47,7 +47,7 @@ export async function proxy(request: NextRequest) {
   // them apart from the URL alone — ask the DB. RLS still guards every real
   // read/write; this redirect is just so staff don't land on a blank owner
   // page instead of a "not allowed" bounce.
-  const ownerOnlyPrefixes = ["/report", "/settings"];
+  const ownerOnlyPrefixes = ["/report", "/settings", "/expenses"];
   if (user && ownerOnlyPrefixes.some((p) => path.startsWith(p))) {
     const { data: profile } = await supabase
       .from("profiles")
