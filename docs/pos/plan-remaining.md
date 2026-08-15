@@ -58,12 +58,11 @@ Claude ต้องรัน `tsc` + `eslint` เอง และดูไฟล
 
 **เตือน:** entry ที่ insert แล้วยังไม่มีทางลบผ่าน UI — ตั้งใจ (ADR 0009 แนวเดียวกับไม่มี restore) เติมผิดแก้ผ่าน SQL
 
-## 5. เพิกถอนสิทธิ์เขียนบน `v_sale_profit` — Claude ทำเอง (R0)
+## 5. เพิกถอนสิทธิ์เขียนบน `v_sale_profit` — **เสร็จแล้ว (15 ส.ค. 2026)**
 
-`v_sale_profit` แจก `authenticated` สิทธิ์ INSERT/UPDATE/DELETE/TRUNCATE ต่างจาก view รายงานตัวอื่นที่ได้แค่ SELECT
-รูปแบบเดียวกับช่องโหว่ auto-updatable view ที่เจอตอนเฟส 6 — เป็นงาน security + migration ลง prod ไม่ delegate
-
-ขั้นตอน: ตรวจ grant ปัจจุบันจาก `information_schema.role_table_grants` → migration `revoke insert, update, delete, truncate on public.v_sale_profit from authenticated, anon` → ขออนุมัติ → apply → dump grant กลับมาเทียบ (§6)
+ตรวจแล้ว: `is_updatable = NO` (view มี join/aggregate) — ไม่ใช่ช่องโหว่ที่ยิงได้จริงตอนนั้น แต่เป็น grant ผิดหลัก least-privilege ค้างไว้
+Migration `revoke_write_grants_on_v_sale_profit`: `revoke insert, update, delete, truncate on public.v_sale_profit from authenticated;`
+Verify หลัง apply: `authenticated` เหลือแค่ `SELECT` (+ `REFERENCES`/`TRIGGER` ที่ไม่มีความหมายจริง) ตรงกับ view รายงานตัวอื่นแล้ว
 
 ## 6. เฟส 8 คิว offline — Claude ทำเอง
 
