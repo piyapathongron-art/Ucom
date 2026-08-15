@@ -5,6 +5,7 @@ const links = [
   { href: "/pos", label: "หน้าขาย" },
   { href: "/stock", label: "สต็อก" },
   { href: "/repairs", label: "งานซ่อม" },
+  { href: "/close-day", label: "ปิดร้าน" },
 ];
 
 export default function StaffLayout({ children }: LayoutProps<"/">) {

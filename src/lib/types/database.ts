@@ -35,6 +35,44 @@ export type Database = {
         }
         Relationships: []
       }
+      day_closings: {
+        Row: {
+          closed_at: string
+          closed_by: string | null
+          closing_date: string
+          counted_cash: number
+          created_at: string
+          id: string
+          note: string | null
+        }
+        Insert: {
+          closed_at?: string
+          closed_by?: string | null
+          closing_date: string
+          counted_cash: number
+          created_at?: string
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string | null
+          closing_date?: string
+          counted_cash?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_closings_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_units: {
         Row: {
           acquisition: string
@@ -155,6 +193,7 @@ export type Database = {
           id: string
           is_imported: boolean
           name: string
+          paid_from: string | null
           spent_at: string
         }
         Insert: {
@@ -165,6 +204,7 @@ export type Database = {
           id?: string
           is_imported?: boolean
           name: string
+          paid_from?: string | null
           spent_at?: string
         }
         Update: {
@@ -175,6 +215,7 @@ export type Database = {
           id?: string
           is_imported?: boolean
           name?: string
+          paid_from?: string | null
           spent_at?: string
         }
         Relationships: [
@@ -332,6 +373,13 @@ export type Database = {
             foreignKeyName: "repair_jobs_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "v_close_day_bills"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "repair_jobs_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "v_sale_profit"
             referencedColumns: ["sale_id"]
           },
@@ -408,6 +456,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "v_close_day_bills"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "sale_items_sale_id_fkey"
@@ -588,6 +643,80 @@ export type Database = {
       }
     }
     Views: {
+      v_close_day_bills: {
+        Row: {
+          bill_total: number | null
+          day: string | null
+          item_count: number | null
+          payment_method: string | null
+          sale_id: string | null
+          sold_at: string | null
+        }
+        Relationships: []
+      }
+      v_close_day_expenses: {
+        Row: {
+          amount: number | null
+          created_by: string | null
+          day: string | null
+          id: string | null
+          name: string | null
+          paid_from: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_by?: string | null
+          day?: string | null
+          id?: string | null
+          name?: string | null
+          paid_from?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_by?: string | null
+          day?: string | null
+          id?: string | null
+          name?: string | null
+          paid_from?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_close_day_items: {
+        Row: {
+          day: string | null
+          kind: string | null
+          name_snapshot: string | null
+          qty: number | null
+          revenue: number | null
+        }
+        Relationships: []
+      }
+      v_close_day_sf: {
+        Row: {
+          day: string | null
+          imei: string | null
+          model_name: string | null
+        }
+        Insert: {
+          day?: never
+          imei?: string | null
+          model_name?: string | null
+        }
+        Update: {
+          day?: never
+          imei?: string | null
+          model_name?: string | null
+        }
+        Relationships: []
+      }
       v_daily_report: {
         Row: {
           day: string | null
@@ -676,6 +805,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_jobs_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "v_close_day_bills"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "repair_jobs_sale_id_fkey"
@@ -790,12 +926,21 @@ export type Database = {
     Functions: {
       pos_is_member: { Args: never; Returns: boolean }
       pos_is_owner: { Args: never; Returns: boolean }
+      rpc_add_shop_expense: {
+        Args: { p_amount: number; p_name: string; p_paid_from: string }
+        Returns: string
+      }
+      rpc_close_day: {
+        Args: { p_counted_cash: number; p_note: string }
+        Returns: string
+      }
       rpc_close_repair_job: {
         Args: { p_job_id: string; p_sale_payload: Json }
         Returns: string
       }
       rpc_create_repair_job: { Args: { payload: Json }; Returns: string }
       rpc_create_sale: { Args: { payload: Json }; Returns: string }
+      rpc_delete_shop_expense: { Args: { p_id: string }; Returns: undefined }
       rpc_finance_device: {
         Args: { p_commission: number; p_device_id: string }
         Returns: undefined
