@@ -33,7 +33,7 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
 
   if (rows.length === 0) {
     return (
-      <p data-testid="report-empty" className="text-neutral-500">
+      <p data-testid="report-empty" className="text-ink-muted">
         ไม่มีข้อมูลในช่วงที่เลือก
       </p>
     );
@@ -60,10 +60,10 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
             <tr
               data-testid={`report-row-${row.bucket}`}
               onClick={() => toggle(row.bucket)}
-              className="cursor-pointer border-b border-neutral-100 hover:bg-neutral-50"
+              className="cursor-pointer border-b border-border hover:bg-background"
             >
               <td className="px-4 py-2" style={{ paddingLeft: `${depth * 1.5 + 1}rem` }}>
-                <span className="mr-2 inline-block w-3 text-neutral-400">
+                <span className="mr-2 inline-block w-3 text-ink-muted">
                   {isOpen ? "▾" : "▸"}
                 </span>
                 {row.bucket}
@@ -71,7 +71,9 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
               {MONEY_COLUMNS.map(([label, key]) => (
                 <td
                   key={label}
-                  className={`px-4 py-2 text-right ${row[key] < 0 ? "text-red-600" : ""}`}
+                  className={`px-4 py-2 text-right font-mono ${
+                    key !== "net_profit" ? "hidden md:table-cell" : ""
+                  } ${row[key] < 0 ? "text-red-600" : ""}`}
                 >
                   {row[key].toLocaleString()}
                 </td>
@@ -81,7 +83,7 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
               (below ? (
                 renderLevel(row.bucketRows, below, depth + 1)
               ) : (
-                <tr data-testid={`report-detail-${row.bucket}`} className="bg-neutral-50">
+                <tr data-testid={`report-detail-${row.bucket}`} className="bg-background">
                   <td colSpan={COLUMN_COUNT} className="p-0">
                     <DayEntries day={row.bucket} />
                   </td>
@@ -96,10 +98,15 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm whitespace-nowrap">
         <thead>
-          <tr>
+          <tr className="border-b border-border">
             <th className="px-4 py-2 font-medium">ช่วง</th>
-            {MONEY_COLUMNS.map(([label]) => (
-              <th key={label} className="px-4 py-2 font-medium text-right">
+            {MONEY_COLUMNS.map(([label, key]) => (
+              <th
+                key={label}
+                className={`px-4 py-2 font-medium text-right ${
+                  key !== "net_profit" ? "hidden md:table-cell" : ""
+                }`}
+              >
                 {label}
               </th>
             ))}
