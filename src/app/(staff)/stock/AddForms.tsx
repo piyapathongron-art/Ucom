@@ -42,7 +42,7 @@ export function AddProductForm({
         type="button"
         onClick={() => setOpen(true)}
         data-testid="open-add-product"
-        className="rounded border border-neutral-300 px-3 py-1.5 text-sm"
+        className="ucom-secondary px-3 py-1.5 text-sm"
       >
         + เพิ่มสินค้า
       </button>
@@ -50,25 +50,25 @@ export function AddProductForm({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded border border-neutral-300 p-2">
+    <div className="ucom-toolbar rounded-md border-dashed p-2">
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="ชื่อสินค้า"
         data-testid="add-product-name"
-        className="rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field px-2 py-1.5 text-sm"
       />
       <input
         value={sku}
         onChange={(e) => setSku(e.target.value)}
         placeholder="SKU"
         data-testid="add-product-sku"
-        className="w-28 rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field w-28 px-2 py-1.5 text-sm"
       />
       <select
         value={categoryId}
         onChange={(e) => setCategoryId(e.target.value)}
-        className="rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field px-2 py-1.5 text-sm"
       >
         <option value="">ไม่มีหมวดหมู่</option>
         {categories.map((c) => (
@@ -83,7 +83,7 @@ export function AddProductForm({
         onChange={(e) => setPrice(e.target.value)}
         placeholder="ราคา"
         data-testid="add-product-price"
-        className="w-20 rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field w-20 px-2 py-1.5 text-sm"
       />
       <input
         type="number"
@@ -91,17 +91,17 @@ export function AddProductForm({
         onChange={(e) => setQty(e.target.value)}
         placeholder="จำนวน"
         data-testid="add-product-qty"
-        className="w-20 rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field w-20 px-2 py-1.5 text-sm"
       />
       <button
         type="button"
         onClick={submit}
         data-testid="add-product-submit"
-        className="rounded bg-neutral-900 px-2 py-1 text-sm text-white"
+        className="ucom-primary px-3 py-1.5 text-sm"
       >
         เพิ่ม
       </button>
-      <button type="button" onClick={() => setOpen(false)} className="text-sm text-neutral-500">
+      <button type="button" onClick={() => setOpen(false)} className="ucom-secondary px-3 py-1.5 text-sm">
         ยกเลิก
       </button>
     </div>
@@ -133,7 +133,7 @@ export function AddDeviceForm({
         type="button"
         onClick={() => setOpen(true)}
         data-testid="open-add-device"
-        className="rounded border border-neutral-300 px-3 py-1.5 text-sm"
+        className="ucom-secondary px-3 py-1.5 text-sm"
       >
         + เพิ่มเครื่อง (ซื้อขาด)
       </button>
@@ -141,20 +141,20 @@ export function AddDeviceForm({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded border border-neutral-300 p-2">
+    <div className="ucom-toolbar rounded-md border-dashed p-2">
       <input
         value={imei}
         onChange={(e) => setImei(e.target.value)}
         placeholder="IMEI"
         data-testid="add-device-imei"
-        className="w-40 rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field w-40 px-2 py-1.5 text-sm"
       />
       <input
         value={modelName}
         onChange={(e) => setModelName(e.target.value)}
         placeholder="รุ่นเครื่อง"
         data-testid="add-device-model"
-        className="rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field px-2 py-1.5 text-sm"
       />
       <input
         type="number"
@@ -162,17 +162,17 @@ export function AddDeviceForm({
         onChange={(e) => setListPrice(e.target.value)}
         placeholder="ราคาป้าย"
         data-testid="add-device-price"
-        className="w-24 rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field w-24 px-2 py-1.5 text-sm"
       />
       <button
         type="button"
         onClick={submit}
         data-testid="add-device-submit"
-        className="rounded bg-neutral-900 px-2 py-1 text-sm text-white"
+        className="ucom-primary px-3 py-1.5 text-sm"
       >
         เพิ่ม
       </button>
-      <button type="button" onClick={() => setOpen(false)} className="text-sm text-neutral-500">
+      <button type="button" onClick={() => setOpen(false)} className="ucom-secondary px-3 py-1.5 text-sm">
         ยกเลิก
       </button>
     </div>

@@ -34,3 +34,124 @@ body {
 [class*="font-mono"] {
   font-variant-numeric: tabular-nums;
 }
+
+.ucom-page {
+  isolation: isolate;
+}
+
+.ucom-surface {
+  border: 1px solid var(--color-border);
+  border-radius: 0.7rem;
+  background: var(--color-surface);
+}
+
+.ucom-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.7rem;
+  background: var(--color-surface);
+  padding: 0.75rem;
+}
+
+.ucom-field {
+  border: 1px solid var(--color-border);
+  border-radius: 0.45rem;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  outline: none;
+}
+
+.ucom-field:focus-visible {
+  border-color: var(--color-ink);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-ink) 14%, transparent);
+}
+
+.ucom-primary {
+  border-radius: 0.45rem;
+  background: var(--color-ink);
+  color: var(--color-surface);
+  font-weight: 600;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.ucom-primary:hover:not(:disabled) {
+  opacity: 0.86;
+}
+
+.ucom-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.ucom-primary:focus-visible,
+.ucom-secondary:focus-visible,
+.ucom-danger:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.ucom-secondary {
+  border: 1px solid var(--color-border);
+  border-radius: 0.45rem;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.ucom-secondary:hover:not(:disabled) {
+  border-color: var(--color-ink-muted);
+}
+
+.ucom-danger {
+  border: 1px solid color-mix(in srgb, var(--color-danger) 36%, var(--color-border));
+  border-radius: 0.45rem;
+  color: var(--color-danger);
+  font-weight: 500;
+}
+
+.ucom-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 0.7rem;
+  background: var(--color-surface);
+}
+
+.ucom-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.ucom-table th {
+  background: color-mix(in srgb, var(--color-background) 72%, var(--color-surface));
+  color: var(--color-ink-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.ucom-table th,
+.ucom-table td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.7rem 0.8rem;
+  vertical-align: top;
+}
+
+.ucom-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

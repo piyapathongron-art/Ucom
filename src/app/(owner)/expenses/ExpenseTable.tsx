@@ -20,8 +20,8 @@ export function ExpenseTable({
   return (
     <>
       {/* Desktop Table View */}
-      <div className="hidden rounded border border-border bg-surface overflow-hidden md:block">
-        <table className="w-full text-left text-sm">
+      <div className="ucom-table-wrap hidden md:block">
+        <table className="ucom-table">
           <thead className="border-b border-border bg-surface">
             <tr>
               <th className="px-4 py-3 font-medium text-ink-muted">รายการ</th>
@@ -55,14 +55,14 @@ export function ExpenseTable({
                           type="button"
                           onClick={() => onDeleteExpense(row.id)}
                           data-testid={`expense-delete-confirm-${row.id}`}
-                          className="rounded bg-danger px-2 py-1 text-xs text-white hover:opacity-90"
+                          className="ucom-danger bg-danger px-2 py-1 text-xs text-white"
                         >
                           ยืนยันลบ
                         </button>
                         <button
                           type="button"
                           onClick={() => onSetDeleteConfirmId(null)}
-                          className="text-xs text-ink-muted hover:text-ink"
+                          className="ucom-secondary px-2 py-1 text-xs"
                         >
                           ยกเลิก
                         </button>
@@ -72,7 +72,7 @@ export function ExpenseTable({
                         type="button"
                         onClick={() => onSetDeleteConfirmId(row.id)}
                         data-testid={`expense-delete-${row.id}`}
-                        className="text-xs text-danger underline hover:opacity-80"
+                        className="ucom-danger border-0 px-0 py-1 text-xs underline"
                       >
                         ลบ
                       </button>
@@ -96,7 +96,7 @@ export function ExpenseTable({
             <div
               key={row.id}
               data-testid={`expense-row-${row.id}`}
-              className="rounded border border-border bg-surface p-4 space-y-2"
+              className="ucom-surface space-y-2 p-4"
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="font-medium text-ink text-base">{row.name}</span>
@@ -115,14 +115,14 @@ export function ExpenseTable({
                       <button
                         type="button"
                         onClick={() => onDeleteExpense(row.id)}
-                        className="rounded bg-danger px-2 py-1 text-xs text-white hover:opacity-90"
+                        className="ucom-danger bg-danger px-2 py-1 text-xs text-white"
                       >
                         ยืนยันลบ
                       </button>
                       <button
                         type="button"
                         onClick={() => onSetDeleteConfirmId(null)}
-                        className="text-xs text-ink-muted hover:text-ink"
+                        className="ucom-secondary px-2 py-1 text-xs"
                       >
                         ยกเลิก
                       </button>
@@ -131,7 +131,7 @@ export function ExpenseTable({
                     <button
                       type="button"
                       onClick={() => onSetDeleteConfirmId(row.id)}
-                      className="text-xs text-danger underline hover:opacity-80"
+                    className="ucom-danger border-0 px-0 py-1 text-xs underline"
                     >
                       ลบ
                     </button>

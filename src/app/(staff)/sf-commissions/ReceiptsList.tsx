@@ -44,13 +44,16 @@ export function ReceiptsList({
   const showCorrectionColumn = roleResolved && isOwner;
 
   return (
-    <section>
-      <h2 className="text-xl font-semibold mb-4">ค่าคอมที่ยืนยันแล้ว ({receipts.length})</h2>
+    <section className="space-y-4">
+      <div>
+        <p className="font-mono text-[0.68rem] tracking-[0.16em] text-success">CONFIRMED / LEDGER</p>
+        <h2 className="mt-1 text-xl font-semibold">ค่าคอมที่ยืนยันแล้ว ({receipts.length})</h2>
+      </div>
       {receipts.length === 0 ? (
         <p className="text-sm text-ink-muted">ยังไม่มีรายการ</p>
       ) : (
-        <div className="rounded border border-border overflow-hidden">
-          <table className="w-full text-sm text-left">
+        <div className="ucom-table-wrap">
+          <table className="ucom-table">
             <thead className="bg-surface">
               <tr>
                 <th className="px-4 py-2 font-medium text-ink-muted">IMEI</th>
@@ -89,7 +92,7 @@ export function ReceiptsList({
                               required
                               value={correctAmount}
                               onChange={(e) => onAmountChange(e.target.value)}
-                              className="w-28 rounded border border-border px-2 py-1 text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-ink"
+                              className="ucom-field w-28 px-2 py-1.5 text-sm"
                               placeholder="0.00"
                             />
                           </div>
@@ -104,7 +107,7 @@ export function ReceiptsList({
                               max={todayInBangkok()}
                               value={correctDate}
                               onChange={(e) => onDateChange(e.target.value)}
-                              className="rounded border border-border px-2 py-1 text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-ink"
+                              className="ucom-field px-2 py-1.5 text-sm"
                             />
                           </div>
                           <div>
@@ -117,7 +120,7 @@ export function ReceiptsList({
                               required
                               value={correctReason}
                               onChange={(e) => onReasonChange(e.target.value)}
-                              className="w-48 rounded border border-border px-2 py-1 text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-ink"
+                              className="ucom-field w-48 px-2 py-1.5 text-sm"
                               placeholder="เช่น บันทึกผิด"
                             />
                           </div>
@@ -129,14 +132,14 @@ export function ReceiptsList({
                               data-testid={`sf-correct-submit-${row.device_unit_id}`}
                               type="submit"
                               disabled={correctSubmitting}
-                              className="rounded bg-ink px-3 py-1 text-xs font-medium text-surface hover:opacity-90 disabled:opacity-50"
+                              className="ucom-primary px-3 py-1 text-xs disabled:opacity-50"
                             >
                               {correctSubmitting ? "กำลังแก้ไข..." : "ยืนยันแก้ไข"}
                             </button>
                             <button
                               type="button"
                               onClick={onCancel}
-                              className="rounded border border-border px-3 py-1 text-xs text-ink-muted hover:bg-surface"
+                              className="ucom-secondary px-3 py-1 text-xs"
                             >
                               ยกเลิก
                             </button>
@@ -147,7 +150,7 @@ export function ReceiptsList({
                           data-testid={`sf-correct-open-${row.device_unit_id}`}
                           type="button"
                           onClick={() => onOpen(row)}
-                          className="rounded border border-border bg-white px-3 py-1 text-xs hover:bg-surface"
+                          className="ucom-secondary px-3 py-1 text-xs"
                         >
                           แก้ไข
                         </button>

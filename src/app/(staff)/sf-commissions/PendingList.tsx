@@ -32,13 +32,16 @@ export function PendingList({
   todayInBangkok: () => string;
 }) {
   return (
-    <section data-testid="sf-pending-section">
-      <h2 className="text-xl font-semibold mb-4">รอบันทึกค่าคอม ({pending.length})</h2>
+    <section data-testid="sf-pending-section" className="space-y-4">
+      <div>
+        <p className="font-mono text-[0.68rem] tracking-[0.16em] text-warning">PENDING / RECEIPT</p>
+        <h2 className="mt-1 text-xl font-semibold">รอบันทึกค่าคอม ({pending.length})</h2>
+      </div>
       {pending.length === 0 ? (
         <p className="text-sm text-ink-muted">ไม่มีเครื่องที่รอบันทึก</p>
       ) : (
-        <div className="rounded border border-border overflow-hidden">
-          <table className="w-full text-sm text-left">
+        <div className="ucom-table-wrap">
+          <table className="ucom-table">
             <thead className="bg-surface">
               <tr>
                 <th className="px-4 py-2 font-medium text-ink-muted">IMEI</th>
@@ -68,7 +71,7 @@ export function PendingList({
                             required
                             value={recordAmount}
                             onChange={(e) => onAmountChange(e.target.value)}
-                            className="w-28 rounded border border-border px-2 py-1 text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-ink"
+                            className="ucom-field w-28 px-2 py-1.5 text-sm"
                             placeholder="0.00"
                           />
                         </div>
@@ -83,7 +86,7 @@ export function PendingList({
                             max={todayInBangkok()}
                             value={recordDate}
                             onChange={(e) => onDateChange(e.target.value)}
-                            className="rounded border border-border px-2 py-1 text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-ink"
+                            className="ucom-field px-2 py-1.5 text-sm"
                           />
                         </div>
                         {recordError && (
@@ -94,14 +97,14 @@ export function PendingList({
                             data-testid={`sf-record-submit-${row.device_unit_id}`}
                             type="submit"
                             disabled={recordSubmitting}
-                            className="rounded bg-ink px-3 py-1 text-xs font-medium text-surface hover:opacity-90 disabled:opacity-50"
+                            className="ucom-primary px-3 py-1 text-xs disabled:opacity-50"
                           >
                             {recordSubmitting ? "กำลังบันทึก..." : "บันทึก"}
                           </button>
                           <button
                             type="button"
                             onClick={onCancel}
-                            className="rounded border border-border px-3 py-1 text-xs text-ink-muted hover:bg-surface"
+                            className="ucom-secondary px-3 py-1 text-xs"
                           >
                             ยกเลิก
                           </button>
@@ -112,7 +115,7 @@ export function PendingList({
                         data-testid={`sf-record-open-${row.device_unit_id}`}
                         type="button"
                         onClick={() => onOpen(row.device_unit_id ?? "")}
-                        className="rounded border border-border bg-white px-3 py-1 text-xs hover:bg-surface"
+                        className="ucom-secondary px-3 py-1 text-xs"
                       >
                         บันทึกค่าคอม
                       </button>

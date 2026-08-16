@@ -17,8 +17,8 @@ export default function ItemsSection({ items, fmt }: Props) {
       <h2 className="text-xl font-semibold">สินค้าที่ขายได้</h2>
 
       {/* ตาราง — md ขึ้นไป */}
-      <div className="hidden md:block rounded border border-border overflow-hidden">
-        <table className="w-full text-left text-sm">
+      <div className="ucom-table-wrap hidden md:block">
+        <table className="ucom-table">
           <thead className="bg-background border-b border-border">
             <tr>
               <th className="px-4 py-3 font-medium text-ink-muted">สินค้า</th>
@@ -50,7 +50,7 @@ export default function ItemsSection({ items, fmt }: Props) {
         {sorted.map((item, i) => (
           <div
             key={i}
-            className="rounded border border-border bg-surface p-3 text-sm"
+            className="ucom-surface p-3 text-sm"
           >
             <div className="flex justify-between items-start">
               <span className="font-medium text-ink">{item.name_snapshot}</span>

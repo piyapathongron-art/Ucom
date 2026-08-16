@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { todayInBangkok } from "../report/types";
+import { PageFrame } from "@/app/_components/PageFrame";
 
 const EXPORT_TABLES = [
   "categories",
@@ -87,15 +88,16 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="space-y-6 p-4 md:p-8">
-      <div className="border-b border-border pb-4">
-        <h1 className="text-2xl font-semibold">ตั้งค่า</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          จัดการและสำรองข้อมูลระบบ
-        </p>
-      </div>
+    <PageFrame
+      page="settings"
+      eyebrow="OWNER / SYSTEM CONSOLE"
+      title="ตั้งค่า"
+      description="จัดการและสำรองข้อมูลระบบโดยไม่เปลี่ยนข้อมูลต้นทาง"
+      dataLoading={isExporting}
+      actions={<span className="font-mono text-xs tracking-wide text-ink-muted">OWNER ONLY</span>}
+    >
 
-      <section className="max-w-xl space-y-5 border border-border bg-surface p-4 shadow-sm md:p-6">
+      <section className="ucom-surface max-w-2xl space-y-5 p-4 md:p-6">
         <div className="border-b border-border pb-3">
           <h2 className="text-lg font-medium">สำรองข้อมูลระบบ</h2>
           <p className="mt-1 text-sm text-ink-muted">
@@ -109,7 +111,7 @@ export default function SettingsPage() {
             data-testid="export-button"
             disabled={isExporting}
             onClick={handleExport}
-            className="bg-ink px-4 py-2 text-sm font-medium text-surface transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="ucom-primary px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isExporting ? "กำลังรวบรวมข้อมูล" : "ดาวน์โหลดไฟล์สำรอง"}
           </button>
@@ -141,6 +143,6 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
-    </main>
+    </PageFrame>
   );
 }

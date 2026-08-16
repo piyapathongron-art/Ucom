@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useRef } from "react";
 
 interface NavLink {
@@ -15,6 +16,7 @@ interface NavBarProps {
 
 export default function NavBar({ links, onLogout }: NavBarProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const pathname = usePathname();
 
   const handleClose = () => {
     dialogRef.current?.close();
@@ -22,22 +24,35 @@ export default function NavBar({ links, onLogout }: NavBarProps) {
 
   return (
     <>
-      <header className="border-b border-border bg-surface px-4 py-3">
+      <header className="border-b border-border bg-surface px-4 py-3 shadow-[0_1px_0_rgba(20,22,31,0.02)]">
         {/* Desktop Navigation (md and above) */}
-        <nav className="hidden items-center gap-4 md:flex">
+        <nav className="mx-auto hidden max-w-[1440px] items-center gap-2 md:flex md:gap-4">
+          <Link
+            href="/"
+            className="mr-2 shrink-0 text-base font-semibold tracking-tight text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink md:mr-5 md:text-lg"
+          >
+            Ucom <span className="font-mono text-xs font-medium text-ink-muted">POS</span>
+          </Link>
+          <div className="hidden items-center gap-4 md:flex">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="text-ink-muted hover:text-ink font-medium text-sm transition-colors"
+              aria-current={pathname === l.href ? "page" : undefined}
+              className={`border-b-2 py-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink ${
+                pathname === l.href
+                  ? "border-ink text-ink"
+                  : "border-transparent text-ink-muted hover:border-border hover:text-ink"
+              }`}
             >
               {l.label}
             </Link>
           ))}
+          </div>
           <form action={onLogout} className="ml-auto">
             <button
               type="submit"
-              className="text-ink-muted hover:text-ink text-sm font-medium transition-colors"
+              className="text-sm font-medium text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
             >
               ออกจากระบบ
             </button>
@@ -45,12 +60,12 @@ export default function NavBar({ links, onLogout }: NavBarProps) {
         </nav>
 
         {/* Mobile Navigation Bar (below md) */}
-        <div className="flex items-center justify-between md:hidden">
+        <div className="mx-auto flex max-w-[1440px] items-center justify-between md:hidden">
           <button
             type="button"
             onClick={() => dialogRef.current?.showModal()}
             aria-label="เปิดเมนู"
-            className="text-ink hover:text-ink-muted p-1 transition-colors"
+            className="rounded border border-border p-2 text-ink transition-colors hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             <svg
               className="h-6 w-6"
@@ -69,7 +84,7 @@ export default function NavBar({ links, onLogout }: NavBarProps) {
           <form action={onLogout}>
             <button
               type="submit"
-              className="text-ink-muted hover:text-ink text-sm font-medium transition-colors"
+              className="text-sm font-medium text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
             >
               ออกจากระบบ
             </button>
@@ -93,15 +108,15 @@ export default function NavBar({ links, onLogout }: NavBarProps) {
           width: "80vw",
           maxWidth: "20rem",
         }}
-        className="bg-surface text-ink border-border backdrop:bg-black/40 open:flex open:flex-col border-l p-5 shadow-xl"
+        className="border-border bg-surface p-5 text-ink shadow-xl backdrop:bg-black/40 open:flex open:flex-col"
       >
         <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
-          <span className="font-bold text-ink text-base">เมนู</span>
+          <span className="text-base font-semibold tracking-tight text-ink">เมนู</span>
           <button
             type="button"
             onClick={handleClose}
             aria-label="ปิดเมนู"
-            className="text-ink-muted hover:text-ink p-1 transition-colors"
+            className="rounded border border-border p-2 text-ink-muted transition-colors hover:border-ink hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             <svg
               className="h-5 w-5"
@@ -125,7 +140,7 @@ export default function NavBar({ links, onLogout }: NavBarProps) {
               return (
                 <div
                   key={l.href}
-                  className="flex items-center justify-between py-2 text-ink-muted opacity-50 select-none"
+                  className="flex select-none items-center justify-between border-b border-dashed border-border py-3 text-ink-muted opacity-50"
                 >
                   <span className="font-medium text-base">{l.label}</span>
                   <span className="text-xs">(ใช้จอกว้าง)</span>
@@ -138,7 +153,10 @@ export default function NavBar({ links, onLogout }: NavBarProps) {
                 key={l.href}
                 href={l.href}
                 onClick={handleClose}
-                className="text-ink-muted hover:text-ink py-2 font-medium text-base transition-colors"
+                aria-current={pathname === l.href ? "page" : undefined}
+                className={`border-b border-border py-3 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink ${
+                  pathname === l.href ? "text-ink" : "text-ink-muted hover:text-ink"
+                }`}
               >
                 {l.label}
               </Link>
@@ -150,7 +168,7 @@ export default function NavBar({ links, onLogout }: NavBarProps) {
           <form action={onLogout}>
             <button
               type="submit"
-              className="text-ink-muted hover:text-ink w-full py-2 text-left font-medium text-base transition-colors"
+              className="w-full py-3 text-left text-base font-medium text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
             >
               ออกจากระบบ
             </button>

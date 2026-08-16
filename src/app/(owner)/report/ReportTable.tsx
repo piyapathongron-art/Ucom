@@ -73,7 +73,7 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
                   key={label}
                   className={`px-4 py-2 text-right font-mono ${
                     key !== "net_profit" ? "hidden md:table-cell" : ""
-                  } ${row[key] < 0 ? "text-red-600" : ""}`}
+                  } ${row[key] < 0 ? "text-danger" : ""}`}
                 >
                   {row[key].toLocaleString()}
                 </td>
@@ -95,8 +95,8 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm whitespace-nowrap">
+    <div className="ucom-table-wrap">
+      <table className="ucom-table whitespace-nowrap">
         <thead>
           <tr className="border-b border-border">
             <th className="px-4 py-2 font-medium">ช่วง</th>

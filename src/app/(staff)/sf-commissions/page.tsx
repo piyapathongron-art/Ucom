@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { PageFrame } from "@/app/_components/PageFrame";
 import type { Tables } from "@/lib/types/database";
 import { PendingList } from "./PendingList";
 import { ReceiptsList } from "./ReceiptsList";
@@ -174,8 +175,13 @@ export default function SfCommissionsPage() {
   };
 
   return (
-    <div className="p-8 space-y-8">
-      <h1 className="text-2xl font-semibold">ค่าคอม SF+</h1>
+    <PageFrame
+      page="sf-commissions"
+      eyebrow="SF+ / COMMISSION LEDGER"
+      title="ค่าคอม SF+"
+      description="บันทึกยอดที่รับเงินจริง และตรวจสอบรายการยืนยันแล้ว"
+      actions={<span className="font-mono text-xs tracking-wide text-ink-muted">RECEIPT LEDGER</span>}
+    >
 
       {error && (
         <div
@@ -245,6 +251,6 @@ export default function SfCommissionsPage() {
           />
         </>
       )}
-    </div>
+    </PageFrame>
   );
 }

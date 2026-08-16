@@ -76,7 +76,7 @@ function Row({
   if (!row.id || !row.kind) return null;
 
   return (
-    <tr className="border-b border-border" data-testid={`stock-row-${row.kind}-${row.id}`}>
+    <tr data-testid={`stock-row-${row.kind}-${row.id}`}>
       <td className="p-2 text-sm text-ink-muted">
         {row.kind === "product" ? "สินค้า" : "เครื่อง"}
       </td>
@@ -85,7 +85,7 @@ function Row({
           value={name}
           onChange={(e) => setName(e.target.value)}
           data-testid={`stock-name-${row.id}`}
-          className="w-full rounded border border-border p-1 text-sm"
+          className="ucom-field w-full px-2 py-1.5 text-sm"
         />
       </td>
       <td className="p-2">
@@ -93,7 +93,7 @@ function Row({
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder={row.kind === "product" ? "SKU" : "IMEI"}
-          className="w-32 rounded border border-border p-1 text-sm"
+          className="ucom-field w-32 px-2 py-1.5 text-sm"
         />
       </td>
       <td className="p-2">
@@ -101,7 +101,7 @@ function Row({
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="rounded border border-border p-1 text-sm"
+            className="ucom-field px-2 py-1.5 text-sm"
           >
             <option value="">ไม่มีหมวดหมู่</option>
             {categories.map((c) => (
@@ -120,7 +120,7 @@ function Row({
           inputMode="decimal"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          className="w-24 rounded border border-border p-1 text-sm"
+          className="ucom-field w-24 px-2 py-1.5 text-sm"
         />
       </td>
       <td className="p-2">
@@ -130,7 +130,7 @@ function Row({
             inputMode="numeric"
             value={qty}
             onChange={(e) => setQty(e.target.value)}
-            className="w-16 rounded border border-border p-1 text-sm"
+            className="ucom-field w-16 px-2 py-1.5 text-sm"
           />
         ) : (
           <span className="text-sm text-ink-muted">1</span>
@@ -141,7 +141,7 @@ function Row({
           <select
             value={status === "active" ? "active" : "inactive"}
             onChange={(e) => setStatus(e.target.value)}
-            className="rounded border border-border p-1 text-sm"
+            className="ucom-field px-2 py-1.5 text-sm"
           >
             <option value="active">ขายอยู่</option>
             <option value="inactive">เลิกขาย</option>
@@ -151,7 +151,7 @@ function Row({
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             disabled={!deviceStatuses.includes(row.status ?? "")}
-            className="rounded border border-border p-1 text-sm disabled:text-ink-muted"
+            className="ucom-field px-2 py-1.5 text-sm disabled:bg-background disabled:text-ink-muted"
           >
             {!deviceStatuses.includes(row.status ?? "") && (
               <option value={status}>{status}</option>
@@ -173,14 +173,14 @@ function Row({
               value={costDraft}
               onChange={(e) => setCostDraft(e.target.value)}
               data-testid={`stock-cost-${row.id}`}
-              className="w-20 rounded border border-border p-1 text-sm"
+              className="ucom-field w-20 px-2 py-1.5 text-sm"
             />
             <button
               type="button"
               onClick={saveCost}
               disabled={saving || costDraft === String(cost ?? "")}
               data-testid={`stock-save-cost-${row.id}`}
-              className="text-xs text-ink-muted underline disabled:opacity-30"
+              className="ucom-secondary px-2 py-1 text-xs disabled:opacity-30"
             >
               บันทึกทุน
             </button>
@@ -193,7 +193,7 @@ function Row({
           onClick={save}
           disabled={!dirty || saving}
           data-testid={`stock-save-${row.id}`}
-          className="rounded bg-ink px-2 py-1 text-xs text-white disabled:opacity-30"
+          className="ucom-primary px-3 py-1.5 text-xs disabled:opacity-30"
         >
           บันทึก
         </button>
@@ -221,8 +221,8 @@ export function StockTable({
 }) {
   return (
     <>
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-left">
+      <div className="ucom-table-wrap hidden md:block">
+        <table className="ucom-table">
           <thead>
             <tr className="text-sm text-ink-muted">
               <th className="p-2">ชนิด</th>

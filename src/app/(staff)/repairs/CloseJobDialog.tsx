@@ -58,31 +58,31 @@ export function CloseJobDialog({
   }
 
   return (
-    <div data-testid="close-dialog" className="mt-2 rounded bg-neutral-50 p-4 border border-neutral-200">
+    <div data-testid="close-dialog" className="ucom-surface mt-2 bg-background p-4 md:p-5">
       <div className="mb-4">
         <p className="font-medium">{row.customer_name}</p>
-        <p className="text-sm text-neutral-600">{row.device_desc}</p>
+        <p className="text-sm text-ink-muted">{row.device_desc}</p>
       </div>
 
       <div className="space-y-3">
         <div>
-          <label className="block text-sm text-neutral-600 mb-1">ราคา</label>
+          <label className="mb-1 block text-sm text-ink-muted">ราคา</label>
           <input
             type="number"
             value={unitPrice}
             onChange={(e) => setUnitPrice(e.target.value)}
             data-testid="close-unit-price"
-            className="w-full rounded border border-neutral-300 p-2 text-sm"
+            className="ucom-field w-full px-3 py-2 text-sm"
           />
         </div>
 
         <div>
-          <label className="block text-sm text-neutral-600 mb-1">วิธีชำระเงิน</label>
+          <label className="mb-1 block text-sm text-ink-muted">วิธีชำระเงิน</label>
           <select
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}
             data-testid="close-payment-method"
-            className="w-full rounded border border-neutral-300 p-2 text-sm bg-white"
+            className="ucom-field w-full px-3 py-2 text-sm"
           >
             <option value="cash">เงินสด</option>
             <option value="transfer">โอน</option>
@@ -91,25 +91,25 @@ export function CloseJobDialog({
 
         {paymentMethod === "transfer" && (
           <div>
-            <label className="block text-sm text-neutral-600 mb-1">บัญชีที่รับเงิน</label>
+            <label className="mb-1 block text-sm text-ink-muted">บัญชีที่รับเงิน</label>
             <input
               value={receivingAccount}
               onChange={(e) => setReceivingAccount(e.target.value)}
               placeholder="บัญชีที่รับเงิน"
               data-testid="close-receiving-account"
-              className="w-full rounded border border-neutral-300 p-2 text-sm"
+              className="ucom-field w-full px-3 py-2 text-sm"
             />
           </div>
         )}
 
         <div>
-          <label className="block text-sm text-neutral-600 mb-1">โน้ต</label>
+          <label className="mb-1 block text-sm text-ink-muted">โน้ต</label>
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="โน้ต"
             data-testid="close-note"
-            className="w-full rounded border border-neutral-300 p-2 text-sm"
+            className="ucom-field w-full px-3 py-2 text-sm"
           />
         </div>
 
@@ -119,14 +119,14 @@ export function CloseJobDialog({
             onClick={submit}
             disabled={submitting}
             data-testid="close-submit"
-            className="flex-1 rounded bg-neutral-900 p-2 text-white text-sm disabled:opacity-40"
+            className="ucom-primary flex-1 p-2 text-sm disabled:opacity-40"
           >
             {submitting ? "กำลังบันทึก..." : "ออกบิลและปิดงาน"}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded border border-neutral-300 px-4 py-2 text-sm text-neutral-600"
+            className="ucom-secondary px-4 py-2 text-sm"
           >
             ยกเลิก
           </button>

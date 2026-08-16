@@ -55,59 +55,62 @@ export function SfIntake({
   }
 
   return (
-    <div className="space-y-3 rounded border border-neutral-200 p-3">
+    <section className="ucom-surface space-y-4 p-4 md:p-5">
       <div className="flex items-center justify-between">
-        <h2 className="font-medium">รับเครื่องเข้าจากบิล SF</h2>
+        <div>
+          <p className="font-mono text-[0.68rem] tracking-[0.16em] text-ink-muted">SF+ / RECEIVING</p>
+          <h2 className="mt-1 font-semibold">รับเครื่องเข้าจากบิล SF</h2>
+        </div>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           data-testid="open-sf-intake"
-          className="text-sm text-neutral-500"
+          className="ucom-secondary px-3 py-1.5 text-sm"
         >
           {open ? "ปิด" : "+ รับบิลใหม่"}
         </button>
       </div>
 
       {open && (
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-2">
+        <div className="space-y-3 border-t border-border pt-4">
+          <div className="ucom-toolbar rounded-md border-dashed">
             <input
               value={orderNo}
               onChange={(e) => setOrderNo(e.target.value)}
               placeholder="เลขที่บิล SF"
               data-testid="sf-order-no"
-              className="rounded border border-neutral-300 p-1 text-sm"
+              className="ucom-field px-2 py-1.5 text-sm"
             />
             <input
               type="date"
               value={orderedAt}
               onChange={(e) => setOrderedAt(e.target.value)}
-              className="rounded border border-neutral-300 p-1 text-sm"
+              className="ucom-field px-2 py-1.5 text-sm"
             />
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="โน้ต"
-              className="flex-1 rounded border border-neutral-300 p-1 text-sm"
+              className="ucom-field min-w-40 flex-1 px-2 py-1.5 text-sm"
             />
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-2">
             {devices.map((d, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={i} className="grid gap-2 rounded-md border border-border bg-background p-2 md:grid-cols-[1.1fr_1fr_9rem_9rem]">
                 <input
                   value={d.imei}
                   onChange={(e) => updateDevice(i, { imei: e.target.value })}
                   placeholder="IMEI"
                   data-testid={`sf-device-imei-${i}`}
-                  className="w-40 rounded border border-neutral-300 p-1 text-sm"
+                  className="ucom-field w-full px-2 py-1.5 text-sm"
                 />
                 <input
                   value={d.model_name}
                   onChange={(e) => updateDevice(i, { model_name: e.target.value })}
                   placeholder="รุ่นเครื่อง"
                   data-testid={`sf-device-model-${i}`}
-                  className="rounded border border-neutral-300 p-1 text-sm"
+                  className="ucom-field w-full px-2 py-1.5 text-sm"
                 />
                 <input
                   type="number"
@@ -115,7 +118,7 @@ export function SfIntake({
                   onChange={(e) => updateDevice(i, { list_price: e.target.value })}
                   placeholder="ราคาป้าย SF"
                   data-testid={`sf-device-price-${i}`}
-                  className="w-24 rounded border border-neutral-300 p-1 text-sm"
+                  className="ucom-field w-full px-2 py-1.5 text-sm"
                 />
                 <input
                   type="number"
@@ -123,7 +126,7 @@ export function SfIntake({
                   onChange={(e) => updateDevice(i, { sale_price: e.target.value })}
                   placeholder="ราคาขาย"
                   data-testid={`sf-device-sale-price-${i}`}
-                  className="w-24 rounded border border-neutral-300 p-1 text-sm"
+                  className="ucom-field w-full px-2 py-1.5 text-sm"
                 />
               </div>
             ))}
@@ -135,7 +138,7 @@ export function SfIntake({
                   { imei: "", model_name: "", list_price: "0", sale_price: "" },
                 ])
               }
-              className="text-sm text-neutral-500"
+              className="ucom-secondary px-3 py-1.5 text-sm"
             >
               + เพิ่มแถวเครื่อง
             </button>
@@ -145,7 +148,7 @@ export function SfIntake({
             type="button"
             onClick={submit}
             data-testid="sf-intake-submit"
-            className="rounded bg-neutral-900 px-3 py-1.5 text-sm text-white"
+            className="ucom-primary px-3 py-2 text-sm"
           >
             บันทึกการรับเครื่อง
           </button>
@@ -153,8 +156,8 @@ export function SfIntake({
       )}
 
       {dueList.filter((o) => (o.unfinanced_count ?? 0) > 0).length > 0 && (
-        <div className="border-t border-neutral-200 pt-2" data-testid="sf-due-list">
-          <h3 className="text-sm font-medium text-neutral-500">บิล SF ที่ยังมีเครื่องค้าง</h3>
+        <div className="border-t border-border pt-3" data-testid="sf-due-list">
+          <h3 className="text-sm font-medium text-warning">บิล SF ที่ยังมีเครื่องค้าง</h3>
           <ul className="mt-1 space-y-1 text-sm">
             {dueList
               .filter((o) => (o.unfinanced_count ?? 0) > 0)
@@ -166,6 +169,6 @@ export function SfIntake({
           </ul>
         </div>
       )}
-    </div>
+    </section>
   );
 }

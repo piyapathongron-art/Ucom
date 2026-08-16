@@ -17,8 +17,8 @@ export default function BillsSection({ bills, fmt }: Props) {
       <h2 className="text-xl font-semibold">บิลขาย</h2>
 
       {/* ตาราง — md ขึ้นไป */}
-      <div className="hidden md:block rounded border border-border overflow-hidden">
-        <table className="w-full text-left text-sm">
+      <div className="ucom-table-wrap hidden md:block">
+        <table className="ucom-table">
           <thead className="bg-background border-b border-border">
             <tr>
               <th className="px-4 py-3 font-medium text-ink-muted">เวลา</th>
@@ -58,7 +58,7 @@ export default function BillsSection({ bills, fmt }: Props) {
         {sorted.map((b) => (
           <div
             key={b.sale_id}
-            className="rounded border border-border bg-surface p-3 text-sm"
+            className="ucom-surface p-3 text-sm"
           >
             <div className="flex justify-between items-start">
               <span className="text-ink-muted">

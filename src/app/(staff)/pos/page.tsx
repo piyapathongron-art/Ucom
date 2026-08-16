@@ -311,14 +311,16 @@ export default function PosPage() {
   }
 
   return (
-    <main className="flex h-full flex-1 flex-col">
+    <main data-page="pos" className="flex h-full min-h-0 flex-1 flex-col bg-background">
       <QueueBanner queue={queue} isSyncing={isSyncing} onSync={() => syncQueue()} />
-      <div className="flex flex-1 items-center justify-center p-8 text-center md:hidden">
-        <p className="text-ink-muted">
-          หน้าขายต้องใช้จอกว้างขึ้น — กรุณาเปิดด้วยแท็บเล็ตหรือคอมพิวเตอร์
-        </p>
+      <div className="flex flex-1 items-center justify-center px-8 py-16 text-center md:hidden">
+        <div className="max-w-sm">
+          <p className="font-mono text-[0.68rem] uppercase tracking-[0.2em] text-ink-muted">POS / wide display</p>
+          <h1 className="mt-3 text-xl font-semibold tracking-tight text-ink">หน้าขายต้องใช้จอกว้างขึ้น</h1>
+          <p className="mt-2 text-sm leading-6 text-ink-muted">กรุณาเปิดด้วยแท็บเล็ตหรือคอมพิวเตอร์</p>
+        </div>
       </div>
-      <div className="hidden flex-1 md:flex">
+      <div className="hidden min-h-0 flex-1 md:flex">
       <Catalog
         catalog={catalog}
         topProducts={topProducts}

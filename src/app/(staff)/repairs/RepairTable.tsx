@@ -65,7 +65,7 @@ function Row({
                     onClick={() => handleSetStatus(prevStep)}
                     disabled={settingStatus}
                     data-testid={`repair-status-back-${row.id}`}
-                    className="text-xs rounded border border-border bg-surface px-2 py-1 text-ink-muted disabled:opacity-40"
+                    className="ucom-secondary px-2 py-1 text-xs disabled:opacity-40"
                   >
                     ย้อนกลับ
                   </button>
@@ -76,7 +76,7 @@ function Row({
                     onClick={() => handleSetStatus(nextStep)}
                     disabled={settingStatus}
                     data-testid={`repair-status-forward-${row.id}`}
-                    className="text-xs rounded bg-ink text-surface px-2 py-1 disabled:opacity-40"
+                    className="ucom-primary px-2 py-1 text-xs disabled:opacity-40"
                   >
                     {REPAIR_STATUS_LABEL[nextStep as RepairStatus]}
                   </button>
@@ -112,14 +112,14 @@ function Row({
                     onChange={(e) => setPartCostDraft(e.target.value)}
                     placeholder="ต้นทุนอะไหล่"
                     data-testid={`repair-part-cost-input-${row.id}`}
-                    className="w-24 rounded border border-border bg-surface p-1 text-sm text-ink"
+                    className="ucom-field w-24 px-2 py-1.5 text-sm"
                   />
                   <button
                     type="button"
                     onClick={handleSavePartCost}
                     disabled={savingPartCost || partCostDraft.trim() === ""}
                     data-testid={`repair-part-cost-save-${row.id}`}
-                    className="text-xs text-ink-muted underline disabled:opacity-30"
+                    className="ucom-secondary px-2 py-1 text-xs disabled:opacity-30"
                   >
                     บันทึก
                   </button>
@@ -130,7 +130,7 @@ function Row({
                         setIsEditingPartCost(false);
                         setPartCostDraft("");
                       }}
-                      className="text-xs text-ink-muted"
+                      className="ucom-secondary px-2 py-1 text-xs"
                     >
                       ยกเลิก
                     </button>
@@ -147,7 +147,7 @@ function Row({
                 type="button"
                 onClick={() => setShowCloseDialog(!showCloseDialog)}
                 data-testid={`repair-close-${row.id}`}
-                className="text-sm text-ink underline"
+                className="ucom-secondary px-2 py-1 text-sm"
               >
                 ปิดงาน/ออกบิล
               </button>
@@ -161,14 +161,14 @@ function Row({
                       setShowAbandonConfirm(false);
                     }}
                     data-testid={`repair-abandon-confirm-${row.id}`}
-                    className="text-xs rounded border border-danger text-danger px-2 py-1"
+                    className="ucom-danger px-2 py-1 text-xs"
                   >
                     ยืนยันทิ้งงาน
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowAbandonConfirm(false)}
-                    className="text-xs text-ink-muted"
+                    className="ucom-secondary px-2 py-1 text-xs"
                   >
                     ยกเลิก
                   </button>
@@ -178,7 +178,7 @@ function Row({
                   type="button"
                   onClick={() => setShowAbandonConfirm(true)}
                   data-testid={`repair-abandon-${row.id}`}
-                  className="text-sm text-danger underline"
+                  className="ucom-danger border-0 px-0 py-1 text-sm underline"
                 >
                   ลูกค้าทิ้ง
                 </button>
@@ -218,8 +218,8 @@ export function RepairTable({
 }) {
   return (
     <>
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-left bg-surface">
+      <div className="ucom-table-wrap hidden md:block">
+        <table className="ucom-table">
           <thead>
             <tr className="text-sm text-ink-muted border-b border-border">
               <th className="p-2">วันที่รับ</th>
@@ -258,4 +258,3 @@ export function RepairTable({
     </>
   );
 }
-

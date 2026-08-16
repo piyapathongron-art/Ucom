@@ -52,7 +52,7 @@ export function IntakeForm({
         type="button"
         onClick={() => setOpen(true)}
         data-testid="open-intake-form"
-        className="rounded border border-neutral-300 px-3 py-1.5 text-sm"
+        className="ucom-secondary px-3 py-1.5 text-sm"
       >
         + รับงานซ่อม
       </button>
@@ -60,34 +60,39 @@ export function IntakeForm({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded border border-neutral-300 p-2">
+    <section className="ucom-surface space-y-3 p-4">
+      <div>
+        <p className="font-mono text-[0.68rem] tracking-[0.16em] text-ink-muted">SERVICE / INTAKE</p>
+        <h2 className="mt-1 font-semibold">รับงานซ่อมใหม่</h2>
+      </div>
+      <div className="ucom-toolbar rounded-md border-dashed">
       <input
         value={customerName}
         onChange={(e) => setCustomerName(e.target.value)}
         placeholder="ชื่อลูกค้า"
         data-testid="intake-customer-name"
-        className="w-40 rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field w-40 px-2 py-1.5 text-sm"
       />
       <input
         value={customerPhone}
         onChange={(e) => setCustomerPhone(e.target.value)}
         placeholder="เบอร์โทร"
         data-testid="intake-customer-phone"
-        className="w-32 rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field w-32 px-2 py-1.5 text-sm"
       />
       <input
         value={deviceDesc}
         onChange={(e) => setDeviceDesc(e.target.value)}
         placeholder="เครื่อง/รุ่น"
         data-testid="intake-device-desc"
-        className="w-40 rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field w-40 px-2 py-1.5 text-sm"
       />
       <input
         value={symptom}
         onChange={(e) => setSymptom(e.target.value)}
         placeholder="อาการ"
         data-testid="intake-symptom"
-        className="w-40 rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field w-40 px-2 py-1.5 text-sm"
       />
       <input
         type="number"
@@ -95,31 +100,32 @@ export function IntakeForm({
         onChange={(e) => setQuotedPrice(e.target.value)}
         placeholder="ราคาที่ตกลง"
         data-testid="intake-quoted-price"
-        className="w-24 rounded border border-neutral-300 p-1 text-sm"
+        className="ucom-field w-24 px-2 py-1.5 text-sm"
       />
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="โน้ต"
         data-testid="intake-note"
-        className="flex-1 rounded border border-neutral-300 p-1 text-sm min-w-[120px]"
+        className="ucom-field min-w-[120px] flex-1 px-2 py-1.5 text-sm"
       />
       <button
         type="button"
         onClick={submit}
         data-testid="intake-submit"
         disabled={!customerName.trim() || !deviceDesc.trim() || saving}
-        className="rounded bg-neutral-900 px-2 py-1 text-sm text-white disabled:opacity-40"
+        className="ucom-primary px-3 py-1.5 text-sm disabled:opacity-40"
       >
         รับงาน
       </button>
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="text-sm text-neutral-500"
+        className="ucom-secondary px-3 py-1.5 text-sm"
       >
         ยกเลิก
       </button>
-    </div>
+      </div>
+    </section>
   );
 }

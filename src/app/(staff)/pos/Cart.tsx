@@ -39,26 +39,37 @@ export function Cart({
   const total = itemsTotal - (Number(billDiscount) || 0);
 
   return (
-    <div className="flex w-96 flex-col border-l border-border">
-      <div className="flex-1 overflow-y-auto p-4">
+    <aside className="flex w-[min(100%,28rem)] min-w-[22rem] flex-col border-l border-border bg-surface">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <div>
+          <p className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-ink-muted">Receipt / current bill</p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-ink">บิลปัจจุบัน</h2>
+        </div>
+        <span className="font-mono text-xs text-ink-muted">{lines.length} รายการ</span>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {lines.length === 0 && (
-          <p className="text-sm text-ink-muted">ตะกร้าว่าง</p>
+          <div className="rounded border border-dashed border-border px-4 py-10 text-center">
+            <p className="text-sm font-medium text-ink">ยังไม่มีรายการในบิล</p>
+            <p className="mt-1 text-xs text-ink-muted">เลือกสินค้าจากฝั่งซ้ายเพื่อเริ่มขาย</p>
+          </div>
         )}
         <ul className="space-y-3" data-testid="cart-lines" data-count={lines.length}>
           {lines.map((line) => (
             <li
               key={line.uid}
               data-testid={`cart-line-${line.kind}`}
-              className="rounded border border-border p-2"
+              className="border-b border-dashed border-border py-3 first:pt-0"
             >
               <div className="flex items-start justify-between gap-2">
-                <span className="font-medium">
+                <span className="max-w-[15rem] font-medium leading-5">
                   {line.kind === "topup" ? `เติมเงิน ${line.carrierName}` : line.name}
                 </span>
                 <button
                   type="button"
                   onClick={() => onRemoveLine(line.uid)}
-                  className="text-sm text-danger"
+                  className="ucom-danger px-2 py-1 text-xs"
                 >
                   ลบ
                 </button>
@@ -73,11 +84,11 @@ export function Cart({
                         qty: Math.max(1, line.qty - 1),
                       } as Partial<CartLine>)
                     }
-                    className="rounded border border-border px-2"
+                    className="ucom-secondary h-7 w-7 px-0 text-sm"
                   >
                     −
                   </button>
-                  <span>{line.qty}</span>
+                  <span className="min-w-5 text-center font-mono tabular-nums">{line.qty}</span>
                   <button
                     type="button"
                     onClick={() =>
@@ -85,11 +96,11 @@ export function Cart({
                         qty: Math.min(line.maxQty, line.qty + 1),
                       } as Partial<CartLine>)
                     }
-                    className="rounded border border-border px-2"
+                    className="ucom-secondary h-7 w-7 px-0 text-sm"
                   >
                     +
                   </button>
-                  <span className="ml-auto font-mono tabular-nums">
+                  <span className="ml-auto font-mono text-sm tabular-nums">
                     {(line.unitPrice * line.qty).toLocaleString()} บาท
                   </span>
                 </div>
@@ -106,7 +117,7 @@ export function Cart({
                     } as Partial<CartLine>)
                   }
                   data-testid="cart-device-price"
-                  className="mt-1 w-28 rounded border border-border p-1 text-sm font-mono tabular-nums"
+                  className="ucom-field mt-2 w-32 px-2 py-1.5 text-sm font-mono tabular-nums"
                 />
               )}
 
@@ -122,7 +133,7 @@ export function Cart({
                       } as Partial<CartLine>)
                     }
                     placeholder="ส่วนลด"
-                    className="w-20 rounded border border-border p-1 text-sm"
+                    className="ucom-field w-24 px-2 py-1.5 text-sm"
                   />
                   <input
                     value={line.discountReason}
@@ -132,7 +143,7 @@ export function Cart({
                       } as Partial<CartLine>)
                     }
                     placeholder="เหตุผลส่วนลด"
-                    className="flex-1 rounded border border-border p-1 text-sm"
+                    className="ucom-field flex-1 px-2 py-1.5 text-sm"
                   />
                 </div>
               )}
@@ -147,11 +158,11 @@ export function Cart({
         </ul>
       </div>
 
-      <div className="space-y-3 border-t border-border p-4">
+      <div className="space-y-3 border-t border-border bg-background px-5 py-4">
         {error && (
           <p
             data-testid="checkout-error"
-            className="rounded bg-danger/10 p-2 text-sm text-danger"
+            className="rounded border border-danger/30 bg-danger/10 p-2 text-sm text-danger"
           >
             {error}
           </p>
@@ -165,7 +176,7 @@ export function Cart({
             className={`flex-1 rounded border p-2 text-sm ${
               paymentMethod === "cash"
                 ? "border-ink bg-ink text-surface"
-                : "border-border"
+                : "border-border bg-surface text-ink-muted"
             }`}
           >
             เงินสด
@@ -177,7 +188,7 @@ export function Cart({
             className={`flex-1 rounded border p-2 text-sm ${
               paymentMethod === "transfer"
                 ? "border-ink bg-ink text-surface"
-                : "border-border"
+                : "border-border bg-surface text-ink-muted"
             }`}
           >
             โอน
@@ -190,7 +201,7 @@ export function Cart({
             onChange={(e) => setReceivingAccount(e.target.value)}
             placeholder="บัญชีที่รับเงิน"
             data-testid="receiving-account"
-            className="w-full rounded border border-border p-2 text-sm"
+            className="ucom-field w-full px-3 py-2 text-sm"
           />
         )}
 
@@ -201,13 +212,13 @@ export function Cart({
             value={billDiscount}
             onChange={(e) => setBillDiscount(e.target.value)}
             placeholder="ส่วนลดท้ายบิล"
-            className="w-28 rounded border border-border p-2 text-sm"
+            className="ucom-field w-28 px-3 py-2 text-sm"
           />
           <input
             value={billDiscountReason}
             onChange={(e) => setBillDiscountReason(e.target.value)}
             placeholder="เหตุผลส่วนลดท้ายบิล"
-            className="flex-1 rounded border border-border p-2 text-sm"
+            className="ucom-field flex-1 px-3 py-2 text-sm"
           />
         </div>
 
@@ -216,12 +227,18 @@ export function Cart({
           onChange={(e) => setNote(e.target.value)}
           data-testid="bill-note"
           placeholder="โน้ต"
-          className="w-full rounded border border-border p-2 text-sm"
+          className="ucom-field w-full px-3 py-2 text-sm"
         />
 
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-semibold">รวม</span>
-          <span className="font-mono tabular-nums text-lg font-semibold">{total.toLocaleString()} บาท</span>
+        <div className="border-t border-dashed border-border pt-3">
+          <div className="flex items-center justify-between text-sm text-ink-muted">
+            <span>ยอดรวมก่อนส่วนลด</span>
+            <span className="font-mono tabular-nums">{itemsTotal.toLocaleString()} บาท</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-lg font-semibold">ยอดสุทธิ</span>
+            <span className="font-mono text-xl font-semibold tabular-nums">{total.toLocaleString()} บาท</span>
+          </div>
         </div>
 
         <button
@@ -237,11 +254,11 @@ export function Cart({
               note,
             })
           }
-          className="w-full rounded bg-ink p-2 text-surface disabled:opacity-40"
+          className="ucom-primary w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-40"
         >
           {submitting ? "กำลังบันทึก..." : "ปิดบิล"}
         </button>
       </div>
-    </div>
+    </aside>
   );
 }

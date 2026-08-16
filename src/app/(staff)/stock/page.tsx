@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { PageFrame, PageSection } from "@/app/_components/PageFrame";
 import { StockTable, type DeviceSave, type ProductSave } from "./StockTable";
 import { AddDeviceForm, AddProductForm } from "./AddForms";
 import { SfIntake, type SfIntakePayload } from "./SfIntake";
@@ -145,23 +146,36 @@ export default function StockPage() {
     : rows;
 
   return (
-    <main className="space-y-4 p-4">
-      <h1 className="text-2xl font-semibold">สต็อกสินค้า</h1>
+    <PageFrame
+      page="stock"
+      eyebrow="INVENTORY / LEDGER"
+      title="สต็อกสินค้า"
+      description="รับเข้า แก้ไข และติดตามสถานะสินค้ากับเครื่องในคลัง"
+      actions={
+        <span className="font-mono text-xs tracking-wide text-ink-muted">
+          {isOwner ? "OWNER VIEW" : "STAFF VIEW"}
+        </span>
+      }
+    >
 
       {error && (
-        <p className="rounded bg-red-50 p-2 text-sm text-red-600">{error}</p>
+        <p className="border border-danger bg-danger/10 p-3 text-sm text-danger">{error}</p>
       )}
 
       <SfIntake dueList={dueList} onSubmit={submitSfIntake} />
 
-      <div className="flex flex-wrap items-center gap-2">
+      <PageSection
+        title="รายการคงคลัง"
+        description={`${filtered.length.toLocaleString("th-TH")} รายการ · แก้ไขแล้วกดบันทึกเพื่อส่งเข้า stock RPC`}
+      >
+      <div className="ucom-toolbar">
         <AddProductForm categories={categories} onSave={saveProduct} />
         <AddDeviceForm onSave={saveDevice} />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="ค้นหาสินค้า/เครื่อง"
-          className="ml-auto rounded border border-neutral-300 p-2 text-sm"
+          placeholder="ค้นหาสินค้า / เครื่อง / SKU / IMEI"
+          className="ucom-field ml-auto w-full px-3 py-2 text-sm md:w-80"
         />
       </div>
 
@@ -174,6 +188,7 @@ export default function StockPage() {
         onSaveDevice={saveDevice}
         onSaveCost={saveCost}
       />
-    </main>
+      </PageSection>
+    </PageFrame>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { PageFrame } from "@/app/_components/PageFrame";
 import { ReportTable } from "./ReportTable";
 import { GROUPING_LABEL, sumRows, todayInBangkok, type Grouping, type ReportRow } from "./types";
 
@@ -81,20 +82,26 @@ export default function ReportPage() {
   const summary = sumRows(rows);
 
   return (
-    <main className="space-y-4 p-4" data-loading={isLoading}>
-      <h1 className="text-2xl font-semibold">รายงาน</h1>
+    <PageFrame
+      page="report"
+      eyebrow="OWNER / REPORTING"
+      title="รายงาน"
+      description="ดูผลประกอบการตามช่วงเวลา และเจาะจากปี → เดือน → วัน → รายละเอียดบิล"
+      dataLoading={isLoading}
+      actions={<span className="font-mono text-xs tracking-wide text-ink-muted">OWNER ONLY</span>}
+    >
 
       {error && (
-        <p className="rounded bg-red-50 p-2 text-sm text-red-600">{error}</p>
+        <p className="border border-danger bg-danger/10 p-3 text-sm text-danger">{error}</p>
       )}
 
-      <div className="flex flex-wrap gap-4 items-center">
+      <div className="ucom-toolbar">
         <div className="flex gap-2">
           <button
             type="button"
             onClick={setToday}
             data-testid="quick-today"
-            className="px-3 py-1 rounded border border-neutral-300 bg-white text-sm"
+            className="ucom-secondary px-3 py-1.5 text-sm"
           >
             วันนี้
           </button>
@@ -102,7 +109,7 @@ export default function ReportPage() {
             type="button"
             onClick={setThisMonth}
             data-testid="quick-month"
-            className="px-3 py-1 rounded border border-neutral-300 bg-white text-sm"
+            className="ucom-secondary px-3 py-1.5 text-sm"
           >
             เดือนนี้
           </button>
@@ -110,7 +117,7 @@ export default function ReportPage() {
             type="button"
             onClick={setThisYear}
             data-testid="quick-year"
-            className="px-3 py-1 rounded border border-neutral-300 bg-white text-sm"
+            className="ucom-secondary px-3 py-1.5 text-sm"
           >
             ปีนี้
           </button>
@@ -122,19 +129,19 @@ export default function ReportPage() {
             value={from}
             onChange={(e) => applyRange(e.target.value, to)}
             data-testid="report-from"
-            className="rounded border border-neutral-300 px-2 py-1 text-sm"
+            className="ucom-field px-2 py-1.5 text-sm"
           />
-          <span className="text-neutral-500">-</span>
+          <span className="text-ink-muted">-</span>
           <input
             type="date"
             value={to}
             onChange={(e) => applyRange(from, e.target.value)}
             data-testid="report-to"
-            className="rounded border border-neutral-300 px-2 py-1 text-sm"
+            className="ucom-field px-2 py-1.5 text-sm"
           />
         </div>
 
-        <div className="flex rounded border border-neutral-300 p-1 bg-neutral-100">
+        <div className="flex rounded border border-border bg-background p-1">
           {(Object.entries(GROUPING_LABEL) as [Grouping, string][]).map(([g, label]) => (
             <button
               key={g}
@@ -142,7 +149,7 @@ export default function ReportPage() {
               onClick={() => setGrouping(g)}
               data-testid={`group-${g}`}
               className={`px-3 py-1 text-sm rounded ${
-                grouping === g ? "bg-white shadow-sm font-medium" : "text-neutral-600"
+                grouping === g ? "bg-surface font-medium shadow-sm" : "text-ink-muted"
               }`}
             >
               {label}
@@ -161,10 +168,10 @@ export default function ReportPage() {
           <div
             key={card.key}
             data-testid={`card-${card.key}`}
-            className="rounded border border-neutral-200 bg-white p-4 shadow-sm"
+            className="ucom-surface p-4"
           >
-            <p className="text-sm text-neutral-500">{card.label}</p>
-            <p className={`text-xl font-semibold mt-1 ${card.value < 0 ? "text-red-600" : ""}`}>
+            <p className="text-sm text-ink-muted">{card.label}</p>
+            <p className={`mt-1 font-mono text-xl font-semibold ${card.value < 0 ? "text-danger" : ""}`}>
               {card.value.toLocaleString()}
             </p>
           </div>
@@ -172,10 +179,10 @@ export default function ReportPage() {
       </div>
 
       {isLoading ? (
-        <p className="text-neutral-500">กำลังโหลด</p>
+        <p className="text-ink-muted">กำลังโหลด</p>
       ) : (
         <ReportTable rows={rows} grouping={grouping} />
       )}
-    </main>
+    </PageFrame>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { PageFrame, PageSection } from "@/app/_components/PageFrame";
 import { IntakeForm, type RepairIntakeSave } from "./IntakeForm";
 import { RepairTable } from "./RepairTable";
 import type { CloseJobPayload } from "./CloseJobDialog";
@@ -97,22 +98,28 @@ export default function RepairsPage() {
   });
 
   return (
-    <main className="space-y-4 p-4">
-      <h1 className="text-2xl font-semibold">งานซ่อม</h1>
+    <PageFrame
+      page="repairs"
+      eyebrow="SERVICE / WORKFLOW"
+      title="งานซ่อม"
+      description="รับงาน ติดตามสถานะ บันทึกต้นทุนอะไหล่ และออกบิลเมื่อส่งมอบ"
+      actions={<span className="font-mono text-xs tracking-wide text-ink-muted">STAFF DESK</span>}
+    >
 
       {error && (
-        <p className="rounded bg-red-50 p-2 text-sm text-red-600">{error}</p>
+        <p className="border border-danger bg-danger/10 p-3 text-sm text-danger">{error}</p>
       )}
 
       <IntakeForm onSave={createJob} />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded border border-neutral-300 p-1 bg-neutral-100">
+      <PageSection title="คิวงานซ่อม" description={`${filtered.length.toLocaleString("th-TH")} งานตามตัวกรองปัจจุบัน`}>
+      <div className="ucom-toolbar">
+        <div className="flex flex-wrap rounded border border-border bg-background p-1">
           <button
             type="button"
             onClick={() => setStatusFilter("open")}
             data-testid="filter-open"
-            className={`px-3 py-1 text-sm rounded ${statusFilter === "open" ? "bg-white shadow-sm font-medium" : "text-neutral-600"}`}
+            className={`rounded px-3 py-1.5 text-sm ${statusFilter === "open" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
           >
             เปิดอยู่
           </button>
@@ -120,7 +127,7 @@ export default function RepairsPage() {
             type="button"
             onClick={() => setStatusFilter("collected")}
             data-testid="filter-collected"
-            className={`px-3 py-1 text-sm rounded ${statusFilter === "collected" ? "bg-white shadow-sm font-medium" : "text-neutral-600"}`}
+            className={`rounded px-3 py-1.5 text-sm ${statusFilter === "collected" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
           >
             รับแล้ว
           </button>
@@ -128,7 +135,7 @@ export default function RepairsPage() {
             type="button"
             onClick={() => setStatusFilter("abandoned")}
             data-testid="filter-abandoned"
-            className={`px-3 py-1 text-sm rounded ${statusFilter === "abandoned" ? "bg-white shadow-sm font-medium" : "text-neutral-600"}`}
+            className={`rounded px-3 py-1.5 text-sm ${statusFilter === "abandoned" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
           >
             ลูกค้าทิ้ง
           </button>
@@ -136,7 +143,7 @@ export default function RepairsPage() {
             type="button"
             onClick={() => setStatusFilter("all")}
             data-testid="filter-all"
-            className={`px-3 py-1 text-sm rounded ${statusFilter === "all" ? "bg-white shadow-sm font-medium" : "text-neutral-600"}`}
+            className={`rounded px-3 py-1.5 text-sm ${statusFilter === "all" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
           >
             ทั้งหมด
           </button>
@@ -146,7 +153,7 @@ export default function RepairsPage() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="ค้นหาชื่อ/เครื่อง/เบอร์"
           data-testid="repair-search"
-          className="ml-auto rounded border border-neutral-300 p-2 text-sm"
+          className="ucom-field ml-auto w-full px-3 py-2 text-sm md:w-80"
         />
       </div>
 
@@ -156,6 +163,7 @@ export default function RepairsPage() {
         onSetPartCost={setPartCost}
         onCloseJob={closeJob}
       />
-    </main>
+      </PageSection>
+    </PageFrame>
   );
 }

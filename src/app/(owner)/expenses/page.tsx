@@ -2,6 +2,7 @@
 
 import { ExpenseTable } from "./ExpenseTable";
 import { useExpensesPage } from "./useExpensesPage";
+import { PageFrame } from "@/app/_components/PageFrame";
 
 export default function ExpensesPage() {
   const {
@@ -29,13 +30,18 @@ export default function ExpensesPage() {
   } = useExpensesPage();
 
   return (
-    <div className="p-8 space-y-8">
-      <h1 className="text-2xl font-semibold text-ink">รายจ่าย & เติมเงินวอลเล็ต</h1>
+    <PageFrame
+      page="expenses"
+      eyebrow="OWNER / CASH LEDGER"
+      title="รายจ่าย & เติมเงินวอลเล็ต"
+      description="บันทึกรายจ่าย ตรวจยอดรวม และเติมเงินคงเหลือของแต่ละค่าย"
+      actions={<span className="font-mono text-xs tracking-wide text-ink-muted">OWNER ONLY</span>}
+    >
 
       {error && (
         <div
           data-testid="expenses-error"
-          className="rounded border border-danger/20 bg-danger/10 p-4 text-sm text-danger"
+            className="border border-danger bg-danger/10 p-4 text-sm text-danger"
         >
           {error}
         </div>
@@ -46,10 +52,10 @@ export default function ExpensesPage() {
       ) : (
         <>
           {/* Section 1: Expenses */}
-          <section className="space-y-6">
+          <section className="space-y-5">
             <h2 className="text-xl font-semibold text-ink">รายจ่าย</h2>
 
-            <form onSubmit={handleAddExpense} className="flex flex-wrap items-end gap-4">
+            <form onSubmit={handleAddExpense} className="ucom-toolbar items-end">
               <div>
                 <label className="block text-sm font-medium text-ink-muted mb-1">
                   รายการ
@@ -60,7 +66,7 @@ export default function ExpensesPage() {
                   data-testid="expense-name"
                   value={expenseName}
                   onChange={(e) => setExpenseName(e.target.value)}
-                  className="rounded border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ink bg-surface text-ink"
+                  className="ucom-field px-3 py-2 text-sm"
                   placeholder="ชื่อรายการ"
                 />
               </div>
@@ -77,7 +83,7 @@ export default function ExpensesPage() {
                   data-testid="expense-amount"
                   value={expenseAmount}
                   onChange={(e) => setExpenseAmount(e.target.value)}
-                  className="rounded border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ink bg-surface text-ink"
+                  className="ucom-field px-3 py-2 text-sm"
                   placeholder="0.00"
                 />
               </div>
@@ -92,14 +98,14 @@ export default function ExpensesPage() {
                   data-testid="expense-date"
                   value={expenseDate}
                   onChange={(e) => setExpenseDate(e.target.value)}
-                  className="rounded border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ink bg-surface text-ink"
+                  className="ucom-field px-3 py-2 text-sm"
                 />
               </div>
 
               <button
                 type="submit"
                 data-testid="expense-submit"
-                className="rounded bg-ink px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+                className="ucom-primary px-4 py-2 text-sm"
               >
                 บันทึกรายจ่าย
               </button>
@@ -112,7 +118,7 @@ export default function ExpensesPage() {
               onDeleteExpense={handleDeleteExpense}
             />
 
-            <div data-testid="expense-total" className="text-right font-medium text-ink">
+            <div data-testid="expense-total" className="border-t border-border pt-3 text-right font-medium text-ink">
               รวม:{" "}
               <span className="font-mono">
                 {totalExpense.toLocaleString("th-TH", {
@@ -127,7 +133,7 @@ export default function ExpensesPage() {
           <hr className="border-border" />
 
           {/* Section 2: Wallet top-up */}
-          <section className="space-y-6">
+          <section className="space-y-5">
             <h2 className="text-xl font-semibold text-ink">เติมเงินวอลเล็ต</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -135,7 +141,7 @@ export default function ExpensesPage() {
                 <div
                   key={wb.carrier_id ?? wb.name}
                   data-testid={`wallet-balance-${wb.carrier_id}`}
-                  className="rounded border border-border bg-surface p-4 space-y-2"
+                  className="ucom-surface space-y-2 p-4"
                 >
                   <div className="font-semibold text-lg text-ink">{wb.name}</div>
                   <div className="text-sm text-ink-muted flex justify-between">
@@ -172,7 +178,7 @@ export default function ExpensesPage() {
               ))}
             </div>
 
-            <form onSubmit={handleAddTopup} className="flex flex-wrap items-end gap-4">
+            <form onSubmit={handleAddTopup} className="ucom-toolbar items-end">
               <div>
                 <label className="block text-sm font-medium text-ink-muted mb-1">
                   ผู้ให้บริการ
@@ -181,7 +187,7 @@ export default function ExpensesPage() {
                   data-testid="topup-carrier"
                   value={selectedCarrier}
                   onChange={(e) => setSelectedCarrier(e.target.value)}
-                  className="rounded border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ink bg-surface text-ink"
+                  className="ucom-field px-3 py-2 text-sm"
                 >
                   {carriers.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -203,7 +209,7 @@ export default function ExpensesPage() {
                   data-testid="topup-amount"
                   value={topupAmount}
                   onChange={(e) => setTopupAmount(e.target.value)}
-                  className="rounded border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ink bg-surface text-ink"
+                  className="ucom-field px-3 py-2 text-sm"
                   placeholder="0.00"
                 />
               </div>
@@ -211,7 +217,7 @@ export default function ExpensesPage() {
               <button
                 type="submit"
                 data-testid="topup-submit"
-                className="rounded bg-ink px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+                className="ucom-primary px-4 py-2 text-sm"
               >
                 บันทึกเติมเงิน
               </button>
@@ -219,6 +225,6 @@ export default function ExpensesPage() {
           </section>
         </>
       )}
-    </div>
+    </PageFrame>
   );
 }

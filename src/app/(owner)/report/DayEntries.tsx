@@ -61,10 +61,10 @@ function SaleLines({ saleId }: { saleId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleId]);
 
-  if (failed) return <p className="px-4 py-2 text-sm text-red-600">โหลดรายการสินค้าไม่สำเร็จ</p>;
-  if (!lines) return <p className="px-4 py-2 text-sm text-neutral-500">กำลังโหลด</p>;
+  if (failed) return <p className="px-4 py-2 text-sm text-danger">โหลดรายการสินค้าไม่สำเร็จ</p>;
+  if (!lines) return <p className="px-4 py-2 text-sm text-ink-muted">กำลังโหลด</p>;
   if (lines.length === 0)
-    return <p className="px-4 py-2 text-sm text-neutral-500">บิลนี้ไม่มีรายการสินค้า</p>;
+    return <p className="px-4 py-2 text-sm text-ink-muted">บิลนี้ไม่มีรายการสินค้า</p>;
 
   return (
     <table
@@ -73,11 +73,11 @@ function SaleLines({ saleId }: { saleId: string }) {
     >
       <tbody>
         {lines.map((line) => (
-          <tr key={line.id} className="border-b border-neutral-100">
+          <tr key={line.id} className="border-b border-border">
             <td className="px-4 py-1">{line.name_snapshot}</td>
             <td className="px-4 py-1 text-right">× {line.qty ?? 0}</td>
             <td className="px-4 py-1 text-right">{money(line.unit_price ?? 0)}</td>
-            <td className="px-4 py-1 text-right text-neutral-500">
+            <td className="px-4 py-1 text-right text-ink-muted">
               {(line.item_discount ?? 0) > 0 ? `ลด ${money(line.item_discount ?? 0)}` : ""}
             </td>
             <td className="px-4 py-1 text-right">
@@ -126,13 +126,13 @@ export function DayEntries({ day }: { day: string }) {
 
   if (failed)
     return (
-      <p data-testid="entries-error" className="px-4 py-2 text-sm text-red-600">
+      <p data-testid="entries-error" className="px-4 py-2 text-sm text-danger">
         โหลดรายละเอียดไม่สำเร็จ
       </p>
     );
-  if (!entries) return <p className="px-4 py-2 text-sm text-neutral-500">กำลังโหลด</p>;
+  if (!entries) return <p className="px-4 py-2 text-sm text-ink-muted">กำลังโหลด</p>;
   if (entries.length === 0)
-    return <p className="px-4 py-2 text-sm text-neutral-500">ไม่มีรายการในวันนี้</p>;
+    return <p className="px-4 py-2 text-sm text-ink-muted">ไม่มีรายการในวันนี้</p>;
 
   return (
     <table
@@ -145,19 +145,19 @@ export function DayEntries({ day }: { day: string }) {
           const isOpen = isSale && openSale === entry.ref_id;
           const profit = entryProfit(entry);
           return (
-            <tr key={`${entry.kind}-${entry.ref_id}`} className="border-b border-neutral-100">
+            <tr key={`${entry.kind}-${entry.ref_id}`} className="border-b border-border">
               <td className="px-4 py-1 align-top" colSpan={7}>
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-neutral-500">{timeInBangkok(entry.occurred_at)}</span>
-                  <span className="rounded bg-neutral-100 px-2 py-0.5 text-xs">
+                  <span className="text-ink-muted">{timeInBangkok(entry.occurred_at)}</span>
+                  <span className="rounded border border-border bg-background px-2 py-0.5 text-xs">
                     {KIND_LABEL[entry.kind ?? ""] ?? entry.kind}
                   </span>
                   <span className="font-medium">{entry.label}</span>
-                  <span className="text-neutral-500">{entry.detail}</span>
+                  <span className="text-ink-muted">{entry.detail}</span>
                   <span className="ml-auto">รายได้ {money(entryRevenue(entry))}</span>
                   <span
                     data-testid="entry-profit"
-                    className={`w-32 text-right ${profit < 0 ? "text-red-600" : ""}`}
+                    className={`w-32 text-right ${profit < 0 ? "text-danger" : ""}`}
                   >
                     กำไร {money(profit)}
                   </span>
@@ -166,7 +166,7 @@ export function DayEntries({ day }: { day: string }) {
                       type="button"
                       data-testid={`open-sale-${entry.ref_id}`}
                       onClick={() => setOpenSale(isOpen ? null : entry.ref_id)}
-                      className="rounded border border-neutral-300 bg-white px-2 py-0.5 text-xs"
+                      className="ucom-secondary px-2 py-0.5 text-xs"
                     >
                       {isOpen ? "ปิดรายการ" : "ดูรายการ"}
                     </button>

@@ -38,7 +38,7 @@ export default function ExpensesSection({
       <h2 className="text-xl font-semibold">รายจ่ายร้าน</h2>
 
       {isToday && (
-        <form onSubmit={onAddExpense} className="flex flex-wrap items-end gap-4">
+        <form onSubmit={onAddExpense} className="ucom-toolbar items-end">
           <div>
             <label className="block text-sm font-medium text-ink-muted mb-1">รายการ</label>
             <input
@@ -47,7 +47,7 @@ export default function ExpensesSection({
               data-testid="close-day-expense-name"
               value={expenseName}
               onChange={(e) => onExpenseNameChange(e.target.value)}
-              className="rounded border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ink bg-surface"
+              className="ucom-field px-3 py-2 text-sm"
               placeholder="ชื่อรายการ"
             />
           </div>
@@ -61,7 +61,7 @@ export default function ExpensesSection({
               data-testid="close-day-expense-amount"
               value={expenseAmount}
               onChange={(e) => onExpenseAmountChange(e.target.value)}
-              className="rounded border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ink bg-surface"
+              className="ucom-field px-3 py-2 text-sm"
               placeholder="0.00"
             />
           </div>
@@ -73,7 +73,7 @@ export default function ExpensesSection({
               onChange={(e) =>
                 onExpensePaidFromChange(e.target.value as "cash" | "transfer")
               }
-              className="rounded border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ink bg-surface"
+              className="ucom-field px-3 py-2 text-sm"
             >
               <option value="cash">เงินสดในลิ้นชัก</option>
               <option value="transfer">เงินโอน/ส่วนตัว</option>
@@ -82,7 +82,7 @@ export default function ExpensesSection({
           <button
             type="submit"
             data-testid="close-day-expense-submit"
-            className="rounded bg-ink px-4 py-2 text-sm font-medium text-surface hover:opacity-90"
+            className="ucom-primary px-4 py-2 text-sm"
           >
             บันทึกรายจ่าย
           </button>
@@ -90,8 +90,8 @@ export default function ExpensesSection({
       )}
 
       {/* ตาราง — md ขึ้นไป */}
-      <div className="hidden md:block rounded border border-border overflow-hidden">
-        <table className="w-full text-left text-sm">
+      <div className="ucom-table-wrap hidden md:block">
+        <table className="ucom-table">
           <thead className="bg-background border-b border-border">
             <tr>
               <th className="px-4 py-3 font-medium text-ink-muted">รายการ</th>
@@ -130,14 +130,14 @@ export default function ExpensesSection({
                             type="button"
                             onClick={() => onDeleteExpense(row.id!)}
                             data-testid={`close-day-expense-delete-confirm-${row.id}`}
-                            className="rounded bg-danger px-2 py-1 text-xs text-surface hover:opacity-90"
+                            className="ucom-danger bg-danger px-2 py-1 text-xs text-surface"
                           >
                             ยืนยันลบ
                           </button>
                           <button
                             type="button"
                             onClick={() => onSetDeleteConfirmId(null)}
-                            className="text-xs text-ink-muted hover:text-ink"
+                            className="ucom-secondary px-2 py-1 text-xs"
                           >
                             ยกเลิก
                           </button>
@@ -147,7 +147,7 @@ export default function ExpensesSection({
                           type="button"
                           onClick={() => onSetDeleteConfirmId(row.id!)}
                           data-testid={`close-day-expense-delete-${row.id}`}
-                          className="text-xs text-danger underline hover:opacity-80"
+                          className="ucom-danger border-0 px-0 py-1 text-xs underline"
                         >
                           ลบ
                         </button>
@@ -170,7 +170,7 @@ export default function ExpensesSection({
           <div
             key={row.id}
             data-testid={`close-day-expense-row-${row.id}`}
-            className="rounded border border-border bg-surface p-3 text-sm"
+            className="ucom-surface p-3 text-sm"
           >
             <div className="flex justify-between items-start">
               <span className="font-medium text-ink">{row.name}</span>
@@ -189,14 +189,14 @@ export default function ExpensesSection({
                       <button
                         type="button"
                         onClick={() => onDeleteExpense(row.id!)}
-                        className="rounded bg-danger px-2 py-1 text-xs text-surface hover:opacity-90"
+                        className="ucom-danger bg-danger px-2 py-1 text-xs text-surface"
                       >
                         ยืนยันลบ
                       </button>
                       <button
                         type="button"
                         onClick={() => onSetDeleteConfirmId(null)}
-                        className="text-xs text-ink-muted hover:text-ink"
+                        className="ucom-secondary px-2 py-1 text-xs"
                       >
                         ยกเลิก
                       </button>
@@ -205,7 +205,7 @@ export default function ExpensesSection({
                     <button
                       type="button"
                       onClick={() => onSetDeleteConfirmId(row.id!)}
-                      className="text-xs text-danger underline hover:opacity-80"
+                      className="ucom-danger border-0 px-0 py-1 text-xs underline"
                     >
                       ลบ
                     </button>

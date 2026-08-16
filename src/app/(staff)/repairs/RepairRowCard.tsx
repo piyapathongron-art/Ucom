@@ -35,7 +35,7 @@ export function RepairRowCard({
   } = useRepairRowActions({ row, onSetStatus, onSetPartCost });
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-3 space-y-3">
+    <div className="ucom-surface space-y-3 p-4">
       <div className="flex justify-between items-start">
         <div>
           <div className="font-medium text-sm text-ink">{row.customer_name}</div>
@@ -68,7 +68,7 @@ export function RepairRowCard({
                   type="button"
                   onClick={() => handleSetStatus(prevStep)}
                   disabled={settingStatus}
-                  className="text-xs rounded border border-border bg-surface px-2 py-1 text-ink-muted disabled:opacity-40"
+                  className="ucom-secondary px-2 py-1 text-xs disabled:opacity-40"
                 >
                   ย้อนกลับ
                 </button>
@@ -78,7 +78,7 @@ export function RepairRowCard({
                   type="button"
                   onClick={() => handleSetStatus(nextStep)}
                   disabled={settingStatus}
-                  className="text-xs rounded bg-ink text-surface px-2 py-1 disabled:opacity-40"
+                  className="ucom-primary px-2 py-1 text-xs disabled:opacity-40"
                 >
                   {REPAIR_STATUS_LABEL[nextStep as RepairStatus]}
                 </button>
@@ -99,7 +99,7 @@ export function RepairRowCard({
                 <button
                   type="button"
                   onClick={() => setIsEditingPartCost(true)}
-                  className="text-xs text-ink-muted underline"
+                  className="ucom-secondary px-2 py-1 text-xs"
                 >
                   แก้ไข
                 </button>
@@ -112,13 +112,13 @@ export function RepairRowCard({
                   value={partCostDraft}
                   onChange={(e) => setPartCostDraft(e.target.value)}
                   placeholder="จำนวนเงิน"
-                  className="w-24 rounded border border-border bg-surface p-1 text-sm text-ink"
+                  className="ucom-field w-24 px-2 py-1.5 text-sm"
                 />
                 <button
                   type="button"
                   onClick={handleSavePartCost}
                   disabled={savingPartCost || partCostDraft.trim() === ""}
-                  className="text-xs text-ink-muted underline disabled:opacity-30"
+                  className="ucom-secondary px-2 py-1 text-xs disabled:opacity-30"
                 >
                   บันทึก
                 </button>
@@ -129,7 +129,7 @@ export function RepairRowCard({
                       setIsEditingPartCost(false);
                       setPartCostDraft("");
                     }}
-                    className="text-xs text-ink-muted"
+                    className="ucom-secondary px-2 py-1 text-xs"
                   >
                     ยกเลิก
                   </button>
@@ -145,7 +145,7 @@ export function RepairRowCard({
           <button
             type="button"
             onClick={() => setShowCloseDialog(!showCloseDialog)}
-            className="text-sm text-ink underline"
+            className="ucom-secondary px-2 py-1 text-sm"
           >
             ปิดงาน/ออกบิล
           </button>
@@ -158,14 +158,14 @@ export function RepairRowCard({
                   handleSetStatus("abandoned");
                   setShowAbandonConfirm(false);
                 }}
-                className="text-xs rounded border border-danger text-danger px-2 py-1"
+                className="ucom-danger px-2 py-1 text-xs"
               >
                 ยืนยันทิ้งงาน
               </button>
               <button
                 type="button"
                 onClick={() => setShowAbandonConfirm(false)}
-                className="text-xs text-ink-muted"
+                className="ucom-secondary px-2 py-1 text-xs"
               >
                 ยกเลิก
               </button>
@@ -174,7 +174,7 @@ export function RepairRowCard({
             <button
               type="button"
               onClick={() => setShowAbandonConfirm(true)}
-              className="text-sm text-danger underline"
+              className="ucom-danger border-0 px-0 py-1 text-sm underline"
             >
               ลูกค้าทิ้ง
             </button>

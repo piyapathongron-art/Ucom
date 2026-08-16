@@ -52,7 +52,7 @@ export function StockRowCard({
   if (!row.id || !row.kind) return null;
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-3 space-y-2">
+    <div className="ucom-surface space-y-3 p-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">
           {row.kind === "product" ? "สินค้า" : "เครื่อง"}
@@ -61,7 +61,7 @@ export function StockRowCard({
           type="button"
           onClick={save}
           disabled={!dirty || saving}
-          className="rounded bg-ink px-3 py-1.5 text-xs text-white disabled:opacity-30"
+          className="ucom-primary px-3 py-1.5 text-xs disabled:opacity-30"
         >
           บันทึก
         </button>
@@ -73,7 +73,7 @@ export function StockRowCard({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded border border-border p-1 text-sm"
+            className="ucom-field w-full px-2 py-1.5 text-sm"
           />
         </div>
 
@@ -83,7 +83,7 @@ export function StockRowCard({
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder={row.kind === "product" ? "SKU" : "IMEI"}
-            className="w-full rounded border border-border p-1 text-sm"
+            className="ucom-field w-full px-2 py-1.5 text-sm"
           />
         </div>
 
@@ -93,7 +93,7 @@ export function StockRowCard({
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full rounded border border-border p-1 text-sm"
+              className="ucom-field w-full px-2 py-1.5 text-sm"
             >
               <option value="">ไม่มีหมวดหมู่</option>
               {categories.map((c) => (
@@ -114,7 +114,7 @@ export function StockRowCard({
             inputMode="decimal"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            className="w-full rounded border border-border p-1 text-sm"
+            className="ucom-field w-full px-2 py-1.5 text-sm"
           />
         </div>
 
@@ -126,7 +126,7 @@ export function StockRowCard({
               inputMode="numeric"
               value={qty}
               onChange={(e) => setQty(e.target.value)}
-              className="w-full rounded border border-border p-1 text-sm"
+              className="ucom-field w-full px-2 py-1.5 text-sm"
             />
           ) : (
             <div className="mt-1.5 text-sm text-ink-muted">1</div>
@@ -139,7 +139,7 @@ export function StockRowCard({
             <select
               value={status === "active" ? "active" : "inactive"}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full rounded border border-border p-1 text-sm"
+              className="ucom-field w-full px-2 py-1.5 text-sm"
             >
               <option value="active">ขายอยู่</option>
               <option value="inactive">เลิกขาย</option>
@@ -149,7 +149,7 @@ export function StockRowCard({
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               disabled={!deviceStatuses.includes(row.status ?? "")}
-              className="w-full rounded border border-border p-1 text-sm disabled:text-ink-muted"
+              className="ucom-field w-full px-2 py-1.5 text-sm disabled:bg-background disabled:text-ink-muted"
             >
               {!deviceStatuses.includes(row.status ?? "") && (
                 <option value={status}>{status}</option>
@@ -172,13 +172,13 @@ export function StockRowCard({
                 inputMode="decimal"
                 value={costDraft}
                 onChange={(e) => setCostDraft(e.target.value)}
-                className="w-full rounded border border-border p-1 text-sm"
+                className="ucom-field w-full px-2 py-1.5 text-sm"
               />
               <button
                 type="button"
                 onClick={saveCost}
                 disabled={saving || costDraft === String(cost ?? "")}
-                className="shrink-0 text-xs text-ink-muted underline disabled:opacity-30"
+                className="ucom-secondary shrink-0 px-2 py-1 text-xs disabled:opacity-30"
               >
                 บันทึกทุน
               </button>
