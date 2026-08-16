@@ -643,6 +643,44 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_income: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          received_at: string
+          received_to: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          received_at?: string
+          received_to?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          received_at?: string
+          received_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_income_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topup_carriers: {
         Row: {
           commission_rate: number
@@ -754,6 +792,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_close_day_income: {
+        Row: {
+          amount: number | null
+          created_by: string | null
+          day: string | null
+          id: string | null
+          name: string | null
+          received_to: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_by?: string | null
+          day?: string | null
+          id?: string | null
+          name?: string | null
+          received_to?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_by?: string | null
+          day?: string | null
+          id?: string | null
+          name?: string | null
+          received_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_income_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1056,6 +1129,10 @@ export type Database = {
         Args: { p_amount: number; p_name: string; p_paid_from: string }
         Returns: string
       }
+      rpc_add_shop_income: {
+        Args: { p_amount: number; p_name: string; p_received_to: string }
+        Returns: string
+      }
       rpc_close_day: {
         Args: { p_counted_cash: number; p_note: string }
         Returns: string
@@ -1076,6 +1153,7 @@ export type Database = {
       rpc_create_repair_job: { Args: { payload: Json }; Returns: string }
       rpc_create_sale: { Args: { payload: Json }; Returns: string }
       rpc_delete_shop_expense: { Args: { p_id: string }; Returns: undefined }
+      rpc_delete_shop_income: { Args: { p_id: string }; Returns: undefined }
       rpc_finance_device: { Args: { p_device_id: string }; Returns: undefined }
       rpc_receive_sf_order: { Args: { payload: Json }; Returns: string }
       rpc_record_sf_commission: {
