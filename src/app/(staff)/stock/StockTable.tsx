@@ -1,8 +1,10 @@
 "use client";
 
+import { Fragment, useState } from "react";
 import type { Category, StockRow } from "./types";
 import { useStockRowEdit } from "./useStockRowEdit";
 import { StockRowCard } from "./StockRowCard";
+import { QtyStepper } from "./QtyStepper";
 
 export type ProductSave = {
   id?: string;
@@ -72,133 +74,154 @@ function Row({
     onSaveDevice,
     onSaveCost,
   });
+  const [open, setOpen] = useState(false);
 
   if (!row.id || !row.kind) return null;
 
+  const columnCount = isOwner ? 8 : 7;
+
   return (
-    <tr data-testid={`stock-row-${row.kind}-${row.id}`}>
-      <td className="p-2 text-sm text-ink-muted">
-        {row.kind === "product" ? "สินค้า" : "เครื่อง"}
-      </td>
-      <td className="p-2">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          data-testid={`stock-name-${row.id}`}
-          className="ucom-field w-full px-2 py-1.5 text-sm"
-        />
-      </td>
-      <td className="p-2">
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder={row.kind === "product" ? "SKU" : "IMEI"}
-          className="ucom-field w-32 px-2 py-1.5 text-sm"
-        />
-      </td>
-      <td className="p-2">
-        {row.kind === "product" ? (
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="ucom-field px-2 py-1.5 text-sm"
-          >
-            <option value="">ไม่มีหมวดหมู่</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id!}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="text-sm text-ink-muted">{row.acquisition}</span>
-        )}
-      </td>
-      <td className="p-2">
-        <input
-          type="number"
-          inputMode="decimal"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          className="ucom-field w-24 px-2 py-1.5 text-sm"
-        />
-      </td>
-      <td className="p-2">
-        {row.kind === "product" ? (
+    <Fragment>
+      <tr data-testid={`stock-row-${row.kind}-${row.id}`}>
+        <td className="p-2 text-sm text-ink-muted">
+          {row.kind === "product" ? "สินค้า" : "เครื่อง"}
+        </td>
+        <td className="p-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            data-testid={`stock-name-${row.id}`}
+            className="ucom-field w-full px-2 py-1.5 text-sm"
+          />
+        </td>
+        <td className="p-2">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder={row.kind === "product" ? "SKU" : "IMEI"}
+            className="ucom-field w-32 px-2 py-1.5 text-sm"
+          />
+        </td>
+        <td className="p-2">
           <input
             type="number"
-            inputMode="numeric"
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-            className="ucom-field w-16 px-2 py-1.5 text-sm"
+            inputMode="decimal"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="ucom-field w-24 px-2 py-1.5 text-sm"
           />
-        ) : (
-          <span className="text-sm text-ink-muted">1</span>
-        )}
-      </td>
-      <td className="p-2">
-        {row.kind === "product" ? (
-          <select
-            value={status === "active" ? "active" : "inactive"}
-            onChange={(e) => setStatus(e.target.value)}
-            className="ucom-field px-2 py-1.5 text-sm"
-          >
-            <option value="active">ขายอยู่</option>
-            <option value="inactive">เลิกขาย</option>
-          </select>
-        ) : (
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            disabled={!deviceStatuses.includes(row.status ?? "")}
-            className="ucom-field px-2 py-1.5 text-sm disabled:bg-background disabled:text-ink-muted"
-          >
-            {!deviceStatuses.includes(row.status ?? "") && (
-              <option value={status}>{status}</option>
-            )}
-            {deviceStatuses.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        )}
-      </td>
-      {isOwner && (
-        <td className="p-2">
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              inputMode="decimal"
-              value={costDraft}
-              onChange={(e) => setCostDraft(e.target.value)}
-              data-testid={`stock-cost-${row.id}`}
-              className="ucom-field w-20 px-2 py-1.5 text-sm"
-            />
-            <button
-              type="button"
-              onClick={saveCost}
-              disabled={saving || costDraft === String(cost ?? "")}
-              data-testid={`stock-save-cost-${row.id}`}
-              className="ucom-secondary px-2 py-1 text-xs disabled:opacity-30"
-            >
-              บันทึกทุน
-            </button>
-          </div>
         </td>
+        <td className="p-2">
+          {row.kind === "product" ? (
+            <QtyStepper value={qty} onChange={setQty} testId={`stock-qty-${row.id}`} />
+          ) : (
+            <span className="text-sm text-ink-muted">1</span>
+          )}
+        </td>
+        {isOwner && (
+          <td className="p-2">
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                inputMode="decimal"
+                value={costDraft}
+                onChange={(e) => setCostDraft(e.target.value)}
+                data-testid={`stock-cost-${row.id}`}
+                className="ucom-field w-20 px-2 py-1.5 text-sm"
+              />
+              <button
+                type="button"
+                onClick={saveCost}
+                disabled={saving || costDraft === String(cost ?? "")}
+                data-testid={`stock-save-cost-${row.id}`}
+                className="ucom-secondary px-2 py-1 text-xs disabled:opacity-30"
+              >
+                บันทึกทุน
+              </button>
+            </div>
+          </td>
+        )}
+        <td className="p-2">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            data-testid={`stock-expand-${row.id}`}
+            aria-label="แสดงประเภทและสถานะ"
+            className="text-ink-muted"
+          >
+            {open ? "▾" : "▸"}
+          </button>
+        </td>
+        <td className="p-2">
+          <button
+            type="button"
+            onClick={save}
+            disabled={!dirty || saving}
+            data-testid={`stock-save-${row.id}`}
+            className="ucom-primary px-3 py-1.5 text-xs disabled:opacity-30"
+          >
+            บันทึก
+          </button>
+        </td>
+      </tr>
+      {open && (
+        <tr data-testid={`stock-detail-${row.id}`} className="bg-background">
+          <td />
+          <td colSpan={columnCount - 1} className="p-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-xs text-ink-muted">หมวดหมู่/ที่มา</label>
+                {row.kind === "product" ? (
+                  <select
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    className="ucom-field px-2 py-1.5 text-sm"
+                  >
+                    <option value="">ไม่มีหมวดหมู่</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id!}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-sm text-ink-muted">{row.acquisition}</span>
+                )}
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-ink-muted">สถานะ</label>
+                {row.kind === "product" ? (
+                  <select
+                    value={status === "active" ? "active" : "inactive"}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="ucom-field px-2 py-1.5 text-sm"
+                  >
+                    <option value="active">ขายอยู่</option>
+                    <option value="inactive">เลิกขาย</option>
+                  </select>
+                ) : (
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    disabled={!deviceStatuses.includes(row.status ?? "")}
+                    className="ucom-field px-2 py-1.5 text-sm disabled:bg-background disabled:text-ink-muted"
+                  >
+                    {!deviceStatuses.includes(row.status ?? "") && (
+                      <option value={status}>{status}</option>
+                    )}
+                    {deviceStatuses.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+          </td>
+        </tr>
       )}
-      <td className="p-2">
-        <button
-          type="button"
-          onClick={save}
-          disabled={!dirty || saving}
-          data-testid={`stock-save-${row.id}`}
-          className="ucom-primary px-3 py-1.5 text-xs disabled:opacity-30"
-        >
-          บันทึก
-        </button>
-      </td>
-    </tr>
+    </Fragment>
   );
 }
 
@@ -228,15 +251,14 @@ export function StockTable({
               <th className="p-2">ชนิด</th>
               <th className="p-2">ชื่อ</th>
               <th className="p-2">รหัส</th>
-              <th className="p-2">หมวดหมู่/ที่มา</th>
               <th className="p-2">ราคา</th>
               <th className="p-2">จำนวน</th>
-              <th className="p-2">สถานะ</th>
               {isOwner && (
                 <th className="p-2" data-testid="cost-column-header">
                   ต้นทุน
                 </th>
               )}
+              <th className="p-2" />
               <th className="p-2" />
             </tr>
           </thead>

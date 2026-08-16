@@ -1,6 +1,8 @@
+import { useState } from "react";
 import type { Category, StockRow } from "./types";
 import type { ProductSave, DeviceSave } from "./StockTable";
 import { useStockRowEdit } from "./useStockRowEdit";
+import { QtyStepper } from "./QtyStepper";
 
 const deviceStatuses = ["in_stock", "consigned_out", "written_off"];
 
@@ -48,6 +50,7 @@ export function StockRowCard({
     onSaveDevice,
     onSaveCost,
   });
+  const [open, setOpen] = useState(false);
 
   if (!row.id || !row.kind) return null;
 
@@ -88,26 +91,6 @@ export function StockRowCard({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-ink-muted">หมวดหมู่/ที่มา</label>
-          {row.kind === "product" ? (
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="ucom-field w-full px-2 py-1.5 text-sm"
-            >
-              <option value="">ไม่มีหมวดหมู่</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id!}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <div className="mt-1.5 text-sm text-ink-muted">{row.acquisition}</div>
-          )}
-        </div>
-
-        <div>
           <label className="mb-1 block text-xs text-ink-muted">ราคา</label>
           <input
             type="number"
@@ -121,45 +104,9 @@ export function StockRowCard({
         <div>
           <label className="mb-1 block text-xs text-ink-muted">จำนวน</label>
           {row.kind === "product" ? (
-            <input
-              type="number"
-              inputMode="numeric"
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              className="ucom-field w-full px-2 py-1.5 text-sm"
-            />
+            <QtyStepper value={qty} onChange={setQty} />
           ) : (
             <div className="mt-1.5 text-sm text-ink-muted">1</div>
-          )}
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs text-ink-muted">สถานะ</label>
-          {row.kind === "product" ? (
-            <select
-              value={status === "active" ? "active" : "inactive"}
-              onChange={(e) => setStatus(e.target.value)}
-              className="ucom-field w-full px-2 py-1.5 text-sm"
-            >
-              <option value="active">ขายอยู่</option>
-              <option value="inactive">เลิกขาย</option>
-            </select>
-          ) : (
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              disabled={!deviceStatuses.includes(row.status ?? "")}
-              className="ucom-field w-full px-2 py-1.5 text-sm disabled:bg-background disabled:text-ink-muted"
-            >
-              {!deviceStatuses.includes(row.status ?? "") && (
-                <option value={status}>{status}</option>
-              )}
-              {deviceStatuses.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
           )}
         </div>
 
@@ -186,6 +133,69 @@ export function StockRowCard({
           </div>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid={`stock-expand-${row.id}`}
+        className="flex items-center gap-1 text-xs text-ink-muted"
+      >
+        {open ? "▾" : "▸"} ประเภท/สถานะ
+      </button>
+
+      {open && (
+        <div className="grid grid-cols-2 gap-2" data-testid={`stock-detail-${row.id}`}>
+          <div>
+            <label className="mb-1 block text-xs text-ink-muted">หมวดหมู่/ที่มา</label>
+            {row.kind === "product" ? (
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="ucom-field w-full px-2 py-1.5 text-sm"
+              >
+                <option value="">ไม่มีหมวดหมู่</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id!}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="mt-1.5 text-sm text-ink-muted">{row.acquisition}</div>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs text-ink-muted">สถานะ</label>
+            {row.kind === "product" ? (
+              <select
+                value={status === "active" ? "active" : "inactive"}
+                onChange={(e) => setStatus(e.target.value)}
+                className="ucom-field w-full px-2 py-1.5 text-sm"
+              >
+                <option value="active">ขายอยู่</option>
+                <option value="inactive">เลิกขาย</option>
+              </select>
+            ) : (
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                disabled={!deviceStatuses.includes(row.status ?? "")}
+                className="ucom-field w-full px-2 py-1.5 text-sm disabled:bg-background disabled:text-ink-muted"
+              >
+                {!deviceStatuses.includes(row.status ?? "") && (
+                  <option value={status}>{status}</option>
+                )}
+                {deviceStatuses.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
