@@ -84,7 +84,7 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
                 renderLevel(row.bucketRows, below, depth + 1)
               ) : (
                 <tr data-testid={`report-detail-${row.bucket}`} className="bg-background">
-                  <td colSpan={COLUMN_COUNT} className="p-0">
+                  <td colSpan={COLUMN_COUNT} className="p-0" onClick={(event) => event.stopPropagation()}>
                     <DayEntries day={row.bucket} />
                   </td>
                 </tr>

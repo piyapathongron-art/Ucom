@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { escapedSearchTerm, pageRange } from "@/lib/supabase/pagination";
 import { todayInBangkok } from "../report/types";
 import type { Tables } from "@/lib/types/database";
 
@@ -19,6 +20,18 @@ export function useExpensesPage() {
 
   // Expense list state
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
+  const firstDayOfMonth = todayInBangkok().slice(0, 7) + "-01";
+  const today = todayInBangkok();
+  const [filterFrom, setFilterFrom] = useState(firstDayOfMonth);
+  const [filterTo, setFilterTo] = useState(today);
+  const [expenseSearch, setExpenseSearch] = useState("");
+  const deferredExpenseSearch = useDeferredValue(expenseSearch);
+  const [expensePage, setExpensePage] = useState(1);
+  const [expensePageSize, setExpensePageSize] = useState(25);
+  const [expenseTotalCount, setExpenseTotalCount] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
+  const [isExpensesLoading, setIsExpensesLoading] = useState(true);
+  const expensesRequestRef = useRef(0);
 
   // Wallet state
   const [walletBalances, setWalletBalances] = useState<WalletBalanceRow[]>([]);
@@ -31,36 +44,64 @@ export function useExpensesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // Month bounds for fetching expenses
-  const firstDayOfMonth = todayInBangkok().slice(0, 7) + "-01";
-  const today = todayInBangkok();
-
-  const fetchExpenses = (isStaleCheck?: () => boolean) => {
-    return supabase
-      .from("expenses")
-      .select("*")
-      .gte("spent_at", firstDayOfMonth)
-      .lte("spent_at", today)
-      .order("spent_at", { ascending: false })
-      .order("created_at", { ascending: false })
-      .then(
-        ({ data, error: fetchErr }) => {
-          if (isStaleCheck && isStaleCheck()) return;
-          if (fetchErr) {
-            console.error(fetchErr);
-            setError("โหลดรายการรายจ่ายไม่สำเร็จ");
-            setExpenses([]);
-          } else {
-            setExpenses(data ?? []);
-          }
-        },
-        (err) => {
-          if (isStaleCheck && isStaleCheck()) return;
-          console.error(err);
-          setError("โหลดรายการรายจ่ายไม่สำเร็จ");
-          setExpenses([]);
-        }
+  const fetchExpenses = async () => {
+    const requestId = ++expensesRequestRef.current;
+    setIsExpensesLoading(true);
+    try {
+      const { from, to } = pageRange(expensePage, expensePageSize);
+      const expenseSearchTerm = escapedSearchTerm(deferredExpenseSearch);
+      let pageQuery = supabase
+        .from("expenses")
+        .select("*", { count: "exact" })
+        .gte("spent_at", filterFrom)
+        .lte("spent_at", filterTo);
+      if (expenseSearchTerm) {
+        pageQuery = pageQuery.ilike("name", `%${expenseSearchTerm}%`);
+      }
+      let totalQuery = supabase
+        .from("expenses")
+        .select("amount")
+        .gte("spent_at", filterFrom)
+        .lte("spent_at", filterTo);
+      if (expenseSearchTerm) {
+        totalQuery = totalQuery.ilike("name", `%${expenseSearchTerm}%`);
+      }
+      const [pageResult, totalResult] = await Promise.all([
+        pageQuery
+          .order("spent_at", { ascending: false })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to),
+        totalQuery,
+      ]);
+      if (pageResult.error) throw pageResult.error;
+      if (totalResult.error) throw totalResult.error;
+      if (requestId !== expensesRequestRef.current) return;
+      const nextExpenses = pageResult.data ?? [];
+      const nextCount = pageResult.count ?? nextExpenses.length;
+      if (nextExpenses.length === 0 && nextCount > 0 && expensePage > 1) {
+        setExpensePage((current) => Math.max(1, current - 1));
+      } else {
+        setExpenses(nextExpenses);
+      }
+      setExpenseTotalCount(nextCount);
+      // No aggregate RPC/view exists in the current contract. Fetch only the amount
+      // column for the selected range so the footer stays a whole-range total without
+      // loading every expense row into the table.
+      setTotalExpense(
+        (totalResult.data ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0),
       );
+      setError(null);
+    } catch (err) {
+      if (requestId !== expensesRequestRef.current) return;
+      console.error(err);
+      setError("โหลดรายการรายจ่ายไม่สำเร็จ");
+      setExpenses([]);
+      setExpenseTotalCount(0);
+      setTotalExpense(0);
+    } finally {
+      if (requestId === expensesRequestRef.current) setIsExpensesLoading(false);
+    }
   };
 
   const fetchWallet = (isStaleCheck?: () => boolean) => {
@@ -116,11 +157,16 @@ export function useExpensesPage() {
     return Promise.all([fetchBalance, fetchCarriersList]);
   };
 
+  const retry = () => {
+    setIsLoading(true);
+    void Promise.all([fetchExpenses(), fetchWallet()]).finally(() => setIsLoading(false));
+  };
+
   useEffect(() => {
     let isStale = false;
     const checkStale = () => isStale;
 
-    Promise.all([fetchExpenses(checkStale), fetchWallet(checkStale)]).then(
+    Promise.resolve().then(() => Promise.all([fetchExpenses(), fetchWallet(checkStale)])).then(
       () => {
         if (!isStale) setIsLoading(false);
       },
@@ -133,7 +179,7 @@ export function useExpensesPage() {
       isStale = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [expensePage, expensePageSize, filterFrom, filterTo, deferredExpenseSearch]);
 
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,8 +264,6 @@ export function useExpensesPage() {
     }
   };
 
-  const totalExpense = expenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-
   return {
     expenseName,
     setExpenseName,
@@ -228,6 +272,18 @@ export function useExpensesPage() {
     expenseDate,
     setExpenseDate,
     expenses,
+    filterFrom,
+    setFilterFrom,
+    filterTo,
+    setFilterTo,
+    expenseSearch,
+    setExpenseSearch,
+    expensePage,
+    setExpensePage,
+    expensePageSize,
+    setExpensePageSize,
+    expenseTotalCount,
+    isExpensesLoading,
     walletBalances,
     carriers,
     selectedCarrier,
@@ -242,5 +298,6 @@ export function useExpensesPage() {
     handleDeleteExpense,
     handleAddTopup,
     totalExpense,
+    retry,
   };
 }

@@ -1,4 +1,5 @@
 import type { Tables } from "@/lib/types/database";
+import { PaginationControls } from "@/app/_components/PaginationControls";
 
 type ReceiptRow = Tables<"v_sf_receipts">;
 
@@ -21,6 +22,14 @@ export function ReceiptsList({
   formatDate,
   fmtMoney,
   todayInBangkok,
+  search,
+  onSearchChange,
+  page,
+  pageSize,
+  total,
+  isLoading,
+  onPageChange,
+  onPageSizeChange,
 }: {
   receipts: ReceiptRow[];
   isOwner: boolean;
@@ -40,6 +49,14 @@ export function ReceiptsList({
   formatDate: (iso: string | null) => string;
   fmtMoney: (n: number) => string;
   todayInBangkok: () => string;
+  search: string;
+  onSearchChange: (value: string) => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }) {
   const showCorrectionColumn = roleResolved && isOwner;
 
@@ -47,8 +64,15 @@ export function ReceiptsList({
     <section className="space-y-4">
       <div>
         <p className="font-mono text-[0.68rem] tracking-[0.16em] text-success">CONFIRMED / LEDGER</p>
-        <h2 className="mt-1 text-xl font-semibold">ค่าคอมที่ยืนยันแล้ว ({receipts.length})</h2>
+        <h2 className="mt-1 text-xl font-semibold">ค่าคอมที่ยืนยันแล้ว ({total})</h2>
       </div>
+      <input
+        value={search}
+        onChange={(event) => onSearchChange(event.target.value)}
+        data-testid="sf-receipts-search"
+        placeholder="ค้นหา IMEI / รุ่น"
+        className="ucom-field w-full px-3 py-2 text-sm md:w-80"
+      />
       {receipts.length === 0 ? (
         <p className="text-sm text-ink-muted">ยังไม่มีรายการ</p>
       ) : (
@@ -163,6 +187,17 @@ export function ReceiptsList({
           </table>
         </div>
       )}
+      <PaginationControls
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        isLoading={isLoading}
+        pageSizeOptions={[20, 40, 80]}
+        label="รายการยืนยันแล้ว"
+        testIdPrefix="sf-receipts-pagination"
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
     </section>
   );
 }

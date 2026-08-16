@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PageFrame } from "@/app/_components/PageFrame";
+import { pageRange } from "@/lib/supabase/pagination";
 import { todayInBangkok } from "../../(owner)/report/types";
 import { readQueue } from "../pos/queue";
 import type { Tables } from "@/lib/types/database";
@@ -13,7 +14,6 @@ import ExpensesSection from "./ExpensesSection";
 type BillRow = Tables<"v_close_day_bills">;
 type ItemRow = Tables<"v_close_day_items">;
 type ExpenseRow = Tables<"v_close_day_expenses">;
-type SFRow = Tables<"v_close_day_sf">;
 type ClosingRow = Tables<"day_closings">;
 
 export default function CloseDayPage() {
@@ -25,6 +25,9 @@ export default function CloseDayPage() {
     setError(null);
     setIsClosingSuccess(false);
     setDeleteConfirmId(null);
+    setBillPage(1);
+    setItemPage(1);
+    setExpensePage(1);
     setDate(nextDate);
   };
   const [isOwner, setIsOwner] = useState(false);
@@ -33,7 +36,18 @@ export default function CloseDayPage() {
   const [bills, setBills] = useState<BillRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
-  const [sfs, setSfs] = useState<SFRow[]>([]);
+  const [billSummary, setBillSummary] = useState<Pick<BillRow, "bill_total" | "payment_method">[]>([]);
+  const [expenseSummary, setExpenseSummary] = useState<Pick<ExpenseRow, "amount" | "paid_from">[]>([]);
+  const [sfCount, setSfCount] = useState(0);
+  const [billPage, setBillPage] = useState(1);
+  const [billPageSize, setBillPageSize] = useState(25);
+  const [billTotal, setBillTotal] = useState(0);
+  const [itemPage, setItemPage] = useState(1);
+  const [itemPageSize, setItemPageSize] = useState(25);
+  const [itemTotal, setItemTotal] = useState(0);
+  const [expensePage, setExpensePage] = useState(1);
+  const [expensePageSize, setExpensePageSize] = useState(25);
+  const [expenseTotal, setExpenseTotal] = useState(0);
   const [closing, setClosing] = useState<ClosingRow | null>(null);
   
   const [queuedCount, setQueuedCount] = useState(0);
@@ -64,37 +78,105 @@ export default function CloseDayPage() {
   }, []);
 
   const fetchExpensesOnly = async () => {
-    const { data } = await supabase.from("v_close_day_expenses").select("*").eq("day", date);
-    if (data) setExpenses(data);
+    const { from, to } = pageRange(expensePage, expensePageSize);
+    const [pageResult, summaryResult] = await Promise.all([
+      supabase
+        .from("v_close_day_expenses")
+        .select("*", { count: "exact" })
+        .eq("day", date)
+        .order("id", { ascending: false })
+        .range(from, to),
+      supabase.from("v_close_day_expenses").select("amount, paid_from").eq("day", date),
+    ]);
+    if (pageResult.error || summaryResult.error) {
+      setError(pageResult.error?.message ?? summaryResult.error?.message ?? "โหลดรายจ่ายไม่สำเร็จ");
+      return;
+    }
+    const nextExpenses = pageResult.data ?? [];
+    const nextTotal = pageResult.count ?? nextExpenses.length;
+    if (nextExpenses.length === 0 && nextTotal > 0 && expensePage > 1) {
+      setExpensePage((current) => Math.max(1, current - 1));
+    } else {
+      setExpenses(nextExpenses);
+    }
+    setExpenseTotal(nextTotal);
+    setExpenseSummary(summaryResult.data ?? []);
   };
 
-  const fetchData = (targetDate: string, isStale: () => boolean) => {
-    Promise.all([
-      supabase.from("v_close_day_bills").select("*").eq("day", targetDate),
-      supabase.from("v_close_day_items").select("*").eq("day", targetDate),
-      supabase.from("v_close_day_expenses").select("*").eq("day", targetDate),
-      supabase.from("v_close_day_sf").select("*").eq("day", targetDate),
-      supabase.from("day_closings").select("*").eq("closing_date", targetDate).maybeSingle()
-    ]).then(([rBills, rItems, rExp, rSf, rClosing]) => {
-      if (isStale()) return;
-      setBills(rBills.data || []);
-      setItems(rItems.data || []);
-      setExpenses(rExp.data || []);
-      setSfs(rSf.data || []);
-      setClosing(rClosing.data || null);
-
-      if (targetDate === todayInBangkok()) setQueuedCount(readQueue().length);
-      else setQueuedCount(0);
+  const fetchData = async (targetDate: string, isStale: () => boolean) => {
+    const billRange = pageRange(billPage, billPageSize);
+    const itemRange = pageRange(itemPage, itemPageSize);
+    const expenseRange = pageRange(expensePage, expensePageSize);
+    const [rBills, rBillSummary, rItems, rExp, rExpSummary, rSf, rClosing] = await Promise.all([
+      supabase
+        .from("v_close_day_bills")
+        .select("*", { count: "exact" })
+        .eq("day", targetDate)
+        .order("sold_at", { ascending: false })
+        .order("sale_id", { ascending: false })
+        .range(billRange.from, billRange.to),
+      supabase.from("v_close_day_bills").select("bill_total, payment_method").eq("day", targetDate),
+      supabase
+        .from("v_close_day_items")
+        .select("*", { count: "exact" })
+        .eq("day", targetDate)
+        .order("revenue", { ascending: false })
+        .order("name_snapshot", { ascending: true })
+        .order("kind", { ascending: true })
+        .range(itemRange.from, itemRange.to),
+      supabase
+        .from("v_close_day_expenses")
+        .select("*", { count: "exact" })
+        .eq("day", targetDate)
+        .order("id", { ascending: false })
+        .range(expenseRange.from, expenseRange.to),
+      supabase.from("v_close_day_expenses").select("amount, paid_from").eq("day", targetDate),
+      supabase.from("v_close_day_sf").select("imei", { count: "exact", head: true }).eq("day", targetDate),
+      supabase.from("day_closings").select("*").eq("closing_date", targetDate).maybeSingle(),
+    ]);
+    if (isStale()) return;
+    const firstError = [rBills, rBillSummary, rItems, rExp, rExpSummary, rSf, rClosing].find((result) => result.error)?.error;
+    if (firstError) {
+      setError(firstError.message);
       setIsLoading(false);
-    });
+      return;
+    }
+    setError(null);
+    const nextBills = rBills.data || [];
+    const nextItems = rItems.data || [];
+    const nextExpenses = rExp.data || [];
+    const nextBillTotal = rBills.count ?? nextBills.length;
+    const nextItemTotal = rItems.count ?? nextItems.length;
+    const nextExpenseTotal = rExp.count ?? nextExpenses.length;
+    if (nextBills.length === 0 && nextBillTotal > 0 && billPage > 1) setBillPage((current) => Math.max(1, current - 1));
+    else setBills(nextBills);
+    if (nextItems.length === 0 && nextItemTotal > 0 && itemPage > 1) setItemPage((current) => Math.max(1, current - 1));
+    else setItems(nextItems);
+    if (nextExpenses.length === 0 && nextExpenseTotal > 0 && expensePage > 1) setExpensePage((current) => Math.max(1, current - 1));
+    else setExpenses(nextExpenses);
+    setBillTotal(nextBillTotal);
+    setItemTotal(nextItemTotal);
+    setExpenseTotal(nextExpenseTotal);
+    setBillSummary(rBillSummary.data || []);
+    setExpenseSummary(rExpSummary.data || []);
+    setSfCount(rSf.count ?? 0);
+    setClosing(rClosing.data || null);
+
+    if (targetDate === todayInBangkok()) setQueuedCount(readQueue().length);
+    else setQueuedCount(0);
+    setIsLoading(false);
   };
 
   useEffect(() => {
     let stale = false;
-    fetchData(date, () => stale);
+    Promise.resolve().then(() => {
+      if (stale) return;
+      setIsLoading(true);
+      return fetchData(date, () => stale);
+    });
     return () => { stale = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date]);
+  }, [date, billPage, billPageSize, itemPage, itemPageSize, expensePage, expensePageSize]);
 
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,9 +231,9 @@ export default function CloseDayPage() {
 
   const fmt = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   
-  const cashTotal = bills.filter(b => b.payment_method === "cash").reduce((s, b) => s + Number(b.bill_total), 0);
-  const transferTotal = bills.filter(b => b.payment_method === "transfer").reduce((s, b) => s + Number(b.bill_total), 0);
-  const cashExpenseTotal = expenses.filter(e => e.paid_from === "cash").reduce((s, e) => s + Number(e.amount), 0);
+  const cashTotal = billSummary.filter(b => b.payment_method === "cash").reduce((s, b) => s + Number(b.bill_total), 0);
+  const transferTotal = billSummary.filter(b => b.payment_method === "transfer").reduce((s, b) => s + Number(b.bill_total), 0);
+  const cashExpenseTotal = expenseSummary.filter(e => e.paid_from === "cash").reduce((s, e) => s + Number(e.amount), 0);
   const toSend = cashTotal - cashExpenseTotal;
 
   const isToday = date === todayInBangkok();
@@ -181,8 +263,18 @@ export default function CloseDayPage() {
     >
 
       {error && (
-        <div data-testid="close-day-error" className="rounded border border-danger bg-danger/10 p-4 text-sm text-danger">
-          {error}
+        <div data-testid="close-day-error" className="flex flex-wrap items-center justify-between gap-3 rounded border border-danger bg-danger/10 p-4 text-sm text-danger">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setIsLoading(true);
+              void fetchData(date, () => false);
+            }}
+            className="ucom-danger px-3 py-1.5 text-sm"
+          >
+            ลองใหม่
+          </button>
         </div>
       )}
 
@@ -215,13 +307,37 @@ export default function CloseDayPage() {
             </div>
           </div>
 
-          {sfs.length > 0 && (
-            <div className="text-ink font-medium">ปล่อย SF+ วันนี้ {sfs.length} เครื่อง</div>
+          {sfCount > 0 && (
+            <div className="text-ink font-medium">ปล่อย SF+ วันนี้ {sfCount} เครื่อง</div>
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <BillsSection bills={bills} fmt={fmt} />
-            <ItemsSection items={items} fmt={fmt} />
+            <BillsSection
+              bills={bills}
+              fmt={fmt}
+              page={billPage}
+              pageSize={billPageSize}
+              total={billTotal}
+              isLoading={isLoading}
+              onPageChange={setBillPage}
+              onPageSizeChange={(value) => {
+                setBillPageSize(value);
+                setBillPage(1);
+              }}
+            />
+            <ItemsSection
+              items={items}
+              fmt={fmt}
+              page={itemPage}
+              pageSize={itemPageSize}
+              total={itemTotal}
+              isLoading={isLoading}
+              onPageChange={setItemPage}
+              onPageSizeChange={(value) => {
+                setItemPageSize(value);
+                setItemPage(1);
+              }}
+            />
           </div>
 
           <ExpensesSection
@@ -238,6 +354,15 @@ export default function CloseDayPage() {
             expensePaidFrom={expensePaidFrom}
             onExpensePaidFromChange={setExpensePaidFrom}
             fmt={fmt}
+            page={expensePage}
+            pageSize={expensePageSize}
+            total={expenseTotal}
+            isLoading={isLoading}
+            onPageChange={setExpensePage}
+            onPageSizeChange={(value) => {
+              setExpensePageSize(value);
+              setExpensePage(1);
+            }}
           />
 
           <hr className="border-border" />

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { PaginationControls } from "@/app/_components/PaginationControls";
 import type { CatalogRow, Carrier } from "./types";
+
+export type CatalogKindFilter = "all" | "product" | "device";
 
 export function Catalog({
   catalog,
@@ -10,6 +13,18 @@ export function Catalog({
   onAddCatalog,
   onAddTopup,
   onFinanceDevice,
+  search,
+  onSearchChange,
+  kindFilter,
+  onKindFilterChange,
+  page,
+  pageSize,
+  total,
+  isLoading,
+  catalogError,
+  onRetry,
+  onPageChange,
+  onPageSizeChange,
 }: {
   catalog: CatalogRow[];
   topProducts: CatalogRow[];
@@ -17,21 +32,24 @@ export function Catalog({
   onAddCatalog: (item: CatalogRow) => void;
   onAddTopup: (carrier: Carrier, amount: number) => void;
   onFinanceDevice: (item: CatalogRow) => Promise<string | null>;
+  search: string;
+  onSearchChange: (value: string) => void;
+  kindFilter: CatalogKindFilter;
+  onKindFilterChange: (value: CatalogKindFilter) => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  isLoading: boolean;
+  catalogError: string | null;
+  onRetry: () => void;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }) {
-  const [search, setSearch] = useState("");
   const [topupCarrier, setTopupCarrier] = useState<Carrier | null>(null);
   const [topupAmount, setTopupAmount] = useState("");
   const [financeItem, setFinanceItem] = useState<CatalogRow | null>(null);
   const [financeError, setFinanceError] = useState<string | null>(null);
   const [financing, setFinancing] = useState(false);
-
-  const filtered = search.trim()
-    ? catalog.filter((item) =>
-        `${item.name} ${item.code ?? ""}`
-          .toLowerCase()
-          .includes(search.trim().toLowerCase()),
-      )
-    : catalog;
 
   function submitTopup() {
     const amount = Number(topupAmount);
@@ -61,7 +79,7 @@ export function Catalog({
   }
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto bg-background p-4 md:p-6">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto bg-background p-4 md:p-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-ink-muted">Counter / catalog</p>
@@ -140,13 +158,37 @@ export function Catalog({
         <span className="sr-only">ค้นหาสินค้า/เครื่อง</span>
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
           placeholder="ค้นหาสินค้า / SKU / IMEI"
           data-testid="catalog-search"
           className="ucom-field w-full px-3 py-2.5 pr-10 text-sm"
         />
         <span aria-hidden="true" className="pointer-events-none absolute right-3 top-2.5 text-ink-muted">⌕</span>
       </label>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-ink-muted">ประเภท</span>
+        {([
+          ["all", "ทั้งหมด"],
+          ["product", "สินค้า"],
+          ["device", "เครื่อง"],
+        ] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onKindFilterChange(value)}
+            data-testid={`catalog-kind-${value}`}
+            aria-pressed={kindFilter === value}
+            className={`rounded border px-3 py-1.5 text-sm ${
+              kindFilter === value
+                ? "border-ink bg-ink text-surface"
+                : "border-border bg-surface text-ink-muted"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {financeItem && (
         <div data-testid="finance-form" className="flex flex-wrap items-center gap-2 rounded border border-warning/40 bg-warning/5 p-3">
@@ -174,10 +216,19 @@ export function Catalog({
       <section className="space-y-2">
         <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-semibold text-ink">รายการสินค้า</h2>
-          <span className="text-xs text-ink-muted">{filtered.length} รายการ</span>
+          <span className="text-xs text-ink-muted">{total.toLocaleString("th-TH")} รายการ</span>
         </div>
+        {catalogError && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border border-danger bg-danger/10 p-3 text-sm text-danger">
+            <span>{catalogError}</span>
+            <button type="button" onClick={onRetry} className="ucom-danger px-3 py-1.5 text-sm">
+              ลองใหม่
+            </button>
+          </div>
+        )}
+        {isLoading && <p className="text-sm text-ink-muted">กำลังโหลดรายการ...</p>}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-        {filtered.map((item) =>
+        {catalog.map((item) =>
           item.kind === "device" && item.acquisition === "sf_credit" ? (
             <div
               key={`${item.kind}-${item.id}`}
@@ -226,12 +277,23 @@ export function Catalog({
             </button>
           ),
         )}
-        {filtered.length === 0 && (
+        {!isLoading && !catalogError && catalog.length === 0 && (
           <p className="col-span-full rounded border border-dashed border-border p-8 text-center text-sm text-ink-muted">
             ไม่พบสินค้า
           </p>
         )}
       </div>
+      <PaginationControls
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        isLoading={isLoading}
+        pageSizeOptions={[24, 48, 96]}
+        label="สินค้า"
+        testIdPrefix="catalog-pagination"
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
       </section>
     </div>
   );

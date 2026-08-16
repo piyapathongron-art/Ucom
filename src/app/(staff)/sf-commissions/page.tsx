@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PageFrame } from "@/app/_components/PageFrame";
+import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import type { Tables } from "@/lib/types/database";
 import { PendingList } from "./PendingList";
 import { ReceiptsList } from "./ReceiptsList";
@@ -36,8 +37,19 @@ export default function SfCommissionsPage() {
 
   const [pending, setPending] = useState<PendingRow[]>([]);
   const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
+  const [pendingSearch, setPendingSearch] = useState("");
+  const deferredPendingSearch = useDeferredValue(pendingSearch);
+  const [pendingPage, setPendingPage] = useState(1);
+  const [pendingPageSize, setPendingPageSize] = useState(20);
+  const [pendingTotal, setPendingTotal] = useState(0);
+  const [receiptsSearch, setReceiptsSearch] = useState("");
+  const deferredReceiptsSearch = useDeferredValue(receiptsSearch);
+  const [receiptsPage, setReceiptsPage] = useState(1);
+  const [receiptsPageSize, setReceiptsPageSize] = useState(20);
+  const [receiptsTotal, setReceiptsTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestRef = useRef(0);
 
   // Record form state (per pending device)
   const [recordingId, setRecordingId] = useState<string | null>(null);
@@ -74,21 +86,57 @@ export default function SfCommissionsPage() {
   }, []);
 
   const fetchData = async () => {
+    const requestId = ++requestRef.current;
     setIsLoading(true);
     setError(null);
     try {
+      const pendingRange = pageRange(pendingPage, pendingPageSize);
+      const receiptsRange = pageRange(receiptsPage, receiptsPageSize);
+      let pendingQuery = supabase
+        .from("v_sf_pending")
+        .select("*", { count: "exact" });
+      const pendingFilter = orIlike(["imei", "model_name"], deferredPendingSearch);
+      if (pendingFilter) pendingQuery = pendingQuery.or(pendingFilter);
+      let receiptsQuery = supabase
+        .from("v_sf_receipts")
+        .select("*", { count: "exact" });
+      const receiptsFilter = orIlike(["imei", "model_name"], deferredReceiptsSearch);
+      if (receiptsFilter) receiptsQuery = receiptsQuery.or(receiptsFilter);
       const [rPending, rReceipts] = await Promise.all([
-        supabase.from("v_sf_pending").select("*").order("financed_at", { ascending: false }),
-        supabase.from("v_sf_receipts").select("*").order("received_on", { ascending: false }),
+        pendingQuery
+          .order("financed_at", { ascending: false })
+          .order("device_unit_id", { ascending: true })
+          .range(pendingRange.from, pendingRange.to),
+        receiptsQuery
+          .order("received_on", { ascending: false })
+          .order("recorded_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(receiptsRange.from, receiptsRange.to),
       ]);
       if (rPending.error) throw rPending.error;
       if (rReceipts.error) throw rReceipts.error;
-      setPending(rPending.data ?? []);
-      setReceipts(rReceipts.data ?? []);
+      if (requestId !== requestRef.current) return;
+      const nextPending = rPending.data ?? [];
+      const nextReceipts = rReceipts.data ?? [];
+      const nextPendingTotal = rPending.count ?? nextPending.length;
+      const nextReceiptsTotal = rReceipts.count ?? nextReceipts.length;
+      if (nextPending.length === 0 && nextPendingTotal > 0 && pendingPage > 1) {
+        setPendingPage((current) => Math.max(1, current - 1));
+      } else {
+        setPending(nextPending);
+      }
+      if (nextReceipts.length === 0 && nextReceiptsTotal > 0 && receiptsPage > 1) {
+        setReceiptsPage((current) => Math.max(1, current - 1));
+      } else {
+        setReceipts(nextReceipts);
+      }
+      setPendingTotal(nextPendingTotal);
+      setReceiptsTotal(nextReceiptsTotal);
     } catch (err) {
+      if (requestId !== requestRef.current) return;
       setError(err instanceof Error ? err.message : "โหลดข้อมูลไม่สำเร็จ");
     } finally {
-      setIsLoading(false);
+      if (requestId === requestRef.current) setIsLoading(false);
     }
   };
 
@@ -96,7 +144,7 @@ export default function SfCommissionsPage() {
     // hop off the effect body before touching state — matches PosPage pattern
     Promise.resolve().then(() => fetchData());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pendingPage, pendingPageSize, deferredPendingSearch, receiptsPage, receiptsPageSize, deferredReceiptsSearch]);
 
   const handleRecord = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,9 +234,12 @@ export default function SfCommissionsPage() {
       {error && (
         <div
           data-testid="sf-commissions-error"
-          className="rounded border border-danger bg-danger/10 p-4 text-sm text-danger"
+          className="flex flex-wrap items-center justify-between gap-3 rounded border border-danger bg-danger/10 p-4 text-sm text-danger"
         >
-          {error}
+          <span>{error}</span>
+          <button type="button" onClick={() => void fetchData()} className="ucom-danger px-3 py-1.5 text-sm">
+            ลองใหม่
+          </button>
         </div>
       )}
 
@@ -198,6 +249,20 @@ export default function SfCommissionsPage() {
         <>
           <PendingList
             pending={pending}
+            search={pendingSearch}
+            onSearchChange={(value) => {
+              setPendingSearch(value);
+              setPendingPage(1);
+            }}
+            page={pendingPage}
+            pageSize={pendingPageSize}
+            total={pendingTotal}
+            isLoading={isLoading}
+            onPageChange={setPendingPage}
+            onPageSizeChange={(value) => {
+              setPendingPageSize(value);
+              setPendingPage(1);
+            }}
             recordingId={recordingId}
             recordAmount={recordAmount}
             recordDate={recordDate}
@@ -222,6 +287,20 @@ export default function SfCommissionsPage() {
 
           <ReceiptsList
             receipts={receipts}
+            search={receiptsSearch}
+            onSearchChange={(value) => {
+              setReceiptsSearch(value);
+              setReceiptsPage(1);
+            }}
+            page={receiptsPage}
+            pageSize={receiptsPageSize}
+            total={receiptsTotal}
+            isLoading={isLoading}
+            onPageChange={setReceiptsPage}
+            onPageSizeChange={(value) => {
+              setReceiptsPageSize(value);
+              setReceiptsPage(1);
+            }}
             isOwner={isOwner}
             roleResolved={roleResolved}
             correctingId={correctingId}

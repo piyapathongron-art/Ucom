@@ -1,4 +1,5 @@
 import type { Tables } from "@/lib/types/database";
+import { PaginationControls } from "@/app/_components/PaginationControls";
 
 type PendingRow = Tables<"v_sf_pending">;
 
@@ -16,6 +17,14 @@ export function PendingList({
   onSubmit,
   formatDate,
   todayInBangkok,
+  search,
+  onSearchChange,
+  page,
+  pageSize,
+  total,
+  isLoading,
+  onPageChange,
+  onPageSizeChange,
 }: {
   pending: PendingRow[];
   recordingId: string | null;
@@ -30,13 +39,28 @@ export function PendingList({
   onSubmit: (e: React.FormEvent) => void;
   formatDate: (iso: string | null) => string;
   todayInBangkok: () => string;
+  search: string;
+  onSearchChange: (value: string) => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }) {
   return (
     <section data-testid="sf-pending-section" className="space-y-4">
       <div>
         <p className="font-mono text-[0.68rem] tracking-[0.16em] text-warning">PENDING / RECEIPT</p>
-        <h2 className="mt-1 text-xl font-semibold">รอบันทึกค่าคอม ({pending.length})</h2>
+        <h2 className="mt-1 text-xl font-semibold">รอบันทึกค่าคอม ({total})</h2>
       </div>
+      <input
+        value={search}
+        onChange={(event) => onSearchChange(event.target.value)}
+        data-testid="sf-pending-search"
+        placeholder="ค้นหา IMEI / รุ่น"
+        className="ucom-field w-full px-3 py-2 text-sm md:w-80"
+      />
       {pending.length === 0 ? (
         <p className="text-sm text-ink-muted">ไม่มีเครื่องที่รอบันทึก</p>
       ) : (
@@ -127,6 +151,17 @@ export function PendingList({
           </table>
         </div>
       )}
+      <PaginationControls
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        isLoading={isLoading}
+        pageSizeOptions={[20, 40, 80]}
+        label="รายการรอบันทึก"
+        testIdPrefix="sf-pending-pagination"
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
     </section>
   );
 }

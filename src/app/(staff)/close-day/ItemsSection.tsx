@@ -1,13 +1,20 @@
 import type { Tables } from "@/lib/types/database";
+import { PaginationControls } from "@/app/_components/PaginationControls";
 
 export type ItemRow = Tables<"v_close_day_items">;
 
 interface Props {
   items: ItemRow[];
   fmt: (n: number) => string;
+  page: number;
+  pageSize: number;
+  total: number;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }
 
-export default function ItemsSection({ items, fmt }: Props) {
+export default function ItemsSection({ items, fmt, page, pageSize, total, isLoading, onPageChange, onPageSizeChange }: Props) {
   const sorted = [...items].sort(
     (a, b) => Number(b.revenue) - Number(a.revenue)
   );
@@ -65,6 +72,16 @@ export default function ItemsSection({ items, fmt }: Props) {
           </div>
         ))}
       </div>
+      <PaginationControls
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        isLoading={isLoading}
+        label="สินค้า"
+        testIdPrefix="close-day-items-pagination"
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
     </section>
   );
 }

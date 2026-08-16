@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PageFrame, PageSection } from "@/app/_components/PageFrame";
+import { PaginationControls } from "@/app/_components/PaginationControls";
+import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import { StockTable, type DeviceSave, type ProductSave } from "./StockTable";
 import { AddDeviceForm, AddProductForm } from "./AddForms";
 import { SfIntake, type SfIntakePayload } from "./SfIntake";
@@ -17,30 +19,83 @@ export default function StockPage() {
   const [dueList, setDueList] = useState<SfDue[]>([]);
   const [costById, setCostById] = useState<Record<string, number | null>>({});
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const [kindFilter, setKindFilter] = useState<"all" | "product" | "device">("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestRef = useRef(0);
 
-  function loadStock() {
-    return supabase
-      .from("v_pos_stock")
-      .select("*")
-      .then(({ data }) => setRows(data ?? []));
+  async function loadStock() {
+    const requestId = ++requestRef.current;
+    setIsLoading(true);
+    try {
+      const { from, to } = pageRange(page, pageSize);
+      let query = supabase.from("v_pos_stock").select("*", { count: "exact" });
+      const searchFilter = orIlike(["name", "code"], deferredSearch);
+      if (searchFilter) query = query.or(searchFilter);
+      if (kindFilter !== "all") query = query.eq("kind", kindFilter);
+      if (statusFilter !== "all") query = query.eq("status", statusFilter);
+      const result = await query
+        .order("name", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to);
+      if (result.error) throw result.error;
+      if (requestId !== requestRef.current) return;
+      const nextRows = result.data ?? [];
+      const nextTotal = result.count ?? nextRows.length;
+      if (nextRows.length === 0 && nextTotal > 0 && page > 1) {
+        setPage((current) => Math.max(1, current - 1));
+        return;
+      }
+      setRows(nextRows);
+      setTotal(nextTotal);
+      setError(null);
+    } catch (loadError) {
+      if (requestId !== requestRef.current) return;
+      setRows([]);
+      setTotal(0);
+      setError(loadError instanceof Error ? loadError.message : "โหลดสต็อกไม่สำเร็จ");
+    } finally {
+      if (requestId === requestRef.current) setIsLoading(false);
+    }
   }
 
-  function loadCosts(owner: boolean) {
-    if (!owner) return;
-    Promise.all([
-      supabase.from("products").select("id, cost"),
-      supabase.from("device_units").select("id, cost"),
-    ]).then(([{ data: products }, { data: devices }]) => {
+  async function loadCosts(owner: boolean, stockRows: StockRow[]) {
+    if (!owner) {
+      setCostById({});
+      return;
+    }
+    try {
+      const productIds = stockRows.filter((row) => row.kind === "product" && row.id).map((row) => row.id!);
+      const deviceIds = stockRows.filter((row) => row.kind === "device" && row.id).map((row) => row.id!);
       const map: Record<string, number | null> = {};
-      for (const p of products ?? []) map[p.id] = p.cost;
-      for (const d of devices ?? []) map[d.id] = d.cost;
+      if (productIds.length > 0) {
+        const { data, error: productError } = await supabase
+          .from("products")
+          .select("id, cost")
+          .in("id", productIds);
+        if (productError) throw productError;
+        for (const row of data ?? []) map[row.id] = row.cost;
+      }
+      if (deviceIds.length > 0) {
+        const { data, error: deviceError } = await supabase
+          .from("device_units")
+          .select("id, cost")
+          .in("id", deviceIds);
+        if (deviceError) throw deviceError;
+        for (const row of data ?? []) map[row.id] = row.cost;
+      }
       setCostById(map);
-    });
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "โหลดต้นทุนไม่สำเร็จ");
+    }
   }
 
   useEffect(() => {
-    loadStock();
     supabase
       .from("categories")
       .select("*")
@@ -60,11 +115,20 @@ export default function StockPage() {
         .then(({ data: profile }) => {
           const owner = profile?.role === "owner";
           setIsOwner(owner);
-          loadCosts(owner);
         });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    Promise.resolve().then(() => loadStock());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, kindFilter, statusFilter, deferredSearch]);
+
+  useEffect(() => {
+    Promise.resolve().then(() => loadCosts(isOwner, rows));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOwner, rows]);
 
   async function saveProduct(input: ProductSave) {
     setError(null);
@@ -83,7 +147,7 @@ export default function StockPage() {
       setError(error.message);
       return;
     }
-    loadStock();
+    void loadStock();
   }
 
   async function saveDevice(input: DeviceSave) {
@@ -102,7 +166,7 @@ export default function StockPage() {
       setError(error.message);
       return;
     }
-    loadStock();
+    void loadStock();
   }
 
   async function saveCost(kind: string, id: string, cost: number) {
@@ -130,20 +194,12 @@ export default function StockPage() {
       setError(error.message);
       return;
     }
-    loadStock();
+    void loadStock();
     supabase
       .from("v_sf_due")
       .select("*")
       .then(({ data }) => setDueList(data ?? []));
   }
-
-  const filtered = search.trim()
-    ? rows.filter((r) =>
-        `${r.name} ${r.code ?? ""}`
-          .toLowerCase()
-          .includes(search.trim().toLowerCase()),
-      )
-    : rows;
 
   return (
     <PageFrame
@@ -159,34 +215,91 @@ export default function StockPage() {
     >
 
       {error && (
-        <p className="border border-danger bg-danger/10 p-3 text-sm text-danger">{error}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-danger bg-danger/10 p-3 text-sm text-danger">
+          <span>{error}</span>
+          <button type="button" onClick={() => void loadStock()} className="ucom-danger px-3 py-1.5 text-sm">
+            ลองใหม่
+          </button>
+        </div>
       )}
 
       <SfIntake dueList={dueList} onSubmit={submitSfIntake} />
 
       <PageSection
         title="รายการคงคลัง"
-        description={`${filtered.length.toLocaleString("th-TH")} รายการ · แก้ไขแล้วกดบันทึกเพื่อส่งเข้า stock RPC`}
+        description={`${total.toLocaleString("th-TH")} รายการตามตัวกรอง · แก้ไขแล้วกดบันทึกเพื่อส่งเข้า stock RPC`}
       >
       <div className="ucom-toolbar">
         <AddProductForm categories={categories} onSave={saveProduct} />
         <AddDeviceForm onSave={saveDevice} />
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           placeholder="ค้นหาสินค้า / เครื่อง / SKU / IMEI"
           className="ucom-field ml-auto w-full px-3 py-2 text-sm md:w-80"
         />
+        <select
+          value={kindFilter}
+          onChange={(e) => {
+            setKindFilter(e.target.value as "all" | "product" | "device");
+            setPage(1);
+          }}
+          data-testid="stock-kind-filter"
+          className="ucom-field px-3 py-2 text-sm"
+        >
+          <option value="all">ทุกชนิด</option>
+          <option value="product">สินค้า</option>
+          <option value="device">เครื่อง</option>
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
+          data-testid="stock-status-filter"
+          className="ucom-field px-3 py-2 text-sm"
+        >
+          <option value="all">ทุกสถานะ</option>
+          <option value="active">ขายอยู่</option>
+          <option value="inactive">เลิกขาย</option>
+          <option value="in_stock">อยู่ในคลัง</option>
+          <option value="consigned_out">ฝากขายออกแล้ว</option>
+          <option value="written_off">ตัดจำหน่าย</option>
+        </select>
       </div>
 
+      {isLoading && <p className="text-sm text-ink-muted">กำลังโหลดรายการ...</p>}
+
       <StockTable
-        rows={filtered}
+        rows={rows}
         categories={categories}
         isOwner={isOwner}
         costById={costById}
         onSaveProduct={saveProduct}
         onSaveDevice={saveDevice}
         onSaveCost={saveCost}
+      />
+      {!isLoading && rows.length === 0 && (
+        <p className="rounded border border-dashed border-border p-6 text-center text-sm text-ink-muted">
+          ไม่พบรายการตามตัวกรอง
+        </p>
+      )}
+      <PaginationControls
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        isLoading={isLoading}
+        label="สต็อก"
+        testIdPrefix="stock-pagination"
+        onPageChange={setPage}
+        onPageSizeChange={(value) => {
+          setPageSize(value);
+          setPage(1);
+        }}
       />
       </PageSection>
     </PageFrame>

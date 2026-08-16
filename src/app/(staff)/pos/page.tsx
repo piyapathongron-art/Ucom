@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import { Catalog } from "./Catalog";
 import { Cart, type CheckoutInput } from "./Cart";
 import { QueueBanner } from "./QueueBanner";
@@ -16,12 +17,31 @@ import {
   type QueuedSale,
 } from "./queue";
 import type { CartLine, CatalogRow, Carrier } from "./types";
+import type { CatalogKindFilter } from "./Catalog";
+
+type CachedCatalogPage = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  kind?: CatalogKindFilter;
+  total?: number;
+  catalog: CatalogRow[];
+  topProducts: CatalogRow[];
+};
 
 export default function PosPage() {
   const supabase = createClient();
 
   const [catalog, setCatalog] = useState<CatalogRow[]>([]);
   const [topProducts, setTopProducts] = useState<CatalogRow[]>([]);
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const deferredCatalogSearch = useDeferredValue(catalogSearch);
+  const [catalogKind, setCatalogKind] = useState<CatalogKindFilter>("all");
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [catalogPageSize, setCatalogPageSize] = useState(24);
+  const [catalogTotal, setCatalogTotal] = useState(0);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
   const [lines, setLines] = useState<CartLine[]>([]);
   const [clientUuid, setClientUuid] = useState(() => crypto.randomUUID());
@@ -29,48 +49,109 @@ export default function PosPage() {
   const [error, setError] = useState<string | null>(null);
   const [queue, setQueue] = useState<QueuedSale[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const catalogRequestRef = useRef(0);
 
-  function loadCatalog() {
-    return Promise.all([
-        supabase.from("v_pos_catalog").select("*"),
-        supabase.from("v_pos_stock").select("*"),
-        supabase.from("v_pos_top_products").select("*"),
-      ])
-      .then(([{ data: catalogRows }, { data: stockRows }, { data: topProductRows }]) => {
-        const acquisitionById = new Map(
-          (stockRows ?? [])
+  async function loadCatalog() {
+    const requestId = ++catalogRequestRef.current;
+    setCatalogLoading(true);
+    setCatalogError(null);
+    const { from, to } = pageRange(catalogPage, catalogPageSize);
+
+    try {
+      let catalogQuery = supabase
+        .from("v_pos_catalog")
+        .select("*", { count: "exact" });
+      if (catalogKind !== "all") catalogQuery = catalogQuery.eq("kind", catalogKind);
+      const searchFilter = orIlike(["name", "code"], deferredCatalogSearch);
+      if (searchFilter) catalogQuery = catalogQuery.or(searchFilter);
+
+      const [catalogResult, topResult] = await Promise.all([
+        catalogQuery
+          .order("name", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+        supabase
+          .from("v_pos_top_products")
+          .select("*")
+          .order("name", { ascending: true })
+          .order("id", { ascending: true })
+          .limit(8),
+      ]);
+      if (catalogResult.error) throw catalogResult.error;
+
+      const rawCatalog = (catalogResult.data ?? []) as CatalogRow[];
+      // Top products are a convenience rail; a failed optional query must not hide the
+      // paginated catalog or stop the cashier from completing the current bill.
+      const rawTop = topResult.error ? [] : ((topResult.data ?? []) as CatalogRow[]);
+      const deviceIds = Array.from(
+        new Set(
+          [...rawCatalog, ...rawTop]
             .filter((row) => row.kind === "device" && row.id)
-            .map((row) => [row.id!, row.acquisition] as const),
-        );
-        const enrichDevices = (rows: CatalogRow[] | null): CatalogRow[] =>
-          (rows ?? []).map((row) =>
-            row.kind === "device"
-              ? { ...row, acquisition: acquisitionById.get(row.id ?? "") ?? null }
-              : row,
-          );
+            .map((row) => row.id!),
+        ),
+      );
+      let stockRows: { id: string | null; acquisition: string | null }[] = [];
+      if (deviceIds.length > 0) {
+        const stockResult = await supabase
+          .from("v_pos_stock")
+          .select("id, acquisition")
+          .in("id", deviceIds);
+        if (stockResult.error) throw stockResult.error;
+        stockRows = stockResult.data ?? [];
+      }
+      if (requestId !== catalogRequestRef.current) return;
 
-        const nextCatalog = enrichDevices(catalogRows);
-        const nextTop = enrichDevices(topProductRows);
-        setCatalog(nextCatalog);
-        setTopProducts(nextTop);
-        // the snapshot is what the screen falls back to when the network is gone; it is
-        // only ever written from a successful load, never from the offline path
-        writeCachedCatalog({ catalog: nextCatalog, topProducts: nextTop });
+      const acquisitionById = new Map(
+        stockRows.filter((row) => row.id).map((row) => [row.id!, row.acquisition] as const),
+      );
+      const enrichDevices = (rows: CatalogRow[]): CatalogRow[] =>
+        rows.map((row) =>
+          row.kind === "device"
+            ? { ...row, acquisition: acquisitionById.get(row.id ?? "") ?? null }
+            : row,
+        );
+      const nextCatalog = enrichDevices(rawCatalog);
+      const nextTop = enrichDevices(rawTop);
+      const nextTotal = catalogResult.count ?? nextCatalog.length;
+      setCatalog(nextCatalog);
+      setTopProducts(nextTop);
+      setCatalogTotal(nextTotal);
+      // The snapshot is the last successful page shown by the screen. It is only ever
+      // written from a successful load, never from the offline queue path.
+      writeCachedCatalog({
+        page: catalogPage,
+        pageSize: catalogPageSize,
+        search: deferredCatalogSearch,
+        kind: catalogKind,
+        total: nextTotal,
+        catalog: nextCatalog,
+        topProducts: nextTop,
       });
+    } catch (loadError) {
+      if (requestId !== catalogRequestRef.current) return;
+      const cached = readCachedCatalog<CachedCatalogPage>();
+      if (cached && Array.isArray(cached.catalog) && Array.isArray(cached.topProducts)) {
+        setCatalog(cached.catalog);
+        setTopProducts(cached.topProducts);
+        setCatalogTotal(cached.total ?? cached.catalog.length);
+        setCatalogError("โหลดรายการล่าสุดไม่สำเร็จ กำลังแสดงหน้าที่โหลดไว้ก่อนหน้า");
+      } else {
+        setCatalog([]);
+        setTopProducts([]);
+        setCatalogTotal(0);
+        setCatalogError(loadError instanceof Error ? loadError.message : "โหลดรายการไม่สำเร็จ");
+      }
+    } finally {
+      if (requestId === catalogRequestRef.current) setCatalogLoading(false);
+    }
   }
 
   useEffect(() => {
-    loadCatalog().then(undefined, () => {
-      const cached = readCachedCatalog<{
-        catalog: CatalogRow[];
-        topProducts: CatalogRow[];
-      }>();
-      if (cached) {
-        setCatalog(cached.catalog);
-        setTopProducts(cached.topProducts);
-      }
-    });
+    Promise.resolve().then(() => loadCatalog());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalogPage, catalogPageSize, catalogKind, deferredCatalogSearch]);
 
+  useEffect(() => {
     supabase
       .from("v_pos_topup_carriers")
       .select("*")
@@ -311,7 +392,7 @@ export default function PosPage() {
   }
 
   return (
-    <main data-page="pos" className="flex h-full min-h-0 flex-1 flex-col bg-background">
+    <main data-page="pos" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:h-[calc(100dvh-3.5rem)]">
       <QueueBanner queue={queue} isSyncing={isSyncing} onSync={() => syncQueue()} />
       <div className="flex flex-1 items-center justify-center px-8 py-16 text-center md:hidden">
         <div className="max-w-sm">
@@ -321,22 +402,43 @@ export default function PosPage() {
         </div>
       </div>
       <div className="hidden min-h-0 flex-1 md:flex">
-      <Catalog
-        catalog={catalog}
-        topProducts={topProducts}
-        carriers={carriers}
-        onAddCatalog={addCatalogItem}
-        onAddTopup={addTopup}
-        onFinanceDevice={financeDevice}
-      />
-      <Cart
-        lines={lines}
-        onUpdateLine={updateLine}
-        onRemoveLine={removeLine}
-        onSubmit={submit}
-        submitting={submitting}
-        error={error}
-      />
+        <Catalog
+          catalog={catalog}
+          topProducts={topProducts}
+          carriers={carriers}
+          onAddCatalog={addCatalogItem}
+          onAddTopup={addTopup}
+          onFinanceDevice={financeDevice}
+          search={catalogSearch}
+          onSearchChange={(value) => {
+            setCatalogSearch(value);
+            setCatalogPage(1);
+          }}
+          kindFilter={catalogKind}
+          onKindFilterChange={(value) => {
+            setCatalogKind(value);
+            setCatalogPage(1);
+          }}
+          page={catalogPage}
+          pageSize={catalogPageSize}
+          total={catalogTotal}
+          isLoading={catalogLoading}
+          catalogError={catalogError}
+          onRetry={() => void loadCatalog()}
+          onPageChange={setCatalogPage}
+          onPageSizeChange={(value) => {
+            setCatalogPageSize(value);
+            setCatalogPage(1);
+          }}
+        />
+        <Cart
+          lines={lines}
+          onUpdateLine={updateLine}
+          onRemoveLine={removeLine}
+          onSubmit={submit}
+          submitting={submitting}
+          error={error}
+        />
       </div>
     </main>
   );

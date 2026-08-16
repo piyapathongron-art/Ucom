@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PageFrame, PageSection } from "@/app/_components/PageFrame";
+import { PaginationControls } from "@/app/_components/PaginationControls";
+import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import { IntakeForm, type RepairIntakeSave } from "./IntakeForm";
 import { RepairTable } from "./RepairTable";
 import type { CloseJobPayload } from "./CloseJobDialog";
@@ -13,20 +15,57 @@ export default function RepairsPage() {
 
   const [rows, setRows] = useState<RepairRow[]>([]);
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [statusFilter, setStatusFilter] = useState<"open" | "collected" | "abandoned" | "all">("open");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestRef = useRef(0);
 
-  function loadRepairs() {
-    return supabase
-      .from("v_pos_repairs")
-      .select("*")
-      .then(({ data }) => setRows((data as RepairRow[]) ?? []));
+  async function loadRepairs() {
+    const requestId = ++requestRef.current;
+    setIsLoading(true);
+    try {
+      const { from, to } = pageRange(page, pageSize);
+      let query = supabase.from("v_pos_repairs").select("*", { count: "exact" });
+      const searchFilter = orIlike(["customer_name", "device_desc", "customer_phone"], deferredSearch);
+      if (searchFilter) query = query.or(searchFilter);
+      if (statusFilter === "open") {
+        query = query.in("status", ["pending", "in_progress", "ready"]);
+      } else if (statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
+      const result = await query
+        .order("received_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to);
+      if (result.error) throw result.error;
+      if (requestId !== requestRef.current) return;
+      const nextRows = (result.data as RepairRow[]) ?? [];
+      const nextTotal = result.count ?? nextRows.length;
+      if (nextRows.length === 0 && nextTotal > 0 && page > 1) {
+        setPage((current) => Math.max(1, current - 1));
+        return;
+      }
+      setRows(nextRows);
+      setTotal(nextTotal);
+      setError(null);
+    } catch (loadError) {
+      if (requestId !== requestRef.current) return;
+      setRows([]);
+      setTotal(0);
+      setError(loadError instanceof Error ? loadError.message : "โหลดงานซ่อมไม่สำเร็จ");
+    } finally {
+      if (requestId === requestRef.current) setIsLoading(false);
+    }
   }
 
   useEffect(() => {
-    loadRepairs();
+    Promise.resolve().then(() => loadRepairs());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, pageSize, statusFilter, deferredSearch]);
 
   async function createJob(input: RepairIntakeSave) {
     setError(null);
@@ -37,7 +76,7 @@ export default function RepairsPage() {
       setError(error.message);
       return;
     }
-    loadRepairs();
+    void loadRepairs();
   }
 
   async function setStatus(id: string, status: string) {
@@ -50,7 +89,7 @@ export default function RepairsPage() {
       setError(error.message);
       return;
     }
-    loadRepairs();
+    void loadRepairs();
   }
 
   async function setPartCost(id: string, cost: number) {
@@ -63,7 +102,7 @@ export default function RepairsPage() {
       setError(error.message);
       return;
     }
-    loadRepairs();
+    void loadRepairs();
   }
 
   async function closeJob(id: string, payload: CloseJobPayload) {
@@ -76,26 +115,8 @@ export default function RepairsPage() {
       setError(error.message);
       return;
     }
-    loadRepairs();
+    void loadRepairs();
   }
-
-  const filtered = rows.filter((r) => {
-    // text search
-    const textTarget = `${r.customer_name} ${r.device_desc} ${r.customer_phone ?? ""}`.toLowerCase();
-    const searchMatch = !search.trim() || textTarget.includes(search.trim().toLowerCase());
-    
-    // status filter
-    let statusMatch = true;
-    if (statusFilter === "open") {
-      statusMatch = r.status === "pending" || r.status === "in_progress" || r.status === "ready";
-    } else if (statusFilter === "collected") {
-      statusMatch = r.status === "collected";
-    } else if (statusFilter === "abandoned") {
-      statusMatch = r.status === "abandoned";
-    }
-
-    return searchMatch && statusMatch;
-  });
 
   return (
     <PageFrame
@@ -107,17 +128,25 @@ export default function RepairsPage() {
     >
 
       {error && (
-        <p className="border border-danger bg-danger/10 p-3 text-sm text-danger">{error}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-danger bg-danger/10 p-3 text-sm text-danger">
+          <span>{error}</span>
+          <button type="button" onClick={() => void loadRepairs()} className="ucom-danger px-3 py-1.5 text-sm">
+            ลองใหม่
+          </button>
+        </div>
       )}
 
       <IntakeForm onSave={createJob} />
 
-      <PageSection title="คิวงานซ่อม" description={`${filtered.length.toLocaleString("th-TH")} งานตามตัวกรองปัจจุบัน`}>
+      <PageSection title="คิวงานซ่อม" description={`${total.toLocaleString("th-TH")} งานตามตัวกรองปัจจุบัน`}>
       <div className="ucom-toolbar">
         <div className="flex flex-wrap rounded border border-border bg-background p-1">
           <button
             type="button"
-            onClick={() => setStatusFilter("open")}
+            onClick={() => {
+              setStatusFilter("open");
+              setPage(1);
+            }}
             data-testid="filter-open"
             className={`rounded px-3 py-1.5 text-sm ${statusFilter === "open" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
           >
@@ -125,7 +154,10 @@ export default function RepairsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setStatusFilter("collected")}
+            onClick={() => {
+              setStatusFilter("collected");
+              setPage(1);
+            }}
             data-testid="filter-collected"
             className={`rounded px-3 py-1.5 text-sm ${statusFilter === "collected" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
           >
@@ -133,7 +165,10 @@ export default function RepairsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setStatusFilter("abandoned")}
+            onClick={() => {
+              setStatusFilter("abandoned");
+              setPage(1);
+            }}
             data-testid="filter-abandoned"
             className={`rounded px-3 py-1.5 text-sm ${statusFilter === "abandoned" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
           >
@@ -141,7 +176,10 @@ export default function RepairsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setStatusFilter("all")}
+            onClick={() => {
+              setStatusFilter("all");
+              setPage(1);
+            }}
             data-testid="filter-all"
             className={`rounded px-3 py-1.5 text-sm ${statusFilter === "all" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
           >
@@ -150,18 +188,41 @@ export default function RepairsPage() {
         </div>
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           placeholder="ค้นหาชื่อ/เครื่อง/เบอร์"
           data-testid="repair-search"
           className="ucom-field ml-auto w-full px-3 py-2 text-sm md:w-80"
         />
       </div>
 
+      {isLoading && <p className="text-sm text-ink-muted">กำลังโหลดงานซ่อม...</p>}
+
       <RepairTable
-        rows={filtered}
+        rows={rows}
         onSetStatus={setStatus}
         onSetPartCost={setPartCost}
         onCloseJob={closeJob}
+      />
+      {!isLoading && rows.length === 0 && (
+        <p className="rounded border border-dashed border-border p-6 text-center text-sm text-ink-muted">
+          ไม่พบงานตามตัวกรอง
+        </p>
+      )}
+      <PaginationControls
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        isLoading={isLoading}
+        label="งานซ่อม"
+        testIdPrefix="repairs-pagination"
+        onPageChange={setPage}
+        onPageSizeChange={(value) => {
+          setPageSize(value);
+          setPage(1);
+        }}
       />
       </PageSection>
     </PageFrame>

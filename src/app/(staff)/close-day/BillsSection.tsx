@@ -1,13 +1,20 @@
 import type { Tables } from "@/lib/types/database";
+import { PaginationControls } from "@/app/_components/PaginationControls";
 
 export type BillRow = Tables<"v_close_day_bills">;
 
 interface Props {
   bills: BillRow[];
   fmt: (n: number) => string;
+  page: number;
+  pageSize: number;
+  total: number;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }
 
-export default function BillsSection({ bills, fmt }: Props) {
+export default function BillsSection({ bills, fmt, page, pageSize, total, isLoading, onPageChange, onPageSizeChange }: Props) {
   const sorted = [...bills].sort(
     (a, b) => (b.sold_at || "").localeCompare(a.sold_at || "")
   );
@@ -81,6 +88,16 @@ export default function BillsSection({ bills, fmt }: Props) {
           </div>
         ))}
       </div>
+      <PaginationControls
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        isLoading={isLoading}
+        label="บิล"
+        testIdPrefix="close-day-bills-pagination"
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
     </section>
   );
 }

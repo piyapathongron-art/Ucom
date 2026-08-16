@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
+import { PaginationControls } from "@/app/_components/PaginationControls";
+import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import { createClient } from "@/lib/supabase/client";
 import { KIND_LABEL, entryProfit, entryRevenue, type ReportEntry } from "./types";
 
@@ -33,33 +35,51 @@ function SaleLines({ saleId }: { saleId: string }) {
   const supabase = createClient();
   const [lines, setLines] = useState<SaleLine[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     let isStale = false;
-    supabase
-      .from("sale_items")
-      .select("id,name_snapshot,qty,unit_price,item_discount")
-      .eq("sale_id", saleId)
-      .then(
-        ({ data, error }) => {
-          if (isStale) return;
-          if (error) {
-            console.error(error);
+    const { from, to } = pageRange(page, pageSize);
+    Promise.resolve().then(() => {
+      if (isStale) return;
+      setLines(null);
+      setFailed(false);
+      return supabase
+        .from("sale_items")
+        .select("id,name_snapshot,qty,unit_price,item_discount", { count: "exact" })
+        .eq("sale_id", saleId)
+        .order("id", { ascending: true })
+        .range(from, to)
+        .then(
+          ({ data, count, error }) => {
+            if (isStale) return;
+            if (error) {
+              console.error(error);
+              setFailed(true);
+            } else {
+              const nextLines = data ?? [];
+              const nextTotal = count ?? nextLines.length;
+              if (nextLines.length === 0 && nextTotal > 0 && page > 1) {
+                setPage((current) => Math.max(1, current - 1));
+              } else {
+                setLines(nextLines);
+              }
+              setTotal(nextTotal);
+            }
+          },
+          () => {
+            if (isStale) return;
             setFailed(true);
-          } else {
-            setLines(data ?? []);
-          }
-        },
-        () => {
-          if (isStale) return;
-          setFailed(true);
-        },
-      );
+          },
+        );
+    });
     return () => {
       isStale = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleId]);
+  }, [saleId, page, pageSize]);
 
   if (failed) return <p className="px-4 py-2 text-sm text-danger">โหลดรายการสินค้าไม่สำเร็จ</p>;
   if (!lines) return <p className="px-4 py-2 text-sm text-ink-muted">กำลังโหลด</p>;
@@ -67,26 +87,40 @@ function SaleLines({ saleId }: { saleId: string }) {
     return <p className="px-4 py-2 text-sm text-ink-muted">บิลนี้ไม่มีรายการสินค้า</p>;
 
   return (
-    <table
-      data-testid={`sale-lines-${saleId}`}
-      className="w-full text-left text-sm whitespace-nowrap"
-    >
-      <tbody>
-        {lines.map((line) => (
-          <tr key={line.id} className="border-b border-border">
-            <td className="px-4 py-1">{line.name_snapshot}</td>
-            <td className="px-4 py-1 text-right">× {line.qty ?? 0}</td>
-            <td className="px-4 py-1 text-right">{money(line.unit_price ?? 0)}</td>
-            <td className="px-4 py-1 text-right text-ink-muted">
-              {(line.item_discount ?? 0) > 0 ? `ลด ${money(line.item_discount ?? 0)}` : ""}
-            </td>
-            <td className="px-4 py-1 text-right">
-              {money((line.unit_price ?? 0) * (line.qty ?? 0) - (line.item_discount ?? 0))}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div>
+      <table
+        data-testid={`sale-lines-${saleId}`}
+        className="w-full text-left text-sm whitespace-nowrap"
+      >
+        <tbody>
+          {lines.map((line) => (
+            <tr key={line.id} className="border-b border-border">
+              <td className="px-4 py-1">{line.name_snapshot}</td>
+              <td className="px-4 py-1 text-right">× {line.qty ?? 0}</td>
+              <td className="px-4 py-1 text-right">{money(line.unit_price ?? 0)}</td>
+              <td className="px-4 py-1 text-right text-ink-muted">
+                {(line.item_discount ?? 0) > 0 ? `ลด ${money(line.item_discount ?? 0)}` : ""}
+              </td>
+              <td className="px-4 py-1 text-right">
+                {money((line.unit_price ?? 0) * (line.qty ?? 0) - (line.item_discount ?? 0))}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <PaginationControls
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        label="รายการในบิล"
+        testIdPrefix={`sale-lines-${saleId}-pagination`}
+        onPageChange={setPage}
+        onPageSizeChange={(value) => {
+          setPageSize(value);
+          setPage(1);
+        }}
+      />
+    </div>
   );
 }
 
@@ -95,58 +129,131 @@ export function DayEntries({ day }: { day: string }) {
   const [entries, setEntries] = useState<ReportEntry[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [openSale, setOpenSale] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [total, setTotal] = useState(0);
+  const [kindFilter, setKindFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const [isLoading, setIsLoading] = useState(true);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let isStale = false;
-    supabase
-      .from("v_report_entries")
-      .select("*")
-      .eq("day", day)
-      .order("occurred_at", { ascending: true })
-      .then(
-        ({ data, error }) => {
-          if (isStale) return;
-          if (error) {
-            console.error(error);
+    const { from, to } = pageRange(page, pageSize);
+    Promise.resolve().then(() => {
+      if (isStale) return;
+      setIsLoading(true);
+      setFailed(false);
+      let query = supabase
+        .from("v_report_entries")
+        .select("*", { count: "exact" })
+        .eq("day", day);
+      if (kindFilter !== "all") query = query.eq("kind", kindFilter);
+      const searchFilter = orIlike(["label", "detail"], deferredSearch);
+      if (searchFilter) query = query.or(searchFilter);
+      return query
+        .order("occurred_at", { ascending: true })
+        .order("ref_id", { ascending: true })
+        .order("kind", { ascending: true })
+        .order("label", { ascending: true })
+        .order("detail", { ascending: true })
+        .range(from, to)
+        .then(
+          ({ data, count, error }) => {
+            if (isStale) return;
+            if (error) {
+              console.error(error);
+              setFailed(true);
+              setEntries([]);
+            } else {
+              setFailed(false);
+              setEntries(data ?? []);
+              setTotal(count ?? data?.length ?? 0);
+            }
+            setIsLoading(false);
+          },
+          () => {
+            if (isStale) return;
             setFailed(true);
-          } else {
-            setEntries(data ?? []);
-          }
-        },
-        () => {
-          if (isStale) return;
-          setFailed(true);
-        },
-      );
+            setEntries([]);
+            setIsLoading(false);
+          },
+        );
+    });
     return () => {
       isStale = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [day]);
+  }, [day, page, pageSize, kindFilter, deferredSearch, retryKey]);
 
   if (failed)
     return (
-      <p data-testid="entries-error" className="px-4 py-2 text-sm text-danger">
-        โหลดรายละเอียดไม่สำเร็จ
-      </p>
+      <div data-testid="entries-error" className="flex items-center justify-between gap-3 px-4 py-3 text-sm text-danger">
+        <span>โหลดรายละเอียดไม่สำเร็จ</span>
+        <button type="button" onClick={() => setRetryKey((value) => value + 1)} className="ucom-danger px-3 py-1.5 text-sm">
+          ลองใหม่
+        </button>
+      </div>
     );
-  if (!entries) return <p className="px-4 py-2 text-sm text-ink-muted">กำลังโหลด</p>;
+  if (isLoading || !entries) return <p className="px-4 py-2 text-sm text-ink-muted">กำลังโหลด</p>;
   if (entries.length === 0)
-    return <p className="px-4 py-2 text-sm text-ink-muted">ไม่มีรายการในวันนี้</p>;
+    return (
+      <div className="space-y-3 px-4 py-3">
+        <DetailFilters
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          kindFilter={kindFilter}
+          onKindChange={(value) => {
+            setKindFilter(value);
+            setPage(1);
+          }}
+        />
+        <p className="text-sm text-ink-muted">ไม่มีรายการในวันนี้</p>
+        <PaginationControls
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          label="รายการรายวัน"
+          testIdPrefix={`report-detail-${day}-pagination`}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value);
+            setPage(1);
+          }}
+        />
+      </div>
+    );
 
   return (
-    <table
-      data-testid={`day-entries-${day}`}
-      className="w-full text-left text-sm whitespace-nowrap"
-    >
-      <tbody>
-        {entries.map((entry) => {
+    <div className="space-y-3 px-4 py-3">
+      <DetailFilters
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        kindFilter={kindFilter}
+        onKindChange={(value) => {
+          setKindFilter(value);
+          setPage(1);
+        }}
+      />
+      <table
+        data-testid={`day-entries-${day}`}
+        className="w-full text-left text-sm whitespace-nowrap"
+      >
+        <tbody>
+          {entries.map((entry) => {
           const isSale = entry.kind === "sale" && entry.ref_id;
           const isOpen = isSale && openSale === entry.ref_id;
           const profit = entryProfit(entry);
-          return (
-            <tr key={`${entry.kind}-${entry.ref_id}`} className="border-b border-border">
-              <td className="px-4 py-1 align-top" colSpan={7}>
+            return (
+              <tr key={`${entry.kind}-${entry.ref_id}-${entry.occurred_at}`} className="border-b border-border">
+                <td className="px-4 py-1 align-top" colSpan={7}>
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-ink-muted">{timeInBangkok(entry.occurred_at)}</span>
                   <span className="rounded border border-border bg-background px-2 py-0.5 text-xs">
@@ -173,11 +280,60 @@ export function DayEntries({ day }: { day: string }) {
                   )}
                 </div>
                 {isOpen && entry.ref_id && <SaleLines saleId={entry.ref_id} />}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <PaginationControls
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        label="รายการรายวัน"
+        testIdPrefix={`report-detail-${day}-pagination`}
+        onPageChange={setPage}
+        onPageSizeChange={(value) => {
+          setPageSize(value);
+          setPage(1);
+        }}
+      />
+    </div>
+  );
+}
+
+function DetailFilters({
+  search,
+  onSearchChange,
+  kindFilter,
+  onKindChange,
+}: {
+  search: string;
+  onSearchChange: (value: string) => void;
+  kindFilter: string;
+  onKindChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <input
+        value={search}
+        onChange={(event) => onSearchChange(event.target.value)}
+        data-testid="report-detail-search"
+        placeholder="ค้นหารายการ"
+        className="ucom-field w-full px-3 py-2 text-sm md:w-64"
+      />
+      <select
+        value={kindFilter}
+        onChange={(event) => onKindChange(event.target.value)}
+        data-testid="report-detail-kind"
+        className="ucom-field px-3 py-2 text-sm"
+      >
+        <option value="all">ทุกประเภท</option>
+        <option value="sale">ขาย</option>
+        <option value="repair">ซ่อม</option>
+        <option value="sf">SF+</option>
+        <option value="expense">รายจ่าย</option>
+      </select>
+    </div>
   );
 }

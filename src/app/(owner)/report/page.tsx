@@ -14,6 +14,7 @@ export default function ReportPage() {
   const [grouping, setGrouping] = useState<Grouping>("day");
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   // rows starts empty, so without this the screen claims the range is empty for as long
   // as the round trip takes, every time the range changes.
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +54,7 @@ export default function ReportPage() {
       isStale = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [from, to]);
+  }, [from, to, reloadKey]);
 
   // ESLint forbids setState inside the effect body, so the range setters raise the
   // loading flag instead — every path that changes the range goes through here.
@@ -92,7 +93,19 @@ export default function ReportPage() {
     >
 
       {error && (
-        <p className="border border-danger bg-danger/10 p-3 text-sm text-danger">{error}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-danger bg-danger/10 p-3 text-sm text-danger">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setIsLoading(true);
+              setReloadKey((value) => value + 1);
+            }}
+            className="ucom-danger px-3 py-1.5 text-sm"
+          >
+            ลองใหม่
+          </button>
+        </div>
       )}
 
       <div className="ucom-toolbar">

@@ -3,6 +3,7 @@
 import { ExpenseTable } from "./ExpenseTable";
 import { useExpensesPage } from "./useExpensesPage";
 import { PageFrame } from "@/app/_components/PageFrame";
+import { PaginationControls } from "@/app/_components/PaginationControls";
 
 export default function ExpensesPage() {
   const {
@@ -13,6 +14,18 @@ export default function ExpensesPage() {
     expenseDate,
     setExpenseDate,
     expenses,
+    filterFrom,
+    setFilterFrom,
+    filterTo,
+    setFilterTo,
+    expenseSearch,
+    setExpenseSearch,
+    expensePage,
+    setExpensePage,
+    expensePageSize,
+    setExpensePageSize,
+    expenseTotalCount,
+    isExpensesLoading,
     walletBalances,
     carriers,
     selectedCarrier,
@@ -27,6 +40,7 @@ export default function ExpensesPage() {
     handleDeleteExpense,
     handleAddTopup,
     totalExpense,
+    retry,
   } = useExpensesPage();
 
   return (
@@ -41,9 +55,12 @@ export default function ExpensesPage() {
       {error && (
         <div
           data-testid="expenses-error"
-            className="border border-danger bg-danger/10 p-4 text-sm text-danger"
+          className="flex flex-wrap items-center justify-between gap-3 border border-danger bg-danger/10 p-4 text-sm text-danger"
         >
-          {error}
+          <span>{error}</span>
+          <button type="button" onClick={retry} className="ucom-danger px-3 py-1.5 text-sm">
+            ลองใหม่
+          </button>
         </div>
       )}
 
@@ -111,11 +128,68 @@ export default function ExpensesPage() {
               </button>
             </form>
 
-            <ExpenseTable
-              expenses={expenses}
-              deleteConfirmId={deleteConfirmId}
-              onSetDeleteConfirmId={setDeleteConfirmId}
-              onDeleteExpense={handleDeleteExpense}
+            <div className="ucom-toolbar items-end">
+              <div>
+                <label className="block text-sm font-medium text-ink-muted mb-1">ตั้งแต่วันที่</label>
+                <input
+                  type="date"
+                  value={filterFrom}
+                  onChange={(event) => {
+                    setFilterFrom(event.target.value);
+                    setExpensePage(1);
+                  }}
+                  data-testid="expense-filter-from"
+                  className="ucom-field px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-ink-muted mb-1">ถึงวันที่</label>
+                <input
+                  type="date"
+                  value={filterTo}
+                  onChange={(event) => {
+                    setFilterTo(event.target.value);
+                    setExpensePage(1);
+                  }}
+                  data-testid="expense-filter-to"
+                  className="ucom-field px-3 py-2 text-sm"
+                />
+              </div>
+              <input
+                value={expenseSearch}
+                onChange={(event) => {
+                  setExpenseSearch(event.target.value);
+                  setExpensePage(1);
+                }}
+                data-testid="expense-filter-search"
+                placeholder="ค้นหาชื่อรายการ"
+                className="ucom-field w-full px-3 py-2 text-sm md:w-72"
+              />
+            </div>
+
+            {isExpensesLoading ? (
+              <p className="text-sm text-ink-muted">กำลังโหลดรายการรายจ่าย...</p>
+            ) : (
+              <ExpenseTable
+                expenses={expenses}
+                deleteConfirmId={deleteConfirmId}
+                onSetDeleteConfirmId={setDeleteConfirmId}
+                onDeleteExpense={handleDeleteExpense}
+              />
+            )}
+
+            <PaginationControls
+              page={expensePage}
+              pageSize={expensePageSize}
+              total={expenseTotalCount}
+              isLoading={isExpensesLoading}
+              label="รายจ่าย"
+              testIdPrefix="expense-pagination"
+              onPageChange={setExpensePage}
+              onPageSizeChange={(value) => {
+                setExpensePageSize(value);
+                setExpensePage(1);
+              }}
             />
 
             <div data-testid="expense-total" className="border-t border-border pt-3 text-right font-medium text-ink">

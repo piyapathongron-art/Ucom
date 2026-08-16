@@ -1,4 +1,5 @@
 import type { Tables } from "@/lib/types/database";
+import { PaginationControls } from "@/app/_components/PaginationControls";
 
 export type ExpenseRow = Tables<"v_close_day_expenses">;
 
@@ -16,6 +17,12 @@ interface Props {
   expensePaidFrom: "cash" | "transfer";
   onExpensePaidFromChange: (v: "cash" | "transfer") => void;
   fmt: (n: number) => string;
+  page: number;
+  pageSize: number;
+  total: number;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }
 
 export default function ExpensesSection({
@@ -32,6 +39,12 @@ export default function ExpensesSection({
   expensePaidFrom,
   onExpensePaidFromChange,
   fmt,
+  page,
+  pageSize,
+  total,
+  isLoading,
+  onPageChange,
+  onPageSizeChange,
 }: Props) {
   return (
     <section className="space-y-4 max-w-4xl">
@@ -216,6 +229,17 @@ export default function ExpensesSection({
           </div>
         ))}
       </div>
+
+      <PaginationControls
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        isLoading={isLoading}
+        label="รายจ่าย"
+        testIdPrefix="close-day-expenses-pagination"
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
 
     </section>
   );

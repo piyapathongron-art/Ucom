@@ -39,7 +39,7 @@ export function Cart({
   const total = itemsTotal - (Number(billDiscount) || 0);
 
   return (
-    <aside className="flex w-[min(100%,28rem)] min-w-[22rem] flex-col border-l border-border bg-surface">
+    <aside className="flex h-full min-h-0 w-[min(100%,28rem)] min-w-[22rem] flex-col border-l border-border bg-surface">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div>
           <p className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-ink-muted">Receipt / current bill</p>
@@ -158,7 +158,7 @@ export function Cart({
         </ul>
       </div>
 
-      <div className="space-y-3 border-t border-border bg-background px-5 py-4">
+      <div className="shrink-0 space-y-3 border-t border-border bg-background px-5 py-4">
         {error && (
           <p
             data-testid="checkout-error"
