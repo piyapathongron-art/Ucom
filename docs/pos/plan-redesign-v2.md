@@ -119,13 +119,13 @@ work) ไปท้าย
   คอลัมน์ประเภท/สถานะ "แสดงอยู่บนตาราง" ตรงๆ (ไม่ใช่แค่มี data-testid ของ toggle) ต้องแก้ spec ให้
   เปิด detail ก่อนเช็คค่าเหล่านั้น ไม่ใช่ลบ assertion ทิ้ง → ถามก่อน browser verify → commit
 
-### ขั้น 5 — `/report`
+### ขั้น 5 — `/report` — **ข้าม (ไม่มีอะไรให้ทำ, เช็คแล้ว 2026-08-16)**
 
-- ตัด KPI tile คอมมิชชั่น SF สะสม + เงินสดปิดร้าน ออกจาก UI เหลือ ยอดขาย/กำไร เป็นหลัก — เป็นการไม่
-  render ค่าที่มีอยู่แล้ว ไม่ใช่ลบ query/RPC (ข้อมูลอาจยังใช้ที่อื่น เช่น `/sf-commissions`) —
-  **ห้ามลบ RPC/query ที่ backend ใช้อยู่เพราะแค่ไม่โชว์ใน UI หน้านี้**
-- Verify: `tsc` + `lint` + `report.spec.ts` + `pagination-filter.spec.ts` → ถามก่อน browser verify
-  → commit
+แผนเดิมเขียนไว้ว่าให้ตัด KPI tile คอมมิชชั่น SF สะสม + เงินสดปิดร้าน ออกจาก UI แต่เปิด
+`page.tsx` จริงแล้วพบว่า KPI card ปัจจุบันมีแค่ 4 อัน (`net_profit`, `sale_profit`,
+`repair_profit`, `expense`) — ไม่เคยมี SF commission หรือเงินสดปิดร้านเป็น KPI tile อยู่แล้ว
+(มีแค่เป็นคอลัมน์ในตาราง `ReportTable` ซึ่งคนละส่วนกับ KPI card ด้านบน) จึงไม่มีอะไรให้ตัดจริง
+ถามผู้ใช้แล้ว — เลือกข้ามขั้นนี้ทั้งขั้น ไม่แก้โค้ด `/report` ในรอบ redesign v2 นี้
 
 ### ขั้น 6 — `/close-day` (มีงาน backend จริง แยกเป็น 2 sub-step)
 
