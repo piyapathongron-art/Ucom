@@ -34,3 +34,11 @@ export const REPAIR_STATUS_LABEL: Record<RepairStatus, string> = {
   collected: "รับแล้ว",
   abandoned: "ลูกค้าทิ้ง",
 };
+
+export const REPAIR_STATUS_BADGE: Record<RepairStatus, string> = {
+  pending: "bg-background text-ink-muted border border-border",
+  in_progress: "bg-warning/10 text-warning",
+  ready: "bg-accent/10 text-accent",
+  collected: "bg-success/10 text-success",
+  abandoned: "bg-danger/10 text-danger",
+};

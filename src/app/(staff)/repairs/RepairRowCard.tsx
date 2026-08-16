@@ -1,6 +1,6 @@
 "use client";
 
-import { REPAIR_STATUS_LABEL, type RepairRow, type RepairStatus } from "./types";
+import { REPAIR_STATUS_BADGE, REPAIR_STATUS_LABEL, type RepairRow, type RepairStatus } from "./types";
 import { CloseJobDialog, type CloseJobPayload } from "./CloseJobDialog";
 import { useRepairRowActions } from "./useRepairRowActions";
 
@@ -58,7 +58,10 @@ export function RepairRowCard({
 
       <div className="flex flex-col gap-2 pt-2 border-t border-border">
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-ink">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${REPAIR_STATUS_BADGE[row.status]}`}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
             {REPAIR_STATUS_LABEL[row.status]}
           </span>
           {isInSteps && (

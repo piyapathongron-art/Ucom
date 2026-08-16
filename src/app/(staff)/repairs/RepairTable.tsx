@@ -1,6 +1,6 @@
 "use client";
 
-import { REPAIR_STATUS_LABEL, type RepairRow, type RepairStatus } from "./types";
+import { REPAIR_STATUS_BADGE, REPAIR_STATUS_LABEL, type RepairRow, type RepairStatus } from "./types";
 import { CloseJobDialog, type CloseJobPayload } from "./CloseJobDialog";
 import { useRepairRowActions } from "./useRepairRowActions";
 import { RepairRowCard } from "./RepairRowCard";
@@ -54,7 +54,11 @@ function Row({
         </td>
         <td className="p-2">
           <div className="flex flex-col items-start gap-1">
-            <span data-testid={`repair-status-${row.id}`} className="text-sm font-medium text-ink">
+            <span
+              data-testid={`repair-status-${row.id}`}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${REPAIR_STATUS_BADGE[row.status]}`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-current" />
               {REPAIR_STATUS_LABEL[row.status]}
             </span>
             {isInSteps && (
