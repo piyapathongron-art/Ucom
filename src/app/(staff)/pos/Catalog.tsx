@@ -168,6 +168,7 @@ export function Catalog({
               <div className="mt-2 flex gap-2">
                 <button
                   type="button"
+                  data-testid="sell-cash-device"
                   onClick={() => onAddCatalog(item)}
                   className="rounded border border-border px-2 py-1 text-sm"
                 >

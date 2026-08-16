@@ -18,7 +18,10 @@ async function readReportCell(page: Page, day: string, columnIndex: number): Pro
   return parseMoney(await row.locator("td").nth(columnIndex).textContent());
 }
 
-async function createSfDevice(page: Page): Promise<string> {
+async function createSfDevice(
+  page: Page,
+  opts?: { listPrice?: number; salePrice?: number },
+): Promise<string> {
   const suffix = String(Date.now()) + "-" + String(Math.floor(Math.random() * 1000));
   const modelName = "ZZTEST-SF-" + suffix;
   const imei = String(Date.now()) + String(Math.floor(Math.random() * 1000));
@@ -28,7 +31,10 @@ async function createSfDevice(page: Page): Promise<string> {
   await page.locator('[data-testid="sf-order-no"]').fill("TEST-SF-" + suffix);
   await page.locator('[data-testid="sf-device-imei-0"]').fill(imei.slice(0, 15));
   await page.locator('[data-testid="sf-device-model-0"]').fill(modelName);
-  await page.locator('[data-testid="sf-device-price-0"]').fill("3000");
+  await page.locator('[data-testid="sf-device-price-0"]').fill(String(opts?.listPrice ?? 3000));
+  if (opts?.salePrice !== undefined) {
+    await page.locator('[data-testid="sf-device-sale-price-0"]').fill(String(opts.salePrice));
+  }
   await page.locator('[data-testid="sf-intake-submit"]').click();
   await page.waitForTimeout(3000);
   return modelName;
@@ -129,6 +135,55 @@ test("financing an SF device does not require commission; report increases only 
   await owner.goto("/report");
   await owner.locator('[data-testid="quick-today"]').click();
   expect(await readReportCell(owner, today, 5)).toBe(commissionBefore + 300);
+
+  await staffContext.close();
+  await ownerContext.close();
+});
+
+test("cash sale of an SF device books cost = list_price, not 0", async ({ browser }) => {
+  const today = todayInBangkok();
+  const ownerContext = await browser.newContext();
+  const owner = await ownerContext.newPage();
+  await loginAs(owner, "admin");
+  await owner.goto("/report");
+  await owner.locator('[data-testid="quick-today"]').click();
+  const profitBefore = await readReportCell(owner, today, 2); // กำไรขาย
+
+  const staffContext = await browser.newContext();
+  const staff = await staffContext.newPage();
+  await loginAs(staff, "staff");
+
+  const listPrice = 3000;
+  const askingPrice = 3500;
+  const soldFor = 3800; // staff edits the price in the cart at checkout
+  const modelName = await createSfDevice(staff, { listPrice, salePrice: askingPrice });
+
+  await staff.goto("/pos");
+  await staff.locator('[data-testid="catalog-search"]').fill(modelName);
+  const deviceCard = staff.locator('[data-testid^="catalog-item-device-"]');
+  await expect(deviceCard).toHaveCount(1);
+
+  // catalog shows the asking price (sale_price), not the SF list price
+  await expect(deviceCard).toContainText(askingPrice.toLocaleString());
+
+  await deviceCard.locator('[data-testid="sell-cash-device"]').click();
+  const priceInput = staff.locator('[data-testid="cart-device-price"]');
+  await expect(priceInput).toHaveValue(String(askingPrice));
+  await priceInput.fill(String(soldFor));
+
+  await staff.locator('[data-testid="pay-cash"]').click();
+  await staff.locator('[data-testid="checkout-submit"]').click();
+  await staff.waitForTimeout(5000);
+  await expect(staff.locator('[data-testid="checkout-error"]')).not.toBeVisible();
+
+  // Device is gone from the catalog — sold, not financed
+  await expect(deviceCard).toHaveCount(0);
+
+  // Report profit rose by (soldFor - listPrice), i.e. cost was booked as list_price,
+  // not left at 0.
+  await owner.reload();
+  await owner.locator('[data-testid="quick-today"]').click();
+  expect(await readReportCell(owner, today, 2)).toBe(profitBefore + (soldFor - listPrice));
 
   await staffContext.close();
   await ownerContext.close();

@@ -93,6 +93,7 @@ export default function StockPage() {
         imei: input.imei,
         model_name: input.model_name,
         list_price: input.list_price,
+        sale_price: input.sale_price ?? null,
         status: input.status,
       },
     });
@@ -120,7 +121,6 @@ export default function StockPage() {
       payload: {
         order_no: input.order_no,
         ordered_at: input.ordered_at || null,
-        due_date: input.due_date || null,
         note: input.note || null,
         devices: input.devices,
       },

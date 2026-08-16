@@ -96,9 +96,18 @@ export function Cart({
               )}
 
               {line.kind === "device" && (
-                <div className="mt-1 text-sm font-mono tabular-nums">
-                  {line.unitPrice.toLocaleString()} บาท
-                </div>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={line.unitPrice}
+                  onChange={(e) =>
+                    onUpdateLine(line.uid, {
+                      unitPrice: Number(e.target.value) || 0,
+                    } as Partial<CartLine>)
+                  }
+                  data-testid="cart-device-price"
+                  className="mt-1 w-28 rounded border border-border p-1 text-sm font-mono tabular-nums"
+                />
               )}
 
               {(line.kind === "product" || line.kind === "device") && (

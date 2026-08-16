@@ -87,6 +87,7 @@ export type Database = {
           is_imported: boolean
           list_price: number
           model_name: string
+          sale_price: number | null
           sf_order_id: string | null
           sf_paid_full_at: string | null
           status: string
@@ -105,6 +106,7 @@ export type Database = {
           is_imported?: boolean
           list_price: number
           model_name: string
+          sale_price?: number | null
           sf_order_id?: string | null
           sf_paid_full_at?: string | null
           status?: string
@@ -123,6 +125,7 @@ export type Database = {
           is_imported?: boolean
           list_price?: number
           model_name?: string
+          sale_price?: number | null
           sf_order_id?: string | null
           sf_paid_full_at?: string | null
           status?: string
@@ -619,7 +622,6 @@ export type Database = {
       sf_orders: {
         Row: {
           created_at: string
-          due_date: string | null
           id: string
           note: string | null
           order_no: string
@@ -627,7 +629,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          due_date?: string | null
           id?: string
           note?: string | null
           order_no: string
@@ -635,7 +636,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          due_date?: string | null
           id?: string
           note?: string | null
           order_no?: string
@@ -972,9 +972,7 @@ export type Database = {
       v_sf_due: {
         Row: {
           amount_due: number | null
-          days_left: number | null
           device_count: number | null
-          due_date: string | null
           financed_count: number | null
           order_no: string | null
           ordered_at: string | null

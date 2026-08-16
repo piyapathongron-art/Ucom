@@ -59,6 +59,17 @@ export function useStockRowEdit({
         qty: Number(qty) || 0,
         is_active: status === "active",
       });
+    } else if (row.acquisition === "sf_credit") {
+      // v_pos_stock.price shows coalesce(sale_price, list_price) for an sf_credit
+      // device, so this field is editing the shop's asking price, not the SF debt
+      // (list_price) — list_price is set once at intake and not re-editable here.
+      await onSaveDevice({
+        id: row.id!,
+        imei: code,
+        model_name: name,
+        sale_price: Number(price) || 0,
+        status,
+      });
     } else {
       await onSaveDevice({
         id: row.id!,

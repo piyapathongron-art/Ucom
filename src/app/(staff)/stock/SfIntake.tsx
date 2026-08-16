@@ -3,14 +3,13 @@
 import { useState } from "react";
 import type { SfDue } from "./types";
 
-type DraftDevice = { imei: string; model_name: string; list_price: string };
+type DraftDevice = { imei: string; model_name: string; list_price: string; sale_price: string };
 
 export type SfIntakePayload = {
   order_no: string;
   ordered_at: string;
-  due_date: string;
   note: string;
-  devices: { imei: string; model_name: string; list_price: number }[];
+  devices: { imei: string; model_name: string; list_price: number; sale_price: number | null }[];
 };
 
 export function SfIntake({
@@ -23,10 +22,9 @@ export function SfIntake({
   const [open, setOpen] = useState(false);
   const [orderNo, setOrderNo] = useState("");
   const [orderedAt, setOrderedAt] = useState("");
-  const [dueDate, setDueDate] = useState("");
   const [note, setNote] = useState("");
   const [devices, setDevices] = useState<DraftDevice[]>([
-    { imei: "", model_name: "", list_price: "0" },
+    { imei: "", model_name: "", list_price: "0", sale_price: "" },
   ]);
 
   function updateDevice(i: number, patch: Partial<DraftDevice>) {
@@ -40,20 +38,19 @@ export function SfIntake({
     await onSubmit({
       order_no: orderNo,
       ordered_at: orderedAt,
-      due_date: dueDate,
       note,
       devices: validDevices.map((d) => ({
         imei: d.imei,
         model_name: d.model_name,
         list_price: Number(d.list_price) || 0,
+        sale_price: d.sale_price.trim() === "" ? null : Number(d.sale_price) || 0,
       })),
     });
 
     setOrderNo("");
     setOrderedAt("");
-    setDueDate("");
     setNote("");
-    setDevices([{ imei: "", model_name: "", list_price: "0" }]);
+    setDevices([{ imei: "", model_name: "", list_price: "0", sale_price: "" }]);
     setOpen(false);
   }
 
@@ -88,13 +85,6 @@ export function SfIntake({
               className="rounded border border-neutral-300 p-1 text-sm"
             />
             <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              placeholder="วันครบกำหนด"
-              className="rounded border border-neutral-300 p-1 text-sm"
-            />
-            <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="โน้ต"
@@ -123,8 +113,16 @@ export function SfIntake({
                   type="number"
                   value={d.list_price}
                   onChange={(e) => updateDevice(i, { list_price: e.target.value })}
-                  placeholder="ราคาป้าย"
+                  placeholder="ราคาป้าย SF"
                   data-testid={`sf-device-price-${i}`}
+                  className="w-24 rounded border border-neutral-300 p-1 text-sm"
+                />
+                <input
+                  type="number"
+                  value={d.sale_price}
+                  onChange={(e) => updateDevice(i, { sale_price: e.target.value })}
+                  placeholder="ราคาขาย"
+                  data-testid={`sf-device-sale-price-${i}`}
                   className="w-24 rounded border border-neutral-300 p-1 text-sm"
                 />
               </div>
@@ -132,7 +130,10 @@ export function SfIntake({
             <button
               type="button"
               onClick={() =>
-                setDevices((prev) => [...prev, { imei: "", model_name: "", list_price: "0" }])
+                setDevices((prev) => [
+                  ...prev,
+                  { imei: "", model_name: "", list_price: "0", sale_price: "" },
+                ])
               }
               className="text-sm text-neutral-500"
             >
@@ -153,19 +154,13 @@ export function SfIntake({
 
       {dueList.filter((o) => (o.unfinanced_count ?? 0) > 0).length > 0 && (
         <div className="border-t border-neutral-200 pt-2" data-testid="sf-due-list">
-          <h3 className="text-sm font-medium text-neutral-500">บิล SF ที่ยังไม่จบ (เรียงใกล้ครบกำหนดก่อน)</h3>
+          <h3 className="text-sm font-medium text-neutral-500">บิล SF ที่ยังมีเครื่องค้าง</h3>
           <ul className="mt-1 space-y-1 text-sm">
             {dueList
               .filter((o) => (o.unfinanced_count ?? 0) > 0)
-              .sort((a, b) => (a.days_left ?? Infinity) - (b.days_left ?? Infinity))
               .map((o) => (
-                <li key={o.sf_order_id} className="flex justify-between">
-                  <span>
-                    {o.order_no} · เหลือ {o.unfinanced_count} เครื่อง
-                  </span>
-                  <span className="text-neutral-500">
-                    {o.due_date ?? "ไม่มีกำหนด"} ({o.days_left ?? "-"} วัน)
-                  </span>
+                <li key={o.sf_order_id}>
+                  {o.order_no} · เหลือ {o.unfinanced_count} เครื่อง
                 </li>
               ))}
           </ul>

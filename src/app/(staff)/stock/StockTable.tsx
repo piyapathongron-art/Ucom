@@ -18,7 +18,11 @@ export type DeviceSave = {
   id?: string;
   imei: string;
   model_name: string;
-  list_price: number;
+  // exactly one of these is sent per save — which one depends on acquisition
+  // (list_price for purchased/consigned_in, sale_price for sf_credit, see
+  // useStockRowEdit). The RPC preserves whichever is omitted.
+  list_price?: number;
+  sale_price?: number;
   status: string;
 };
 
