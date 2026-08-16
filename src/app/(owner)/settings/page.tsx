@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { todayInBangkok } from "../report/types";
 import { PageFrame } from "@/app/_components/PageFrame";
+
+const ROLE_LABEL: Record<string, string> = {
+  owner: "เจ้าของร้าน",
+  staff: "พนักงาน",
+};
 
 const EXPORT_TABLES = [
   "categories",
@@ -29,6 +34,20 @@ export default function SettingsPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [summary, setSummary] = useState<TableSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<{ display_name: string; role: string } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase
+        .from("profiles")
+        .select("display_name, role")
+        .eq("id", user.id)
+        .single()
+        .then(({ data }) => setProfile(data));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -97,11 +116,26 @@ export default function SettingsPage() {
       actions={<span className="font-mono text-xs tracking-wide text-ink-muted">OWNER ONLY</span>}
     >
 
-      <section className="ucom-surface max-w-2xl space-y-5 p-4 md:p-6">
+      <section className="ucom-surface max-w-2xl space-y-3 p-4 md:p-6">
+        <h2 className="text-lg font-medium">ข้อมูลร้าน</h2>
+        <div className="flex justify-between border-b border-border py-2 text-sm">
+          <span className="text-ink-muted">ผู้ใช้งาน</span>
+          <span className="font-medium text-ink">{profile?.display_name ?? "—"}</span>
+        </div>
+        <div className="flex justify-between py-2 text-sm">
+          <span className="text-ink-muted">สิทธิ์</span>
+          <span className="font-medium text-ink">
+            {profile ? (ROLE_LABEL[profile.role] ?? profile.role) : "—"}
+          </span>
+        </div>
+      </section>
+
+      <section className="ucom-surface mt-5 max-w-2xl space-y-5 p-4 md:p-6">
         <div className="border-b border-border pb-3">
-          <h2 className="text-lg font-medium">สำรองข้อมูลระบบ</h2>
+          <h2 className="text-lg font-medium">สำรองข้อมูล</h2>
           <p className="mt-1 text-sm text-ink-muted">
-            ดาวน์โหลดข้อมูลทั้งหมดในระบบในรูปแบบไฟล์ JSON สำหรับการสำรองข้อมูล
+            ส่งออกข้อมูลการขาย สต๊อก และรายงานทั้งหมดเป็นไฟล์เดียว ใช้แทนระบบสำรองข้อมูลอัตโนมัติ
+            ควรกดทุกครั้งหลังปิดร้าน
           </p>
         </div>
 
