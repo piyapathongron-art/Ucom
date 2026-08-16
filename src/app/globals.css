@@ -1,15 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --color-background: #FBFBFD;
-  --color-surface: #FFFFFF;
-  --color-border: #E4E4EA;
-  --color-ink-muted: #6B6F80;
-  --color-ink: #14161F;
-  --color-warning: #A85B00;
-  --color-danger: #B42318;
-  --color-success: #05704A;
-  --color-accent: #A9790E;
+  /* dim, not black — a lit room at night, not a cave */
+  --color-background: #14132B;
+  --color-surface: #1D1C3E;
+  --color-border: #34315F;
+  --color-ink-muted: #A6A3CE;
+  --color-ink: #F3F2FB;
+  --color-warning: #F59E0B;
+  --color-danger: #F87171;
+  --color-success: #34D399;
+  /* bright indigo — text/border-only uses (nav active tab, badges, focus rings) where the
+     token sits directly on the dark background and needs to read as light-on-dark */
+  --color-accent: #818CF8;
+  /* dark indigo pair — solid-fill uses only (.ucom-primary gradient) where white text sits
+     on top and needs the fill dark enough to stay AA-contrast */
+  --color-accent-strong: #4338CA;
+  --color-accent-soft: #4F46E5;
 }
 
 @theme inline {
@@ -22,6 +29,8 @@
   --color-danger: var(--color-danger);
   --color-success: var(--color-success);
   --color-accent: var(--color-accent);
+  --color-accent-strong: var(--color-accent-strong);
+  --color-accent-soft: var(--color-accent-soft);
   --font-sans: var(--font-ibm-plex-sans-thai);
   --font-mono: var(--font-ibm-plex-mono);
 }
@@ -73,8 +82,8 @@ body {
 
 .ucom-primary {
   border-radius: 0.45rem;
-  background: var(--color-accent);
-  color: var(--color-ink);
+  background: linear-gradient(135deg, var(--color-accent-strong), var(--color-accent-soft));
+  color: #FFFFFF;
   font-weight: 600;
   transition: opacity 160ms ease, transform 160ms ease;
 }
@@ -87,10 +96,16 @@ body {
   transform: translateY(1px);
 }
 
-.ucom-primary:focus-visible,
 .ucom-secondary:focus-visible,
 .ucom-danger:focus-visible {
   outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* currentColor is white on this button (see .ucom-primary above), invisible against the
+   light page background — outline in the accent color itself instead */
+.ucom-primary:focus-visible {
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -111,6 +126,23 @@ body {
   border-radius: 0.45rem;
   color: var(--color-danger);
   font-weight: 500;
+}
+
+/* gradient reserved for accent moments only (nav header, login hero) — data tables and
+   catalog cards stay flat so prices/stock counts stay fast to read at the counter */
+.ucom-header-wash {
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-background) 140%);
+}
+
+.ucom-badge-glow {
+  background: linear-gradient(135deg, var(--color-accent-strong), var(--color-accent-soft));
+  color: #FFFFFF;
+}
+
+.ucom-login-glow {
+  background:
+    radial-gradient(60% 55% at 50% -10%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 70%),
+    var(--color-background);
 }
 
 .ucom-table-wrap {

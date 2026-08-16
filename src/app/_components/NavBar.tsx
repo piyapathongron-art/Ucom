@@ -24,7 +24,7 @@ export default function NavBar({ links, onLogout }: NavBarProps) {
 
   return (
     <>
-      <header className="border-b border-border bg-surface px-4 py-3 shadow-[0_1px_0_rgba(20,22,31,0.02)]">
+      <header className="ucom-header-wash border-b border-border px-4 py-3 shadow-[0_1px_0_rgba(20,22,31,0.02)]">
         {/* Desktop Navigation (md and above) */}
         <nav className="mx-auto hidden max-w-[1440px] items-center gap-2 md:flex md:gap-4">
           <Link
@@ -41,7 +41,7 @@ export default function NavBar({ links, onLogout }: NavBarProps) {
               aria-current={pathname === l.href ? "page" : undefined}
               className={`border-b-2 py-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink ${
                 pathname === l.href
-                  ? "border-ink text-ink"
+                  ? "border-accent text-accent"
                   : "border-transparent text-ink-muted hover:border-border hover:text-ink"
               }`}
             >

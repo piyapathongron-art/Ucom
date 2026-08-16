@@ -8,13 +8,13 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="flex min-h-full flex-1 items-center justify-center p-6">
+    <main className="ucom-login-glow flex min-h-full flex-1 items-center justify-center p-6">
       <form
         action={login}
         className="ucom-surface flex w-full max-w-sm flex-col gap-5 p-8"
       >
         <div className="flex flex-col items-center gap-2.5 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-[0.7rem] bg-ink font-mono text-lg font-bold text-background">
+          <div className="ucom-badge-glow flex h-11 w-11 items-center justify-center rounded-[0.7rem] font-mono text-lg font-bold">
             U
           </div>
           <h1 className="text-[17px] font-bold">เข้าสู่ระบบ Ucom</h1>
