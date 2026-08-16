@@ -9,6 +9,7 @@
   --color-warning: #A85B00;
   --color-danger: #B42318;
   --color-success: #05704A;
+  --color-accent: #A9790E;
 }
 
 @theme inline {
@@ -20,6 +21,7 @@
   --color-warning: var(--color-warning);
   --color-danger: var(--color-danger);
   --color-success: var(--color-success);
+  --color-accent: var(--color-accent);
   --font-sans: var(--font-ibm-plex-sans-thai);
   --font-mono: var(--font-ibm-plex-mono);
 }
@@ -71,8 +73,8 @@ body {
 
 .ucom-primary {
   border-radius: 0.45rem;
-  background: var(--color-ink);
-  color: var(--color-surface);
+  background: var(--color-accent);
+  color: var(--color-ink);
   font-weight: 600;
   transition: opacity 160ms ease, transform 160ms ease;
 }
