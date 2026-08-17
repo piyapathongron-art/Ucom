@@ -8,7 +8,7 @@ import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import { StockTable, type DeviceSave, type ProductSave } from "./StockTable";
 import { AddDeviceForm, AddProductForm } from "./AddForms";
 import { SfIntake, type SfIntakePayload } from "./SfIntake";
-import type { Category, SfDue, StockRow } from "./types";
+import type { Category, StockRow } from "./types";
 
 export default function StockPage() {
   const supabase = createClient();
@@ -16,7 +16,6 @@ export default function StockPage() {
   const [isOwner, setIsOwner] = useState(false);
   const [rows, setRows] = useState<StockRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [dueList, setDueList] = useState<SfDue[]>([]);
   const [costById, setCostById] = useState<Record<string, number | null>>({});
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
@@ -100,11 +99,6 @@ export default function StockPage() {
       .from("categories")
       .select("*")
       .then(({ data }) => setCategories(data ?? []));
-    supabase
-      .from("v_sf_due")
-      .select("*")
-      .then(({ data }) => setDueList(data ?? []));
-
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       supabase
@@ -197,10 +191,6 @@ export default function StockPage() {
       return;
     }
     void loadStock();
-    supabase
-      .from("v_sf_due")
-      .select("*")
-      .then(({ data }) => setDueList(data ?? []));
   }
 
   return (
@@ -232,7 +222,7 @@ export default function StockPage() {
       <div className="ucom-toolbar">
         <AddProductForm categories={categories} onSave={saveProduct} />
         <AddDeviceForm onSave={saveDevice} />
-        <SfIntake dueList={dueList} onSubmit={submitSfIntake} />
+        <SfIntake onSubmit={submitSfIntake} />
         <input
           value={search}
           onChange={(e) => {

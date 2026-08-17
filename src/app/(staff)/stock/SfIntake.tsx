@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useId } from "react";
-import type { SfDue } from "./types";
-import { Modal } from "./Modal";
+import { Modal } from "@/app/_components/Modal";
 
 type DraftDevice = { imei: string; model_name: string; list_price: string; sale_price: string };
 
@@ -14,10 +13,8 @@ export type SfIntakePayload = {
 };
 
 export function SfIntake({
-  dueList,
   onSubmit,
 }: {
-  dueList: SfDue[];
   onSubmit: (input: SfIntakePayload) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -195,23 +192,7 @@ export function SfIntake({
         </div>
       </Modal>
 
-      {dueList.filter((o) => (o.unfinanced_count ?? 0) > 0).length > 0 && (
-        <div
-          className="ucom-surface w-full border-warning/30 bg-warning/5 p-3"
-          data-testid="sf-due-list"
-        >
-          <h3 className="text-sm font-medium text-warning">บิล SF ที่ยังมีเครื่องค้าง</h3>
-          <ul className="mt-1 space-y-1 text-sm text-ink-muted">
-            {dueList
-              .filter((o) => (o.unfinanced_count ?? 0) > 0)
-              .map((o) => (
-                <li key={o.sf_order_id}>
-                  {o.order_no} · เหลือ {o.unfinanced_count} เครื่อง
-                </li>
-              ))}
-          </ul>
-        </div>
-      )}
+
     </>
   );
 }

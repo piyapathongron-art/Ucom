@@ -7,33 +7,20 @@ import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import type { Tables } from "@/lib/types/database";
 import { PendingList } from "./PendingList";
 import { ReceiptsList } from "./ReceiptsList";
+import { useSfCommissions } from "./useSfCommissions";
+import { useSfDue } from "./useSfDue";
+import { SfDueList } from "./SfDueList";
+import { todayInBangkok, fmtMoney, formatDate } from "./utils";
 
 type PendingRow = Tables<"v_sf_pending">;
 type ReceiptRow = Tables<"v_sf_receipts">;
-
-function todayInBangkok(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
-}
-
-function fmtMoney(n: number): string {
-  return n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "";
-  return new Intl.DateTimeFormat("th-TH", {
-    timeZone: "Asia/Bangkok",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(iso));
-}
 
 export default function SfCommissionsPage() {
   const supabase = createClient();
 
   const [isOwner, setIsOwner] = useState(false);
   const [roleResolved, setRoleResolved] = useState(false);
+  const [tab, setTab] = useState<"due" | "pending" | "receipts">("due");
 
   const [pending, setPending] = useState<PendingRow[]>([]);
   const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
@@ -51,40 +38,6 @@ export default function SfCommissionsPage() {
   const [error, setError] = useState<string | null>(null);
   const requestRef = useRef(0);
 
-  // Record form state (per pending device)
-  const [recordingId, setRecordingId] = useState<string | null>(null);
-  const [recordAmount, setRecordAmount] = useState("");
-  const [recordDate, setRecordDate] = useState(() => todayInBangkok());
-  const [recordSubmitting, setRecordSubmitting] = useState(false);
-  const [recordError, setRecordError] = useState<string | null>(null);
-
-  // Correction form state (owner only, per receipt device_unit_id)
-  const [correctingId, setCorrectingId] = useState<string | null>(null);
-  const [correctAmount, setCorrectAmount] = useState("");
-  const [correctDate, setCorrectDate] = useState(() => todayInBangkok());
-  const [correctReason, setCorrectReason] = useState("");
-  const [correctSubmitting, setCorrectSubmitting] = useState(false);
-  const [correctError, setCorrectError] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single()
-          .then(({ data }) => {
-            setIsOwner(data?.role === "owner");
-            setRoleResolved(true);
-          });
-      } else {
-        setRoleResolved(true);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const fetchData = async () => {
     const requestId = ++requestRef.current;
     setIsLoading(true);
@@ -92,14 +45,10 @@ export default function SfCommissionsPage() {
     try {
       const pendingRange = pageRange(pendingPage, pendingPageSize);
       const receiptsRange = pageRange(receiptsPage, receiptsPageSize);
-      let pendingQuery = supabase
-        .from("v_sf_pending")
-        .select("*", { count: "exact" });
+      let pendingQuery = supabase.from("v_sf_pending").select("*", { count: "exact" });
       const pendingFilter = orIlike(["imei", "model_name"], deferredPendingSearch);
       if (pendingFilter) pendingQuery = pendingQuery.or(pendingFilter);
-      let receiptsQuery = supabase
-        .from("v_sf_receipts")
-        .select("*", { count: "exact" });
+      let receiptsQuery = supabase.from("v_sf_receipts").select("*", { count: "exact" });
       const receiptsFilter = orIlike(["imei", "model_name"], deferredReceiptsSearch);
       if (receiptsFilter) receiptsQuery = receiptsQuery.or(receiptsFilter);
       const [rPending, rReceipts] = await Promise.all([
@@ -120,16 +69,10 @@ export default function SfCommissionsPage() {
       const nextReceipts = rReceipts.data ?? [];
       const nextPendingTotal = rPending.count ?? nextPending.length;
       const nextReceiptsTotal = rReceipts.count ?? nextReceipts.length;
-      if (nextPending.length === 0 && nextPendingTotal > 0 && pendingPage > 1) {
-        setPendingPage((current) => Math.max(1, current - 1));
-      } else {
-        setPending(nextPending);
-      }
-      if (nextReceipts.length === 0 && nextReceiptsTotal > 0 && receiptsPage > 1) {
-        setReceiptsPage((current) => Math.max(1, current - 1));
-      } else {
-        setReceipts(nextReceipts);
-      }
+      if (nextPending.length === 0 && nextPendingTotal > 0 && pendingPage > 1) setPendingPage((c) => Math.max(1, c - 1));
+      else setPending(nextPending);
+      if (nextReceipts.length === 0 && nextReceiptsTotal > 0 && receiptsPage > 1) setReceiptsPage((c) => Math.max(1, c - 1));
+      else setReceipts(nextReceipts);
       setPendingTotal(nextPendingTotal);
       setReceiptsTotal(nextReceiptsTotal);
     } catch (err) {
@@ -140,87 +83,64 @@ export default function SfCommissionsPage() {
     }
   };
 
+  const {
+    recordingId, setRecordingId,
+    recordAmount, setRecordAmount,
+    recordDate, setRecordDate,
+    recordSubmitting,
+    recordError, setRecordError,
+    handleRecord,
+    correctingId, setCorrectingId,
+    correctAmount, setCorrectAmount,
+    correctDate, setCorrectDate,
+    correctReason, setCorrectReason,
+    correctSubmitting,
+    correctError, setCorrectError,
+    handleCorrect,
+  } = useSfCommissions(fetchData);
+
+  const {
+    dueList,
+    devicesByOrder,
+    isLoading: dueIsLoading,
+    error: dueError,
+    setError: setDueError,
+    loadDueList,
+    loadDevicesForOrder,
+    saveOrder,
+    deleteOrder,
+  } = useSfDue(fetchData);
+
   useEffect(() => {
-    // hop off the effect body before touching state — matches PosPage pattern
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single()
+          .then(({ data }) => {
+            setIsOwner(data?.role === "owner");
+            setRoleResolved(true);
+          });
+      } else {
+        setRoleResolved(true);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     Promise.resolve().then(() => fetchData());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingPage, pendingPageSize, deferredPendingSearch, receiptsPage, receiptsPageSize, deferredReceiptsSearch]);
 
-  const handleRecord = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!recordingId) return;
-    setRecordError(null);
-    const amountNum = parseFloat(recordAmount);
-    if (isNaN(amountNum) || amountNum < 0) {
-      setRecordError("ยอดต้องไม่ติดลบ");
-      return;
-    }
-    if (!recordDate) {
-      setRecordError("กรุณาระบุวันที่รับเงิน");
-      return;
-    }
-    setRecordSubmitting(true);
-    try {
-      const { error: rpcErr } = await supabase.rpc("rpc_record_sf_commission", {
-        p_device_unit_id: recordingId,
-        p_amount: amountNum,
-        p_received_on: recordDate,
-      });
-      if (rpcErr) {
-        setRecordError(rpcErr.message);
-        return;
-      }
-      setRecordingId(null);
-      setRecordAmount("");
-      setRecordDate(todayInBangkok());
-      await fetchData();
-    } catch (err) {
-      setRecordError(err instanceof Error ? err.message : "บันทึกไม่สำเร็จ");
-    } finally {
-      setRecordSubmitting(false);
-    }
-  };
+  useEffect(() => {
+    Promise.resolve().then(() => loadDueList());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const handleCorrect = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!correctingId) return;
-    setCorrectError(null);
-    if (!correctReason.trim()) {
-      setCorrectError("ต้องระบุเหตุผลในการแก้ไข");
-      return;
-    }
-    const amountNum = parseFloat(correctAmount);
-    if (isNaN(amountNum) || amountNum < 0) {
-      setCorrectError("ยอดต้องไม่ติดลบ");
-      return;
-    }
-    if (!correctDate) {
-      setCorrectError("กรุณาระบุวันที่รับเงิน");
-      return;
-    }
-    setCorrectSubmitting(true);
-    try {
-      const { error: rpcErr } = await supabase.rpc("rpc_correct_sf_commission", {
-        p_device_unit_id: correctingId,
-        p_void_reason: correctReason.trim(),
-        p_amount: amountNum,
-        p_received_on: correctDate,
-      });
-      if (rpcErr) {
-        setCorrectError(rpcErr.message);
-        return;
-      }
-      setCorrectingId(null);
-      setCorrectAmount("");
-      setCorrectDate(todayInBangkok());
-      setCorrectReason("");
-      await fetchData();
-    } catch (err) {
-      setCorrectError(err instanceof Error ? err.message : "แก้ไขไม่สำเร็จ");
-    } finally {
-      setCorrectSubmitting(false);
-    }
-  };
+  const nDue = dueList.filter((o) => (o.unfinanced_count ?? 0) > 0).length;
 
   return (
     <PageFrame
@@ -230,11 +150,35 @@ export default function SfCommissionsPage() {
       description="บันทึกยอดที่รับเงินจริง และตรวจสอบรายการยืนยันแล้ว"
       actions={<span className="font-mono text-xs tracking-wide text-ink-muted">RECEIPT LEDGER</span>}
     >
+      <div role="tablist" className="mb-4 flex items-center gap-4 border-b border-border">
+        {(
+          [
+            ["due", `บิล SF ค้าง (${nDue})`],
+            ["pending", "รอบันทึกค่าคอม"],
+            ["receipts", "ยืนยันแล้ว"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={tab === key}
+            data-testid={`sf-tab-${key}`}
+            onClick={() => setTab(key)}
+            className={`border-b-2 pb-2 text-sm font-medium transition-colors ${
+              tab === key
+                ? "border-accent text-accent"
+                : "border-transparent text-ink-muted hover:border-border hover:text-ink"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {error && (
         <div
           data-testid="sf-commissions-error"
-          className="flex flex-wrap items-center justify-between gap-3 rounded border border-danger bg-danger/10 p-4 text-sm text-danger"
+          className="flex flex-wrap items-center justify-between gap-3 rounded border border-danger bg-danger/10 p-4 text-sm text-danger mb-4"
         >
           <span>{error}</span>
           <button type="button" onClick={() => void fetchData()} className="ucom-danger px-3 py-1.5 text-sm">
@@ -243,92 +187,87 @@ export default function SfCommissionsPage() {
         </div>
       )}
 
-      {isLoading ? (
-        <div className="text-ink-muted">กำลังโหลด...</div>
-      ) : (
-        <>
-          <PendingList
-            pending={pending}
-            search={pendingSearch}
-            onSearchChange={(value) => {
-              setPendingSearch(value);
-              setPendingPage(1);
-            }}
-            page={pendingPage}
-            pageSize={pendingPageSize}
-            total={pendingTotal}
-            isLoading={isLoading}
-            onPageChange={setPendingPage}
-            onPageSizeChange={(value) => {
-              setPendingPageSize(value);
-              setPendingPage(1);
-            }}
-            recordingId={recordingId}
-            recordAmount={recordAmount}
-            recordDate={recordDate}
-            recordSubmitting={recordSubmitting}
-            recordError={recordError}
-            onOpen={(deviceUnitId) => {
-              setRecordingId(deviceUnitId);
-              setRecordAmount("");
-              setRecordDate(todayInBangkok());
-              setRecordError(null);
-            }}
-            onCancel={() => {
-              setRecordingId(null);
-              setRecordError(null);
-            }}
-            onAmountChange={setRecordAmount}
-            onDateChange={setRecordDate}
-            onSubmit={handleRecord}
-            formatDate={formatDate}
-            todayInBangkok={todayInBangkok}
-          />
+      {(isLoading || dueIsLoading) && <div className="text-ink-muted mb-4">กำลังโหลด...</div>}
 
-          <ReceiptsList
-            receipts={receipts}
-            search={receiptsSearch}
-            onSearchChange={(value) => {
-              setReceiptsSearch(value);
-              setReceiptsPage(1);
-            }}
-            page={receiptsPage}
-            pageSize={receiptsPageSize}
-            total={receiptsTotal}
-            isLoading={isLoading}
-            onPageChange={setReceiptsPage}
-            onPageSizeChange={(value) => {
-              setReceiptsPageSize(value);
-              setReceiptsPage(1);
-            }}
-            isOwner={isOwner}
-            roleResolved={roleResolved}
-            correctingId={correctingId}
-            correctAmount={correctAmount}
-            correctDate={correctDate}
-            correctReason={correctReason}
-            correctSubmitting={correctSubmitting}
-            correctError={correctError}
-            onOpen={(row) => {
-              setCorrectingId(row.device_unit_id ?? null);
-              setCorrectAmount(String(row.amount ?? ""));
-              setCorrectDate(row.received_on ?? todayInBangkok());
-              setCorrectReason("");
-              setCorrectError(null);
-            }}
-            onCancel={() => {
-              setCorrectingId(null);
-              setCorrectError(null);
-            }}
-            onAmountChange={setCorrectAmount}
-            onDateChange={setCorrectDate}
-            onReasonChange={setCorrectReason}
-            onSubmit={handleCorrect}
-            formatDate={formatDate}
-            fmtMoney={fmtMoney}
-            todayInBangkok={todayInBangkok}
-          />
-        </>
+      {tab === "due" && (
+        <SfDueList
+          dueList={dueList}
+          devicesByOrder={devicesByOrder}
+          loadDevicesForOrder={loadDevicesForOrder}
+          saveOrder={saveOrder}
+          deleteOrder={deleteOrder}
+          error={dueError}
+          setError={setDueError}
+        />
+      )}
+
+      {tab === "pending" && (
+        <PendingList
+          pending={pending}
+          search={pendingSearch}
+          onSearchChange={(value) => {
+            setPendingSearch(value);
+            setPendingPage(1);
+          }}
+          page={pendingPage}
+          pageSize={pendingPageSize}
+          total={pendingTotal}
+          isLoading={isLoading}
+          onPageChange={setPendingPage}
+          onPageSizeChange={(value) => {
+            setPendingPageSize(value);
+            setPendingPage(1);
+          }}
+          recordingId={recordingId}
+          recordAmount={recordAmount}
+          recordDate={recordDate}
+          recordSubmitting={recordSubmitting}
+          recordError={recordError}
+          onOpen={(id) => { setRecordingId(id); setRecordAmount(""); setRecordDate(todayInBangkok()); setRecordError(null); }}
+          onCancel={() => { setRecordingId(null); setRecordError(null); }}
+          onAmountChange={setRecordAmount}
+          onDateChange={setRecordDate}
+          onSubmit={handleRecord}
+          formatDate={formatDate}
+          todayInBangkok={todayInBangkok}
+        />
+      )}
+
+      {tab === "receipts" && (
+        <ReceiptsList
+          receipts={receipts}
+          search={receiptsSearch}
+          onSearchChange={(value) => {
+            setReceiptsSearch(value);
+            setReceiptsPage(1);
+          }}
+          page={receiptsPage}
+          pageSize={receiptsPageSize}
+          total={receiptsTotal}
+          isLoading={isLoading}
+          onPageChange={setReceiptsPage}
+          onPageSizeChange={(value) => {
+            setReceiptsPageSize(value);
+            setReceiptsPage(1);
+          }}
+          isOwner={isOwner}
+          roleResolved={roleResolved}
+          correctingId={correctingId}
+          correctAmount={correctAmount}
+          correctDate={correctDate}
+          correctReason={correctReason}
+          correctSubmitting={correctSubmitting}
+          correctError={correctError}
+          onOpen={(r) => { setCorrectingId(r.device_unit_id ?? null); setCorrectAmount(String(r.amount ?? "")); setCorrectDate(r.received_on ?? todayInBangkok()); setCorrectReason(""); setCorrectError(null); }}
+          onCancel={() => { setCorrectingId(null); setCorrectError(null); }}
+          onAmountChange={setCorrectAmount}
+          onDateChange={setCorrectDate}
+          onReasonChange={setCorrectReason}
+          onSubmit={handleCorrect}
+          formatDate={formatDate}
+          fmtMoney={fmtMoney}
+          todayInBangkok={todayInBangkok}
+        />
       )}
     </PageFrame>
   );

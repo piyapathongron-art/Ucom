@@ -1047,10 +1047,23 @@ export type Database = {
           amount_due: number | null
           device_count: number | null
           financed_count: number | null
+          note: string | null
           order_no: string | null
           ordered_at: string | null
           sf_order_id: string | null
           unfinanced_count: number | null
+        }
+        Relationships: []
+      }
+      v_sf_order_devices: {
+        Row: {
+          id: string | null
+          imei: string | null
+          list_price: number | null
+          model_name: string | null
+          sale_price: number | null
+          sf_order_id: string | null
+          status: string | null
         }
         Relationships: []
       }
@@ -1152,6 +1165,7 @@ export type Database = {
       }
       rpc_create_repair_job: { Args: { payload: Json }; Returns: string }
       rpc_create_sale: { Args: { payload: Json }; Returns: string }
+      rpc_delete_sf_order: { Args: { p_id: string }; Returns: undefined }
       rpc_delete_shop_expense: { Args: { p_id: string }; Returns: undefined }
       rpc_delete_shop_income: { Args: { p_id: string }; Returns: undefined }
       rpc_finance_device: { Args: { p_device_id: string }; Returns: undefined }
@@ -1172,6 +1186,7 @@ export type Database = {
         Args: { p_job_id: string; p_status: string }
         Returns: undefined
       }
+      rpc_update_sf_order: { Args: { payload: Json }; Returns: undefined }
       rpc_upsert_device: { Args: { payload: Json }; Returns: string }
       rpc_upsert_product: { Args: { payload: Json }; Returns: string }
     }

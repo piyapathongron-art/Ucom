@@ -1,19 +1,22 @@
 # plan — งานที่เหลือทั้งหมด (หลังลบข้อมูลเทส 14 ส.ค. 2026)
 
-สถานะฐาน: เฟส 0–6 จบ · เฟส 7 เหลือ 3 ชิ้น · เฟส 8 ยังไม่เริ่ม
-schema/RLS/view/RPC บน prod **ครบแล้ว** (`v_sf_due`, `v_topup_wallet_balance` มีอยู่จริง ยังไม่มีหน้าจอเรียกใช้) — งานที่เหลือเกือบทั้งหมดเป็นฝั่ง UI
+> **อัปเดต 17 ส.ค. 2026 — ข้อ 1–6 และ 9 ทำเสร็จหมดแล้ว** ไฟล์นี้ตกยุคอยู่พักใหญ่
+> ตรวจซ้ำกับโค้ดจริงแล้วทีละข้อ (ดูคอลัมน์ "ตรวจแล้วเจออะไร") เนื้อหาสเปกด้านล่างเก็บไว้เป็นบันทึกว่าเคยเคาะอะไร
+> **เหลือจริงแค่ข้อ 7 กับ 8** ซึ่งเป็นงานของผู้ใช้ทั้งคู่
 
-| # | งาน | tag | ใครทำ |
+สถานะฐาน: เฟส 0–8 จบ · schema/RLS/view/RPC บน prod ครบ
+
+| # | งาน | สถานะ | ตรวจแล้วเจออะไร (17 ส.ค. 2026) |
 |---|---|---|---|
-| 1 | ปุ่ม export JSON | R1 | **delegate** |
-| 2 | เทส e2e เก็บกวาดข้อมูลตัวเอง | R2 | **delegate** |
-| 3 | หน้ารายจ่ายร้าน | R1 | delegate (หลังเคาะสเปกด้านล่าง) |
-| 4 | หน้าวอลเล็ตเติมเงิน | R1 | delegate (หลังเคาะสเปกด้านล่าง) |
-| 5 | เพิกถอนสิทธิ์เขียนบน `v_sale_profit` | R0 | **Claude** |
-| 6 | เฟส 8 คิว offline | R1 ใหญ่ | **Claude** |
-| 7 | verify `/report` ด้วยตา + รันชุดเทสเต็ม | — | ผู้ใช้ |
-| 8 | git remote + ภาษา PR | R0 | ผู้ใช้ |
-| 9 | รวม `docs/adr/` สองชุด + `CONTEXT.md` เข้า git | R2 | delegate |
+| 1 | ปุ่ม export JSON | ✅ เสร็จ | `(owner)/settings/page.tsx` มี pagination `PAGE = 1000` ครบ 11 ตาราง + `tests/e2e/export.spec.ts` ใช้ `waitForEvent("download")` |
+| 2 | เทส e2e เก็บกวาดข้อมูลตัวเอง | ✅ เสร็จ | `tests/e2e/global-teardown.ts` ลบด้วย prefix `ZZTEST%` อย่างเดียว เรียง device_units ก่อนเพราะ FK RESTRICT |
+| 3 | หน้ารายจ่ายร้าน | ✅ เสร็จ | `(owner)/expenses/` + `/expenses` อยู่ใน `ownerOnlyPrefixes` ของ `src/proxy.ts:50` แล้ว |
+| 4 | หน้าวอลเล็ตเติมเงิน | ✅ เสร็จ | รวมในหน้า `/expenses` ตามที่เคาะ — `useExpensesPage.ts` อ่าน `v_topup_wallet_balance`, มี testid `wallet-balance-*` / `topup-submit` |
+| 5 | เพิกถอนสิทธิ์เขียนบน `v_sale_profit` | ✅ เสร็จ 15 ส.ค. | ตามด้วยการกวาดทั้ง schema 17 ส.ค. — ดูหัวข้อ 5 ด้านล่าง |
+| 6 | เฟส 8 คิว offline | ✅ เสร็จ | `(staff)/pos/queue.ts` — key เป็น `ucom-pos-queue-v1` / `ucom-pos-catalog-v1` **มีเวอร์ชันตามกับดักที่เตือนไว้** + `tests/e2e/offline.spec.ts` |
+| 7 | verify `/report` ด้วยตา + รันชุดเทสเต็ม | ⬜ **ยังเหลือ** | ผู้ใช้ |
+| 8 | git remote + ภาษา PR | ⬜ **ยังเหลือ** | ผู้ใช้ — `git remote -v` ยังว่างอยู่จริง |
+| 9 | รวม `docs/adr/` + `CONTEXT.md` เข้า git | ✅ เสร็จ | commit `68d19b7` บน `feature/report-drilldown` |
 
 ---
 
@@ -64,6 +67,23 @@ Claude ต้องรัน `tsc` + `eslint` เอง และดูไฟล
 Migration `revoke_write_grants_on_v_sale_profit`: `revoke insert, update, delete, truncate on public.v_sale_profit from authenticated;`
 Verify หลัง apply: `authenticated` เหลือแค่ `SELECT` (+ `REFERENCES`/`TRIGGER` ที่ไม่มีความหมายจริง) ตรงกับ view รายงานตัวอื่นแล้ว
 
+**ต่อยอด 17 ส.ค. 2026 — กวาดทั้ง schema จนหมด**
+
+ตอนทำงาน SF เจอว่า `v_sf_order_devices` (view ใหม่) เป็น **auto-updatable** (`is_updatable = YES`) และได้
+`INSERT/UPDATE/DELETE` ติดมาจาก default privileges ของ Supabase ทั้งที่ migration สั่งแค่ `grant select`
+รวมกับ `security_invoker = false` = **เขียนผ่าน view ข้าม RLS ของ `device_units` ได้จริง** ไม่ใช่แค่ผิดหลักการ
+→ อุดด้วย `20260817124500_sf_order_devices_read_only.sql`
+
+จากนั้น sweep ทั้ง schema พบอีก 5 view ที่มี grant เขียนค้างแบบเดียวกัน (`v_pos_catalog`, `v_pos_stock`,
+`v_pos_top_products`, `v_sf_due`, `v_topup_wallet_balance`) — ทุกตัว `is_updatable = NO` จึงยิงไม่ได้จริง
+เป็นแค่ผิดหลัก least-privilege → `20260817140000_revoke_write_grants_on_report_views.sql`
+
+**ตอนนี้ไม่มี view ไหนใน `public` เหลือสิทธิ์เขียนให้ `authenticated` แล้ว**
+
+> **กฎที่ต้องจำ:** `grant select` อย่างเดียวไม่พอ — object ใหม่ทุกตัวใน schema `public` ได้สิทธิ์เขียน
+> จาก default privileges อัตโนมัติ ทุกครั้งที่สร้าง view ใหม่ต้อง `revoke insert, update, delete` ตามหลัง
+> และถ้า view นั้น auto-updatable + `security_invoker = false` การลืม revoke = ประตูหลังข้าม RLS
+
 ## 6. เฟส 8 คิว offline — Claude ทำเอง
 
 ตรรกะ sync พลาดแล้วบิลหาย (`plan-rebuild.md` ระบุไว้ตั้งแต่ต้นว่าเป็นงานของ Claude)
@@ -78,10 +98,9 @@ Verify หลัง apply: `authenticated` เหลือแค่ `SELECT` (+ 
 
 ---
 
-## สรุปว่า delegate อะไรได้
+## สรุป (17 ส.ค. 2026)
 
-**delegate ได้ (สเปกสั้นกว่าโค้ด ผลตรวจได้ด้วยตัวเลข):** 1 export · 2 test cleanup · 3 รายจ่าย · 4 วอลเล็ต · 9 ย้ายเอกสาร
-**Claude ทำเอง (security / prod / ตรรกะที่พลาดแล้วข้อมูลหาย):** 5 grant · 6 คิว offline
-**ผู้ใช้:** 7 verify ผ่านเบราว์เซอร์ · 8 remote + ภาษา PR
+งานในไฟล์นี้ **เหลือแค่ข้อ 7 (verify `/report` + รันชุดเทสเต็ม) กับข้อ 8 (git remote)** ซึ่งเป็นของผู้ใช้ทั้งคู่
+ที่เหลือปิดหมดแล้ว — การแบ่งงาน delegate/Claude ด้านบนเก็บไว้เป็นบันทึกว่าตอนนั้นตัดสินใจยังไง
 
-ติดอยู่: `Bash(agy:*)` ถูก permission classifier บล็อก — ยังสั่ง `agy` / `claude-9arm` ไม่ได้จนกว่าจะเปิดใน `.claude/settings.json`
+`agy` ใช้งานได้ปกติแล้ว (เคยติด permission classifier ช่วงหนึ่ง — ไม่ติดแล้ว ใช้จริงสำเร็จ 17 ส.ค.)

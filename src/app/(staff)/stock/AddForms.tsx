@@ -3,7 +3,7 @@
 import { useState, useId } from "react";
 import type { Category } from "./types";
 import type { DeviceSave, ProductSave } from "./StockTable";
-import { Modal } from "./Modal";
+import { Modal } from "@/app/_components/Modal";
 
 export function AddProductForm({
   categories,
