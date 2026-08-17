@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import type { SfDue } from "./types";
+import { Modal } from "./Modal";
 
 type DraftDevice = { imei: string; model_name: string; list_price: string; sale_price: string };
 
@@ -20,6 +21,8 @@ export function SfIntake({
   onSubmit: (input: SfIntakePayload) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
   const [orderNo, setOrderNo] = useState("");
   const [orderedAt, setOrderedAt] = useState("");
   const [note, setNote] = useState("");
@@ -27,138 +30,178 @@ export function SfIntake({
     { imei: "", model_name: "", list_price: "0", sale_price: "" },
   ]);
 
+  const orderNoId = useId();
+  const orderedAtId = useId();
+  const noteId = useId();
+
   function updateDevice(i: number, patch: Partial<DraftDevice>) {
     setDevices((prev) => prev.map((d, idx) => (idx === i ? { ...d, ...patch } : d)));
   }
 
   async function submit() {
     const validDevices = devices.filter((d) => d.imei.trim() && d.model_name.trim());
-    if (!orderNo.trim() || validDevices.length === 0) return;
+    if (!orderNo.trim() || validDevices.length === 0 || saving) return;
 
-    await onSubmit({
-      order_no: orderNo,
-      ordered_at: orderedAt,
-      note,
-      devices: validDevices.map((d) => ({
-        imei: d.imei,
-        model_name: d.model_name,
-        list_price: Number(d.list_price) || 0,
-        sale_price: d.sale_price.trim() === "" ? null : Number(d.sale_price) || 0,
-      })),
-    });
+    setSaving(true);
+    try {
+      await onSubmit({
+        order_no: orderNo,
+        ordered_at: orderedAt,
+        note,
+        devices: validDevices.map((d) => ({
+          imei: d.imei,
+          model_name: d.model_name,
+          list_price: Number(d.list_price) || 0,
+          sale_price: d.sale_price.trim() === "" ? null : Number(d.sale_price) || 0,
+        })),
+      });
 
-    setOrderNo("");
-    setOrderedAt("");
-    setNote("");
-    setDevices([{ imei: "", model_name: "", list_price: "0", sale_price: "" }]);
-    setOpen(false);
+      setOrderNo("");
+      setOrderedAt("");
+      setNote("");
+      setDevices([{ imei: "", model_name: "", list_price: "0", sale_price: "" }]);
+      setOpen(false);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <section className="ucom-surface space-y-4 p-4 md:p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="font-mono text-[0.68rem] tracking-[0.16em] text-ink-muted">SF+ / RECEIVING</p>
-          <h2 className="mt-1 font-semibold">รับเครื่องเข้าจากบิล SF</h2>
-        </div>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          data-testid="open-sf-intake"
-          className="ucom-secondary px-3 py-1.5 text-sm"
-        >
-          {open ? "ปิด" : "+ รับบิลใหม่"}
-        </button>
-      </div>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        data-testid="open-sf-intake"
+        className="ucom-secondary px-3 py-1.5 text-sm"
+      >
+        + รับบิล SF
+      </button>
 
-      {open && (
-        <div className="space-y-3 border-t border-border pt-4">
-          <div className="ucom-toolbar rounded-md border-dashed">
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        eyebrow="SF+ / RECEIVING"
+        title="รับเครื่องเข้าจากบิล SF"
+        size="lg"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="ucom-secondary px-4 py-2 text-sm"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={saving}
+              data-testid="sf-intake-submit"
+              className="ucom-primary px-4 py-2 text-sm disabled:opacity-60"
+            >
+              {saving ? "กำลังบันทึก…" : "บันทึกการรับเครื่อง"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor={orderNoId} className="text-sm font-medium text-ink-muted">เลขที่บิล SF</label>
             <input
+              id={orderNoId}
               value={orderNo}
               onChange={(e) => setOrderNo(e.target.value)}
               placeholder="เลขที่บิล SF"
               data-testid="sf-order-no"
-              className="ucom-field px-2 py-1.5 text-sm"
+              className="ucom-field w-full px-3 py-2 text-sm"
             />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor={orderedAtId} className="text-sm font-medium text-ink-muted">วันที่รับ</label>
             <input
+              id={orderedAtId}
               type="date"
               value={orderedAt}
               onChange={(e) => setOrderedAt(e.target.value)}
-              className="ucom-field px-2 py-1.5 text-sm"
+              className="ucom-field w-full px-3 py-2 text-sm"
             />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor={noteId} className="text-sm font-medium text-ink-muted">โน้ต</label>
             <input
+              id={noteId}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="โน้ต"
-              className="ucom-field min-w-40 flex-1 px-2 py-1.5 text-sm"
+              className="ucom-field w-full px-3 py-2 text-sm"
             />
           </div>
 
-          <div className="space-y-2">
-            {devices.map((d, i) => (
-              <div key={i} className="grid gap-2 rounded-md border border-border bg-background p-2 md:grid-cols-[1.1fr_1fr_9rem_9rem]">
-                <input
-                  value={d.imei}
-                  onChange={(e) => updateDevice(i, { imei: e.target.value })}
-                  placeholder="IMEI"
-                  data-testid={`sf-device-imei-${i}`}
-                  className="ucom-field w-full px-2 py-1.5 text-sm"
-                />
-                <input
-                  value={d.model_name}
-                  onChange={(e) => updateDevice(i, { model_name: e.target.value })}
-                  placeholder="รุ่นเครื่อง"
-                  data-testid={`sf-device-model-${i}`}
-                  className="ucom-field w-full px-2 py-1.5 text-sm"
-                />
-                <input
-                  type="number"
-                  value={d.list_price}
-                  onChange={(e) => updateDevice(i, { list_price: e.target.value })}
-                  placeholder="ราคาป้าย SF"
-                  data-testid={`sf-device-price-${i}`}
-                  className="ucom-field w-full px-2 py-1.5 text-sm"
-                />
-                <input
-                  type="number"
-                  value={d.sale_price}
-                  onChange={(e) => updateDevice(i, { sale_price: e.target.value })}
-                  placeholder="ราคาขาย"
-                  data-testid={`sf-device-sale-price-${i}`}
-                  className="ucom-field w-full px-2 py-1.5 text-sm"
-                />
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() =>
-                setDevices((prev) => [
-                  ...prev,
-                  { imei: "", model_name: "", list_price: "0", sale_price: "" },
-                ])
-              }
-              className="ucom-secondary px-3 py-1.5 text-sm"
-            >
-              + เพิ่มแถวเครื่อง
-            </button>
+          <div className="pt-2">
+            <h3 className="text-sm font-medium mb-2">รายการเครื่อง</h3>
+            <div className="space-y-2">
+              {devices.map((d, i) => (
+                <div key={i} className="grid gap-2 rounded-md border border-border bg-background p-2 md:grid-cols-[1.2fr_1fr_9rem_9rem]">
+                  <input
+                    value={d.imei}
+                    onChange={(e) => updateDevice(i, { imei: e.target.value })}
+                    placeholder="IMEI"
+                    aria-label="IMEI"
+                    data-testid={`sf-device-imei-${i}`}
+                    className="ucom-field w-full px-2 py-1.5 text-sm"
+                  />
+                  <input
+                    value={d.model_name}
+                    onChange={(e) => updateDevice(i, { model_name: e.target.value })}
+                    placeholder="รุ่นเครื่อง"
+                    aria-label="รุ่นเครื่อง"
+                    data-testid={`sf-device-model-${i}`}
+                    className="ucom-field w-full px-2 py-1.5 text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={d.list_price}
+                    onChange={(e) => updateDevice(i, { list_price: e.target.value })}
+                    placeholder="ราคาป้าย SF"
+                    aria-label="ราคาป้าย SF"
+                    data-testid={`sf-device-price-${i}`}
+                    className="ucom-field w-full px-2 py-1.5 text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={d.sale_price}
+                    onChange={(e) => updateDevice(i, { sale_price: e.target.value })}
+                    placeholder="ราคาขาย"
+                    aria-label="ราคาขาย"
+                    data-testid={`sf-device-sale-price-${i}`}
+                    className="ucom-field w-full px-2 py-1.5 text-sm"
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setDevices((prev) => [
+                    ...prev,
+                    { imei: "", model_name: "", list_price: "0", sale_price: "" },
+                  ])
+                }
+                className="ucom-secondary mt-2 px-3 py-1.5 text-sm"
+              >
+                + เพิ่มแถวเครื่อง
+              </button>
+            </div>
           </div>
-
-          <button
-            type="button"
-            onClick={submit}
-            data-testid="sf-intake-submit"
-            className="ucom-primary px-3 py-2 text-sm"
-          >
-            บันทึกการรับเครื่อง
-          </button>
         </div>
-      )}
+      </Modal>
 
       {dueList.filter((o) => (o.unfinanced_count ?? 0) > 0).length > 0 && (
-        <div className="border-t border-border pt-3" data-testid="sf-due-list">
+        <div
+          className="ucom-surface w-full border-warning/30 bg-warning/5 p-3"
+          data-testid="sf-due-list"
+        >
           <h3 className="text-sm font-medium text-warning">บิล SF ที่ยังมีเครื่องค้าง</h3>
-          <ul className="mt-1 space-y-1 text-sm">
+          <ul className="mt-1 space-y-1 text-sm text-ink-muted">
             {dueList
               .filter((o) => (o.unfinanced_count ?? 0) > 0)
               .map((o) => (
@@ -169,6 +212,6 @@ export function SfIntake({
           </ul>
         </div>
       )}
-    </section>
+    </>
   );
 }

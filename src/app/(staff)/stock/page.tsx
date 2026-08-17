@@ -141,6 +141,7 @@ export default function StockPage() {
         price: input.price,
         qty: input.qty,
         is_active: input.is_active,
+        cost: input.cost ?? null,
       },
     });
     if (error) {
@@ -160,6 +161,7 @@ export default function StockPage() {
         list_price: input.list_price,
         sale_price: input.sale_price ?? null,
         status: input.status,
+        cost: input.cost ?? null,
       },
     });
     if (error) {
@@ -223,8 +225,6 @@ export default function StockPage() {
         </div>
       )}
 
-      <SfIntake dueList={dueList} onSubmit={submitSfIntake} />
-
       <PageSection
         title="รายการคงคลัง"
         description={`${total.toLocaleString("th-TH")} รายการตามตัวกรอง · แก้ไขแล้วกดบันทึกเพื่อส่งเข้า stock RPC`}
@@ -232,6 +232,7 @@ export default function StockPage() {
       <div className="ucom-toolbar">
         <AddProductForm categories={categories} onSave={saveProduct} />
         <AddDeviceForm onSave={saveDevice} />
+        <SfIntake dueList={dueList} onSubmit={submitSfIntake} />
         <input
           value={search}
           onChange={(e) => {

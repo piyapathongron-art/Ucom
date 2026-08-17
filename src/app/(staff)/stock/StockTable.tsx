@@ -14,6 +14,7 @@ export type ProductSave = {
   price: number;
   qty: number;
   is_active: boolean;
+  cost?: number; // used only when creating (id empty) — RPC ignores it on edit
 };
 
 export type DeviceSave = {
@@ -26,6 +27,7 @@ export type DeviceSave = {
   list_price?: number;
   sale_price?: number;
   status: string;
+  cost?: number; // used only when creating (id empty) — RPC ignores it on edit
 };
 
 const deviceStatuses = ["in_stock", "consigned_out", "written_off"];
