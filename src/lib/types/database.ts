@@ -92,6 +92,7 @@ export type Database = {
           sf_paid_full_at: string | null
           status: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           acquisition: string
@@ -111,6 +112,7 @@ export type Database = {
           sf_paid_full_at?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           acquisition?: string
@@ -130,6 +132,7 @@ export type Database = {
           sf_paid_full_at?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -244,6 +247,7 @@ export type Database = {
           qty: number
           sku: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           category_id?: string | null
@@ -257,6 +261,7 @@ export type Database = {
           qty?: number
           sku?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           category_id?: string | null
@@ -270,6 +275,7 @@ export type Database = {
           qty?: number
           sku?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -972,6 +978,7 @@ export type Database = {
           acquisition: string | null
           category_name: string | null
           code: string | null
+          cost: number | null
           id: string | null
           kind: string | null
           name: string | null
@@ -1180,6 +1187,10 @@ export type Database = {
       }
       rpc_set_part_cost: {
         Args: { p_cost: number; p_job_id: string }
+        Returns: undefined
+      }
+      rpc_set_stock_cost: {
+        Args: { p_cost: number; p_id: string; p_kind: string }
         Returns: undefined
       }
       rpc_set_repair_status: {
