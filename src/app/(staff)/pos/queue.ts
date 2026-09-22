@@ -70,3 +70,70 @@ export function readCachedCatalog<T>(): T | null {
 export function writeCachedCatalog(value: unknown): void {
   write(CATALOG_KEY, value);
 }
+
+export type CatalogItemLike = {
+  id?: string | null;
+  kind?: string | null;
+  qty?: number | null;
+  name?: string | null;
+  [key: string]: unknown;
+};
+
+// Deduct devices and products currently in the offline queue from catalog rows,
+// ensuring items sold offline do not re-appear upon page reloads or cache reads.
+export function applyQueueToCatalog<T extends CatalogItemLike>(
+  rows: T[],
+  queue: QueuedSale[],
+): T[] {
+  if (!queue || queue.length === 0 || !rows || rows.length === 0) {
+    return rows;
+  }
+
+  const soldDeviceIds = new Set<string>();
+  const soldQtyByProduct = new Map<string, number>();
+
+  for (const sale of queue) {
+    const payload = sale.payload as
+      | {
+          items?: Array<{
+            kind?: string;
+            device_unit_id?: string;
+            product_id?: string;
+            qty?: number;
+          }>;
+        }
+      | undefined;
+    if (!payload || !Array.isArray(payload.items)) continue;
+
+    for (const item of payload.items) {
+      if (item.kind === "device" && item.device_unit_id) {
+        soldDeviceIds.add(item.device_unit_id);
+      } else if (item.kind === "product" && item.product_id) {
+        const qty = item.qty ?? 1;
+        soldQtyByProduct.set(
+          item.product_id,
+          (soldQtyByProduct.get(item.product_id) ?? 0) + qty,
+        );
+      }
+    }
+  }
+
+  if (soldDeviceIds.size === 0 && soldQtyByProduct.size === 0) {
+    return rows;
+  }
+
+  return rows
+    .filter(
+      (row) => !(row.kind === "device" && row.id && soldDeviceIds.has(row.id)),
+    )
+    .map((row) => {
+      if (row.kind === "product" && row.id && soldQtyByProduct.has(row.id)) {
+        const decrement = soldQtyByProduct.get(row.id)!;
+        return {
+          ...row,
+          qty: Math.max(0, (row.qty ?? 0) - decrement),
+        };
+      }
+      return row;
+    });
+}

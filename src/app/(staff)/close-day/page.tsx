@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { PageFrame } from "@/app/_components/PageFrame";
 import BillsSection from "./BillsSection";
 import ItemsSection from "./ItemsSection";
@@ -53,8 +54,14 @@ export default function CloseDayPage() {
       )}
 
       {d.queuedCount > 0 && d.isToday && (
-        <div data-testid="close-day-queue-warning" className="rounded border border-warning bg-warning/10 p-4 text-sm text-warning">
-          ยังมีบิลค้างในคิว {d.queuedCount} ใบ ยอดยังไม่ครบ กรุณาซิงก์ก่อนปิดร้าน
+        <div data-testid="close-day-queue-warning" className="flex flex-wrap items-center justify-between gap-3 rounded border border-warning bg-warning/10 p-4 text-sm text-warning">
+          <span>ยังมีบิลค้างในคิว {d.queuedCount} ใบ ยอดยังไม่ครบ กรุณาซิงก์หรือจัดการบิลที่มีปัญหาก่อนปิดร้าน</span>
+          <Link
+            href="/pos"
+            className="rounded border border-warning/60 bg-warning/20 px-3 py-1 text-xs font-medium hover:bg-warning/30 transition-colors"
+          >
+            ไปที่หน้าขาย
+          </Link>
         </div>
       )}
 

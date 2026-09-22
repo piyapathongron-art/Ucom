@@ -6,10 +6,12 @@ export function QueueBanner({
   queue,
   isSyncing,
   onSync,
+  onRemove,
 }: {
   queue: QueuedSale[];
   isSyncing: boolean;
   onSync: () => void;
+  onRemove?: (clientUuid: string) => void;
 }) {
   if (queue.length === 0) return null;
 
@@ -38,9 +40,21 @@ export function QueueBanner({
       </div>
 
       {rejected.length > 0 && (
-        <ul data-testid="queue-rejected" className="mx-auto mt-1 max-w-[1440px] list-disc pl-5 text-xs">
+        <ul data-testid="queue-rejected" className="mx-auto mt-1 max-w-[1440px] list-disc pl-5 text-xs space-y-1">
           {rejected.map((s) => (
-            <li key={s.clientUuid}>{s.lastError}</li>
+            <li key={s.clientUuid} className="flex items-center justify-between gap-2">
+              <span>{s.lastError}</span>
+              {onRemove && (
+                <button
+                  type="button"
+                  data-testid={`queue-remove-${s.clientUuid}`}
+                  onClick={() => onRemove(s.clientUuid)}
+                  className="rounded border border-danger/40 bg-danger/20 px-2 py-0.5 text-[0.7rem] font-medium text-danger hover:bg-danger/30 transition-colors"
+                >
+                  ลบบิลนี้ทิ้ง
+                </button>
+              )}
+            </li>
           ))}
         </ul>
       )}

@@ -84,3 +84,75 @@ test("the queue survives a reload while offline", async ({ page, context }) => {
     timeout: 15000,
   });
 });
+
+test("discarding a rejected offline sale clears the queue and banner", async ({ page }) => {
+  await loginAsStaff(page);
+  await page.goto("/pos");
+  await expect(page.locator('[data-testid="catalog-search"]')).toBeVisible();
+
+  // Inject a mock rejected offline sale into localStorage
+  const rejectedUuid = "test-rejected-uuid";
+  await page.evaluate((uuid) => {
+    localStorage.setItem(
+      "ucom-pos-queue-v1",
+      JSON.stringify([
+        {
+          clientUuid: uuid,
+          payload: { items: [] },
+          queuedAt: new Date().toISOString(),
+          lastError: "สินค้าไม่พอขาย หรือไม่พบสินค้า",
+        },
+      ]),
+    );
+  }, rejectedUuid);
+
+  await page.reload();
+
+  // QueueBanner should appear with 1 rejected bill
+  await expect(page.locator('[data-testid="queue-banner"]')).toBeVisible();
+  await expect(page.locator('[data-testid="queue-count"]')).toHaveText("บิลค้าง 1 ใบ");
+  await expect(page.locator('[data-testid="queue-rejected"]')).toBeVisible();
+
+  // Dialog auto-accept
+  page.on("dialog", (dialog) => dialog.accept());
+
+  // Click discard button
+  const discardBtn = page.locator(`[data-testid="queue-remove-${rejectedUuid}"]`);
+  await expect(discardBtn).toBeVisible();
+  await discardBtn.click();
+
+  // Banner should disappear completely
+  await expect(page.locator('[data-testid="queue-banner"]')).toHaveCount(0);
+});
+
+test("close-day page displays queue warning with link to pos", async ({ page }) => {
+  await loginAsStaff(page);
+  await page.goto("/pos");
+  await expect(page.locator('[data-testid="catalog-search"]')).toBeVisible();
+
+  // Inject 1 queued sale into localStorage
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "ucom-pos-queue-v1",
+      JSON.stringify([
+        {
+          clientUuid: "close-day-test-uuid",
+          payload: { items: [] },
+          queuedAt: new Date().toISOString(),
+          lastError: "สินค้าไม่พอขาย",
+        },
+      ]),
+    );
+  });
+
+  await page.goto("/close-day");
+  const queueWarning = page.locator('[data-testid="close-day-queue-warning"]');
+  await expect(queueWarning).toBeVisible();
+  await expect(queueWarning).toContainText("ยังมีบิลค้างในคิว 1 ใบ");
+  await expect(queueWarning.locator('a[href="/pos"]')).toBeVisible();
+
+  // Cleanup localStorage
+  await page.evaluate(() => {
+    localStorage.removeItem("ucom-pos-queue-v1");
+  });
+});

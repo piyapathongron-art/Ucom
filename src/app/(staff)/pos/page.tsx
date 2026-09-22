@@ -7,6 +7,7 @@ import { Catalog } from "./Catalog";
 import { Cart, type CheckoutInput } from "./Cart";
 import { QueueBanner } from "./QueueBanner";
 import {
+  applyQueueToCatalog,
   enqueue,
   isDatabaseRejection,
   markFailed,
@@ -113,8 +114,11 @@ export default function PosPage() {
       const nextCatalog = enrichDevices(rawCatalog);
       const nextTop = enrichDevices(rawTop);
       const nextTotal = catalogResult.count ?? nextCatalog.length;
-      setCatalog(nextCatalog);
-      setTopProducts(nextTop);
+      const activeQueue = readQueue();
+      const filteredCatalog = applyQueueToCatalog(nextCatalog, activeQueue);
+      const filteredTop = applyQueueToCatalog(nextTop, activeQueue);
+      setCatalog(filteredCatalog);
+      setTopProducts(filteredTop);
       setCatalogTotal(nextTotal);
       // The snapshot is the last successful page shown by the screen. It is only ever
       // written from a successful load, never from the offline queue path.
@@ -131,9 +135,12 @@ export default function PosPage() {
       if (requestId !== catalogRequestRef.current) return;
       const cached = readCachedCatalog<CachedCatalogPage>();
       if (cached && Array.isArray(cached.catalog) && Array.isArray(cached.topProducts)) {
-        setCatalog(cached.catalog);
-        setTopProducts(cached.topProducts);
-        setCatalogTotal(cached.total ?? cached.catalog.length);
+        const activeQueue = readQueue();
+        const filteredCatalog = applyQueueToCatalog(cached.catalog, activeQueue);
+        const filteredTop = applyQueueToCatalog(cached.topProducts, activeQueue);
+        setCatalog(filteredCatalog);
+        setTopProducts(filteredTop);
+        setCatalogTotal(cached.total ?? filteredCatalog.length);
         setCatalogError("โหลดรายการล่าสุดไม่สำเร็จ กำลังแสดงหน้าที่โหลดไว้ก่อนหน้า");
       } else {
         setCatalog([]);
@@ -391,17 +398,30 @@ export default function PosPage() {
     syncQueue();
   }
 
+  function handleRemoveQueuedSale(clientUuid: string) {
+    const confirmed = window.confirm("ต้องการลบบิลค้างที่มีปัญหานี้ออกจากคิวใช่หรือไม่?");
+    if (!confirmed) return;
+    const nextQueue = removeFromQueue(clientUuid);
+    setQueue(nextQueue);
+    loadCatalog();
+  }
+
   return (
-    <main data-page="pos" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:h-[calc(100dvh-3.5rem)]">
-      <QueueBanner queue={queue} isSyncing={isSyncing} onSync={() => syncQueue()} />
-      <div className="flex flex-1 items-center justify-center px-8 py-16 text-center md:hidden">
+    <main data-page="pos" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background lg:h-dvh">
+      <QueueBanner
+        queue={queue}
+        isSyncing={isSyncing}
+        onSync={() => syncQueue()}
+        onRemove={handleRemoveQueuedSale}
+      />
+      <div className="flex flex-1 items-center justify-center px-8 py-16 text-center lg:hidden">
         <div className="max-w-sm">
           <p className="font-mono text-[0.68rem] uppercase tracking-[0.2em] text-ink-muted">POS / wide display</p>
           <h1 className="mt-3 text-xl font-semibold tracking-tight text-ink">หน้าขายต้องใช้จอกว้างขึ้น</h1>
           <p className="mt-2 text-sm leading-6 text-ink-muted">กรุณาเปิดด้วยแท็บเล็ตหรือคอมพิวเตอร์</p>
         </div>
       </div>
-      <div className="hidden min-h-0 flex-1 md:flex">
+      <div className="hidden min-h-0 flex-1 lg:flex">
         <Catalog
           catalog={catalog}
           topProducts={topProducts}
