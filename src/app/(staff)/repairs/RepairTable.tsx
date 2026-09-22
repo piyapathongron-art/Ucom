@@ -69,7 +69,7 @@ function Row({
                     onClick={() => handleSetStatus(prevStep)}
                     disabled={settingStatus}
                     data-testid={`repair-status-back-${row.id}`}
-                    className="ucom-secondary px-2 py-1 text-xs disabled:opacity-40"
+                    className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-40"
                   >
                     ย้อนกลับ
                   </button>
@@ -80,7 +80,7 @@ function Row({
                     onClick={() => handleSetStatus(nextStep)}
                     disabled={settingStatus}
                     data-testid={`repair-status-forward-${row.id}`}
-                    className="ucom-primary px-2 py-1 text-xs disabled:opacity-40"
+                    className="ucom-primary !rounded-full px-2 py-1 text-xs disabled:opacity-40"
                   >
                     {REPAIR_STATUS_LABEL[nextStep as RepairStatus]}
                   </button>
@@ -123,7 +123,7 @@ function Row({
                     onClick={handleSavePartCost}
                     disabled={savingPartCost || partCostDraft.trim() === ""}
                     data-testid={`repair-part-cost-save-${row.id}`}
-                    className="ucom-secondary px-2 py-1 text-xs disabled:opacity-30"
+                    className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-30"
                   >
                     บันทึก
                   </button>
@@ -134,7 +134,7 @@ function Row({
                         setIsEditingPartCost(false);
                         setPartCostDraft("");
                       }}
-                      className="ucom-secondary px-2 py-1 text-xs"
+                      className="ucom-secondary !rounded-full px-2 py-1 text-xs"
                     >
                       ยกเลิก
                     </button>
@@ -151,7 +151,7 @@ function Row({
                 type="button"
                 onClick={() => setShowCloseDialog(!showCloseDialog)}
                 data-testid={`repair-close-${row.id}`}
-                className="ucom-secondary px-2 py-1 text-sm"
+                className="ucom-secondary !rounded-full px-2 py-1 text-sm"
               >
                 ปิดงาน/ออกบิล
               </button>
@@ -165,14 +165,14 @@ function Row({
                       setShowAbandonConfirm(false);
                     }}
                     data-testid={`repair-abandon-confirm-${row.id}`}
-                    className="ucom-danger px-2 py-1 text-xs"
+                    className="ucom-danger !rounded-full px-2 py-1 text-xs"
                   >
                     ยืนยันทิ้งงาน
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowAbandonConfirm(false)}
-                    className="ucom-secondary px-2 py-1 text-xs"
+                    className="ucom-secondary !rounded-full px-2 py-1 text-xs"
                   >
                     ยกเลิก
                   </button>

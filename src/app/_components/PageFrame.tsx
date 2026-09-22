@@ -25,16 +25,16 @@ export function PageFrame({
     <main
       data-page={page}
       data-loading={dataLoading}
-      className={`ucom-page mx-auto w-full max-w-[1440px] space-y-6 px-4 py-5 md:px-8 md:py-7 ${className}`}
+      className={`ucom-page mx-auto w-full max-w-[1180px] space-y-7 px-4 py-6 md:px-8 md:py-8 ${className}`}
     >
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
         <div>
           {eyebrow && (
             <p className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-ink-muted">
               {eyebrow}
             </p>
           )}
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink md:text-3xl">
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink md:text-[2rem]">
             {title}
           </h1>
           {description && <p className="mt-1 max-w-3xl text-sm text-ink-muted">{description}</p>}

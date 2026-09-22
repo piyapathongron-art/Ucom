@@ -1,27 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  /* dim, not black — a lit room at night, not a cave */
-  --color-background: #14132B;
-  --color-surface: #1D1C3E;
-  --color-border: #34315F;
-  --color-ink-muted: #A6A3CE;
-  --color-ink: #F3F2FB;
-  --color-warning: #F59E0B;
-  --color-danger: #F87171;
-  --color-success: #34D399;
-  /* bright indigo — text/border-only uses (nav active tab, badges, focus rings) where the
-     token sits directly on the dark background and needs to read as light-on-dark */
-  --color-accent: #818CF8;
-  /* dark indigo pair — solid-fill uses only (.ucom-primary gradient) where white text sits
-     on top and needs the fill dark enough to stay AA-contrast */
-  --color-accent-strong: #4338CA;
-  --color-accent-soft: #4F46E5;
+  --color-background: #15141b;
+  --color-surface: #1e1d27;
+  --color-sunken: #111016;
+  --color-border: #2b2937;
+  --color-border-strong: #3a3847;
+  --color-ink-muted: #a19dae;
+  --color-ink: #f2f1f8;
+  --color-warning: #fcd34d;
+  --color-danger: #fb7185;
+  --color-success: #4ade80;
+  --color-accent: #ddff8d;
+  --color-accent-strong: #ddff8d;
+  --color-accent-soft: #ddff8d;
 }
 
 @theme inline {
   --color-background: var(--color-background);
   --color-surface: var(--color-surface);
+  --color-sunken: var(--color-sunken);
   --color-border: var(--color-border);
   --color-ink-muted: var(--color-ink-muted);
   --color-ink: var(--color-ink);
@@ -31,8 +29,8 @@
   --color-accent: var(--color-accent);
   --color-accent-strong: var(--color-accent-strong);
   --color-accent-soft: var(--color-accent-soft);
-  --font-sans: var(--font-ibm-plex-sans-thai);
-  --font-mono: var(--font-ibm-plex-mono);
+  --font-sans: var(--font-noto-sans-thai), var(--font-inter), sans-serif;
+  --font-mono: var(--font-inter), monospace;
 }
 
 body {
@@ -52,7 +50,7 @@ body {
 
 .ucom-surface {
   border: 1px solid var(--color-border);
-  border-radius: 0.7rem;
+  border-radius: 0.85rem;
   background: var(--color-surface);
 }
 
@@ -62,7 +60,7 @@ body {
   align-items: center;
   gap: 0.65rem;
   border: 1px solid var(--color-border);
-  border-radius: 0.7rem;
+  border-radius: 0.85rem;
   background: var(--color-surface);
   padding: 0.75rem;
 }
@@ -70,7 +68,7 @@ body {
 .ucom-field {
   border: 1px solid var(--color-border);
   border-radius: 0.45rem;
-  background: var(--color-surface);
+  background: var(--color-sunken);
   color: var(--color-ink);
   outline: none;
 }
@@ -82,8 +80,8 @@ body {
 
 .ucom-primary {
   border-radius: 0.45rem;
-  background: linear-gradient(135deg, var(--color-accent-strong), var(--color-accent-soft));
-  color: #FFFFFF;
+  background: var(--color-accent);
+  color: #15141b;
   font-weight: 600;
   transition: opacity 160ms ease, transform 160ms ease;
 }
@@ -102,10 +100,8 @@ body {
   outline-offset: 2px;
 }
 
-/* currentColor is white on this button (see .ucom-primary above), invisible against the
-   light page background — outline in the accent color itself instead */
 .ucom-primary:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-ink);
   outline-offset: 2px;
 }
 
@@ -128,27 +124,25 @@ body {
   font-weight: 500;
 }
 
-/* gradient reserved for accent moments only (nav header, login hero) — data tables and
-   catalog cards stay flat so prices/stock counts stay fast to read at the counter */
 .ucom-header-wash {
-  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-background) 140%);
+  background: var(--color-sunken);
 }
 
 .ucom-badge-glow {
-  background: linear-gradient(135deg, var(--color-accent-strong), var(--color-accent-soft));
-  color: #FFFFFF;
+  background: var(--color-accent);
+  color: #15141b;
 }
 
 .ucom-login-glow {
   background:
-    radial-gradient(60% 55% at 50% -10%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 70%),
+    radial-gradient(60% 55% at 50% -10%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 70%),
     var(--color-background);
 }
 
 .ucom-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--color-border);
-  border-radius: 0.7rem;
+  border-radius: 0.85rem;
   background: var(--color-surface);
 }
 
@@ -159,11 +153,12 @@ body {
 }
 
 .ucom-table th {
-  background: color-mix(in srgb, var(--color-background) 72%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-sunken) 72%, var(--color-surface));
   color: var(--color-ink-muted);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   text-align: left;
   white-space: nowrap;
 }
@@ -171,8 +166,16 @@ body {
 .ucom-table th,
 .ucom-table td {
   border-bottom: 1px solid var(--color-border);
-  padding: 0.7rem 0.8rem;
+  padding: 0.78rem 0.85rem;
   vertical-align: top;
+}
+
+.ucom-page[data-page="report"] [data-testid^="card-"] {
+  border-color: var(--color-border-strong);
+}
+
+.ucom-page[data-page="report"] [data-testid="card-net_profit"] p:last-child {
+  color: var(--color-accent);
 }
 
 .ucom-table tbody tr:last-child td {

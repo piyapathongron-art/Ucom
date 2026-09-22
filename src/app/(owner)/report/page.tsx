@@ -114,7 +114,7 @@ export default function ReportPage() {
             type="button"
             onClick={setToday}
             data-testid="quick-today"
-            className="ucom-secondary px-3 py-1.5 text-sm"
+            className="ucom-secondary !rounded-full px-3 py-1.5 text-sm"
           >
             วันนี้
           </button>
@@ -122,7 +122,7 @@ export default function ReportPage() {
             type="button"
             onClick={setThisMonth}
             data-testid="quick-month"
-            className="ucom-secondary px-3 py-1.5 text-sm"
+            className="ucom-secondary !rounded-full px-3 py-1.5 text-sm"
           >
             เดือนนี้
           </button>
@@ -130,7 +130,7 @@ export default function ReportPage() {
             type="button"
             onClick={setThisYear}
             data-testid="quick-year"
-            className="ucom-secondary px-3 py-1.5 text-sm"
+            className="ucom-secondary !rounded-full px-3 py-1.5 text-sm"
           >
             ปีนี้
           </button>
@@ -142,7 +142,7 @@ export default function ReportPage() {
             value={from}
             onChange={(e) => applyRange(e.target.value, to)}
             data-testid="report-from"
-            className="ucom-field px-2 py-1.5 text-sm"
+            className="ucom-field !rounded-full px-3.5 py-1.5 text-sm"
           />
           <span className="text-ink-muted">-</span>
           <input
@@ -150,19 +150,19 @@ export default function ReportPage() {
             value={to}
             onChange={(e) => applyRange(from, e.target.value)}
             data-testid="report-to"
-            className="ucom-field px-2 py-1.5 text-sm"
+            className="ucom-field !rounded-full px-3.5 py-1.5 text-sm"
           />
         </div>
 
-        <div className="flex rounded border border-border bg-background p-1">
+        <div className="flex gap-1 rounded-full bg-sunken p-1">
           {(Object.entries(GROUPING_LABEL) as [Grouping, string][]).map(([g, label]) => (
             <button
               key={g}
               type="button"
               onClick={() => setGrouping(g)}
               data-testid={`group-${g}`}
-              className={`px-3 py-1 text-sm rounded ${
-                grouping === g ? "bg-surface font-medium shadow-sm" : "text-ink-muted"
+              className={`rounded-full px-4 py-1.5 text-sm ${
+                grouping === g ? "bg-[#2c2a38] text-white font-semibold" : "text-ink-muted"
               }`}
             >
               {label}
@@ -181,10 +181,10 @@ export default function ReportPage() {
           <div
             key={card.key}
             data-testid={`card-${card.key}`}
-            className="ucom-surface p-4"
+            className="ucom-surface !border-dashed rounded-2xl p-4"
           >
-            <p className="text-sm text-ink-muted">{card.label}</p>
-            <p className={`mt-1 font-mono text-xl font-semibold ${card.value < 0 ? "text-danger" : ""}`}>
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">{card.label}</p>
+            <p className={`mt-1.5 font-mono text-2xl font-bold ${card.value < 0 ? "text-danger" : ""}`}>
               {card.value.toLocaleString()}
             </p>
           </div>

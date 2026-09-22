@@ -140,7 +140,7 @@ export default function RepairsPage() {
 
       <PageSection title="คิวงานซ่อม" description={`${total.toLocaleString("th-TH")} งานตามตัวกรองปัจจุบัน`}>
       <div className="ucom-toolbar">
-        <div className="flex flex-wrap rounded border border-border bg-background p-1">
+        <div className="flex flex-wrap gap-1 rounded-full bg-sunken p-1">
           <button
             type="button"
             onClick={() => {
@@ -148,7 +148,7 @@ export default function RepairsPage() {
               setPage(1);
             }}
             data-testid="filter-open"
-            className={`rounded px-3 py-1.5 text-sm ${statusFilter === "open" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
+            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "open" ? "bg-[#2c2a38] text-white font-semibold" : "text-ink-muted"}`}
           >
             เปิดอยู่
           </button>
@@ -159,7 +159,7 @@ export default function RepairsPage() {
               setPage(1);
             }}
             data-testid="filter-collected"
-            className={`rounded px-3 py-1.5 text-sm ${statusFilter === "collected" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
+            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "collected" ? "bg-[#2c2a38] text-white font-semibold" : "text-ink-muted"}`}
           >
             รับแล้ว
           </button>
@@ -170,7 +170,7 @@ export default function RepairsPage() {
               setPage(1);
             }}
             data-testid="filter-abandoned"
-            className={`rounded px-3 py-1.5 text-sm ${statusFilter === "abandoned" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
+            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "abandoned" ? "bg-[#2c2a38] text-white font-semibold" : "text-ink-muted"}`}
           >
             ลูกค้าทิ้ง
           </button>
@@ -181,7 +181,7 @@ export default function RepairsPage() {
               setPage(1);
             }}
             data-testid="filter-all"
-            className={`rounded px-3 py-1.5 text-sm ${statusFilter === "all" ? "bg-surface font-medium shadow-sm" : "text-ink-muted"}`}
+            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "all" ? "bg-[#2c2a38] text-white font-semibold" : "text-ink-muted"}`}
           >
             ทั้งหมด
           </button>
@@ -194,7 +194,7 @@ export default function RepairsPage() {
           }}
           placeholder="ค้นหาชื่อ/เครื่อง/เบอร์"
           data-testid="repair-search"
-          className="ucom-field ml-auto w-full px-3 py-2 text-sm md:w-80"
+          className="ucom-field ml-auto w-full !rounded-full px-3.5 py-2 text-sm md:w-80"
         />
       </div>
 

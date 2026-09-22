@@ -9,7 +9,7 @@ const deviceStatuses = ["in_stock", "consigned_out", "written_off"];
 export function StockRowCard({
   row,
   categories,
-  isOwner,
+  canEditCost,
   cost,
   onSaveProduct,
   onSaveDevice,
@@ -17,7 +17,7 @@ export function StockRowCard({
 }: {
   row: StockRow;
   categories: Category[];
-  isOwner: boolean;
+  canEditCost: boolean;
   cost: number | null | undefined;
   onSaveProduct: (input: ProductSave) => Promise<void>;
   onSaveDevice: (input: DeviceSave) => Promise<void>;
@@ -64,7 +64,7 @@ export function StockRowCard({
           type="button"
           onClick={save}
           disabled={!dirty || saving}
-          className="ucom-primary px-3 py-1.5 text-xs disabled:opacity-30"
+          className="ucom-primary !rounded-full px-3 py-1.5 text-xs disabled:opacity-30"
         >
           บันทึก
         </button>
@@ -110,7 +110,7 @@ export function StockRowCard({
           )}
         </div>
 
-        {isOwner && (
+        {canEditCost && (
           <div>
             <label className="mb-1 block text-xs text-ink-muted">ต้นทุน</label>
             <div className="flex items-center gap-1">
@@ -125,7 +125,7 @@ export function StockRowCard({
                 type="button"
                 onClick={saveCost}
                 disabled={saving || costDraft === String(cost ?? "")}
-                className="ucom-secondary shrink-0 px-2 py-1 text-xs disabled:opacity-30"
+                className="ucom-secondary !rounded-full shrink-0 px-2 py-1 text-xs disabled:opacity-30"
               >
                 บันทึกทุน
               </button>

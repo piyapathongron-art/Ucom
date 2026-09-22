@@ -35,7 +35,7 @@ const deviceStatuses = ["in_stock", "consigned_out", "written_off"];
 function Row({
   row,
   categories,
-  isOwner,
+  canEditCost,
   cost,
   onSaveProduct,
   onSaveDevice,
@@ -43,7 +43,7 @@ function Row({
 }: {
   row: StockRow;
   categories: Category[];
-  isOwner: boolean;
+  canEditCost: boolean;
   cost: number | null | undefined;
   onSaveProduct: (input: ProductSave) => Promise<void>;
   onSaveDevice: (input: DeviceSave) => Promise<void>;
@@ -80,7 +80,7 @@ function Row({
 
   if (!row.id || !row.kind) return null;
 
-  const columnCount = isOwner ? 8 : 7;
+  const columnCount = canEditCost ? 8 : 7;
 
   return (
     <Fragment>
@@ -120,7 +120,7 @@ function Row({
             <span className="text-sm text-ink-muted">1</span>
           )}
         </td>
-        {isOwner && (
+        {canEditCost && (
           <td className="p-2">
             <div className="flex items-center gap-1">
               <input
@@ -136,7 +136,7 @@ function Row({
                 onClick={saveCost}
                 disabled={saving || costDraft === String(cost ?? "")}
                 data-testid={`stock-save-cost-${row.id}`}
-                className="ucom-secondary px-2 py-1 text-xs disabled:opacity-30"
+                className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-30"
               >
                 บันทึกทุน
               </button>
@@ -160,7 +160,7 @@ function Row({
             onClick={save}
             disabled={!dirty || saving}
             data-testid={`stock-save-${row.id}`}
-            className="ucom-primary px-3 py-1.5 text-xs disabled:opacity-30"
+            className="ucom-primary !rounded-full px-3 py-1.5 text-xs disabled:opacity-30"
           >
             บันทึก
           </button>
@@ -230,7 +230,7 @@ function Row({
 export function StockTable({
   rows,
   categories,
-  isOwner,
+  canEditCost,
   costById,
   onSaveProduct,
   onSaveDevice,
@@ -238,7 +238,7 @@ export function StockTable({
 }: {
   rows: StockRow[];
   categories: Category[];
-  isOwner: boolean;
+  canEditCost: boolean;
   costById: Record<string, number | null>;
   onSaveProduct: (input: ProductSave) => Promise<void>;
   onSaveDevice: (input: DeviceSave) => Promise<void>;
@@ -255,7 +255,7 @@ export function StockTable({
               <th className="p-2">รหัส</th>
               <th className="p-2">ราคา</th>
               <th className="p-2">จำนวน</th>
-              {isOwner && (
+              {canEditCost && (
                 <th className="p-2" data-testid="cost-column-header">
                   ต้นทุน
                 </th>
@@ -270,7 +270,7 @@ export function StockTable({
                 key={`${row.kind}-${row.id}`}
                 row={row}
                 categories={categories}
-                isOwner={isOwner}
+                canEditCost={canEditCost}
                 cost={row.id ? costById[row.id] : undefined}
                 onSaveProduct={onSaveProduct}
                 onSaveDevice={onSaveDevice}
@@ -287,7 +287,7 @@ export function StockTable({
               key={`${row.kind}-${row.id}`}
               row={row}
               categories={categories}
-              isOwner={isOwner}
+              canEditCost={canEditCost}
               cost={row.id ? costById[row.id] : undefined}
               onSaveProduct={onSaveProduct}
               onSaveDevice={onSaveDevice}

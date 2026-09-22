@@ -52,7 +52,7 @@ export function IntakeForm({
         type="button"
         onClick={() => setOpen(true)}
         data-testid="open-intake-form"
-        className="ucom-secondary px-3 py-1.5 text-sm"
+        className="ucom-secondary !rounded-full px-3 py-1.5 text-sm"
       >
         + รับงานซ่อม
       </button>
@@ -114,14 +114,14 @@ export function IntakeForm({
         onClick={submit}
         data-testid="intake-submit"
         disabled={!customerName.trim() || !deviceDesc.trim() || saving}
-        className="ucom-primary px-3 py-1.5 text-sm disabled:opacity-40"
+        className="ucom-primary !rounded-full px-3 py-1.5 text-sm disabled:opacity-40"
       >
         รับงาน
       </button>
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="ucom-secondary px-3 py-1.5 text-sm"
+        className="ucom-secondary !rounded-full px-3 py-1.5 text-sm"
       >
         ยกเลิก
       </button>

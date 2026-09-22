@@ -56,7 +56,7 @@ export default function ClosingForm({
                 <label className="block text-sm font-medium text-ink-muted mb-1">หมายเหตุ (ถ้ามี)</label>
                 <textarea data-testid="close-day-note" value={closeNote} onChange={e => onCloseNoteChange(e.target.value)} className="ucom-field w-full px-3 py-2 text-sm" rows={2} />
               </div>
-              <button type="submit" disabled={queuedCount > 0} data-testid="close-day-confirm" className="ucom-primary w-full px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="submit" disabled={queuedCount > 0} data-testid="close-day-confirm" className="ucom-primary w-full !rounded-full px-4 py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50">
                 ยืนยันปิดร้าน
               </button>
             </form>

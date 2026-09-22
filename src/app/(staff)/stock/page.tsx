@@ -51,6 +51,11 @@ export default function StockPage() {
         return;
       }
       setRows(nextRows);
+      setCostById(
+        Object.fromEntries(
+          nextRows.filter((row) => row.id).map((row) => [row.id!, row.cost]),
+        ),
+      );
       setTotal(nextTotal);
       setError(null);
     } catch (loadError) {
@@ -60,37 +65,6 @@ export default function StockPage() {
       setError(loadError instanceof Error ? loadError.message : "โหลดสต็อกไม่สำเร็จ");
     } finally {
       if (requestId === requestRef.current) setIsLoading(false);
-    }
-  }
-
-  async function loadCosts(owner: boolean, stockRows: StockRow[]) {
-    if (!owner) {
-      setCostById({});
-      return;
-    }
-    try {
-      const productIds = stockRows.filter((row) => row.kind === "product" && row.id).map((row) => row.id!);
-      const deviceIds = stockRows.filter((row) => row.kind === "device" && row.id).map((row) => row.id!);
-      const map: Record<string, number | null> = {};
-      if (productIds.length > 0) {
-        const { data, error: productError } = await supabase
-          .from("products")
-          .select("id, cost")
-          .in("id", productIds);
-        if (productError) throw productError;
-        for (const row of data ?? []) map[row.id] = row.cost;
-      }
-      if (deviceIds.length > 0) {
-        const { data, error: deviceError } = await supabase
-          .from("device_units")
-          .select("id, cost")
-          .in("id", deviceIds);
-        if (deviceError) throw deviceError;
-        for (const row of data ?? []) map[row.id] = row.cost;
-      }
-      setCostById(map);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "โหลดต้นทุนไม่สำเร็จ");
     }
   }
 
@@ -118,11 +92,6 @@ export default function StockPage() {
     Promise.resolve().then(() => loadStock());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, kindFilter, statusFilter, deferredSearch]);
-
-  useEffect(() => {
-    Promise.resolve().then(() => loadCosts(isOwner, rows));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOwner, rows]);
 
   async function saveProduct(input: ProductSave) {
     setError(null);
@@ -167,8 +136,11 @@ export default function StockPage() {
 
   async function saveCost(kind: string, id: string, cost: number) {
     setError(null);
-    const table = kind === "product" ? "products" : "device_units";
-    const { error } = await supabase.from(table).update({ cost }).eq("id", id);
+    const { error } = await supabase.rpc("rpc_set_stock_cost", {
+      p_kind: kind,
+      p_id: id,
+      p_cost: cost,
+    });
     if (error) {
       setError(error.message);
       return;
@@ -230,7 +202,7 @@ export default function StockPage() {
             setPage(1);
           }}
           placeholder="ค้นหาสินค้า / เครื่อง / SKU / IMEI"
-          className="ucom-field ml-auto w-full px-3 py-2 text-sm md:w-80"
+          className="ucom-field ml-auto w-full !rounded-full px-3.5 py-2 text-sm md:w-80"
         />
         <select
           value={kindFilter}
@@ -268,7 +240,7 @@ export default function StockPage() {
       <StockTable
         rows={rows}
         categories={categories}
-        isOwner={isOwner}
+        canEditCost
         costById={costById}
         onSaveProduct={saveProduct}
         onSaveDevice={saveDevice}

@@ -71,7 +71,7 @@ export function RepairRowCard({
                   type="button"
                   onClick={() => handleSetStatus(prevStep)}
                   disabled={settingStatus}
-                  className="ucom-secondary px-2 py-1 text-xs disabled:opacity-40"
+                  className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-40"
                 >
                   ย้อนกลับ
                 </button>
@@ -81,7 +81,7 @@ export function RepairRowCard({
                   type="button"
                   onClick={() => handleSetStatus(nextStep)}
                   disabled={settingStatus}
-                  className="ucom-primary px-2 py-1 text-xs disabled:opacity-40"
+                  className="ucom-primary !rounded-full px-2 py-1 text-xs disabled:opacity-40"
                 >
                   {REPAIR_STATUS_LABEL[nextStep as RepairStatus]}
                 </button>
@@ -102,7 +102,7 @@ export function RepairRowCard({
                 <button
                   type="button"
                   onClick={() => setIsEditingPartCost(true)}
-                  className="ucom-secondary px-2 py-1 text-xs"
+                  className="ucom-secondary !rounded-full px-2 py-1 text-xs"
                 >
                   แก้ไข
                 </button>
@@ -121,7 +121,7 @@ export function RepairRowCard({
                   type="button"
                   onClick={handleSavePartCost}
                   disabled={savingPartCost || partCostDraft.trim() === ""}
-                  className="ucom-secondary px-2 py-1 text-xs disabled:opacity-30"
+                  className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-30"
                 >
                   บันทึก
                 </button>
@@ -132,7 +132,7 @@ export function RepairRowCard({
                       setIsEditingPartCost(false);
                       setPartCostDraft("");
                     }}
-                    className="ucom-secondary px-2 py-1 text-xs"
+                    className="ucom-secondary !rounded-full px-2 py-1 text-xs"
                   >
                     ยกเลิก
                   </button>
@@ -148,7 +148,7 @@ export function RepairRowCard({
           <button
             type="button"
             onClick={() => setShowCloseDialog(!showCloseDialog)}
-            className="ucom-secondary px-2 py-1 text-sm"
+            className="ucom-secondary !rounded-full px-2 py-1 text-sm"
           >
             ปิดงาน/ออกบิล
           </button>
@@ -161,14 +161,14 @@ export function RepairRowCard({
                   handleSetStatus("abandoned");
                   setShowAbandonConfirm(false);
                 }}
-                className="ucom-danger px-2 py-1 text-xs"
+                className="ucom-danger !rounded-full px-2 py-1 text-xs"
               >
                 ยืนยันทิ้งงาน
               </button>
               <button
                 type="button"
                 onClick={() => setShowAbandonConfirm(false)}
-                className="ucom-secondary px-2 py-1 text-xs"
+                className="ucom-secondary !rounded-full px-2 py-1 text-xs"
               >
                 ยกเลิก
               </button>

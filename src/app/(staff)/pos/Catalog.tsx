@@ -50,6 +50,7 @@ export function Catalog({
   const [financeItem, setFinanceItem] = useState<CatalogRow | null>(null);
   const [financeError, setFinanceError] = useState<string | null>(null);
   const [financing, setFinancing] = useState(false);
+  const today = new Intl.DateTimeFormat("th-TH", { dateStyle: "full" }).format(new Date());
 
   function submitTopup() {
     const amount = Number(topupAmount);
@@ -79,23 +80,23 @@ export function Catalog({
   }
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto bg-background p-4 md:p-6">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto bg-background p-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-ink-muted">Counter / catalog</p>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight text-ink">ขายหน้าร้าน</h1>
+          <p className="font-mono text-[0.68rem] tracking-[0.08em] text-ink-muted">{today}</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">หน้าขาย</h1>
         </div>
         <span className="text-xs text-ink-muted">เลือกสินค้าเพื่อเพิ่มเข้าบิล</span>
       </div>
 
-      <div className="ucom-toolbar">
+      <div className="flex flex-wrap items-center gap-2">
         {carriers.map((c) => (
           <button
             key={c.id}
             type="button"
             data-testid={`topup-carrier-${c.name}`}
             onClick={() => setTopupCarrier(c)}
-            className="ucom-secondary px-3 py-2 text-sm"
+            className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink-muted hover:border-border-strong hover:text-ink"
           >
             เติมเงิน {c.name}
           </button>
@@ -145,7 +146,7 @@ export function Catalog({
               key={item.id}
               type="button"
               onClick={() => onAddCatalog(item)}
-              className="ucom-secondary truncate px-3 py-2 text-left text-sm"
+              className="ucom-secondary truncate rounded-xl px-3 py-3 text-left text-sm"
             >
               {item.name}
             </button>
@@ -161,13 +162,12 @@ export function Catalog({
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="ค้นหาสินค้า / SKU / IMEI"
           data-testid="catalog-search"
-          className="ucom-field w-full px-3 py-2.5 pr-10 text-sm"
+          className="ucom-field w-full !rounded-full px-4 py-3 pr-10 text-sm"
         />
         <span aria-hidden="true" className="pointer-events-none absolute right-3 top-2.5 text-ink-muted">⌕</span>
       </label>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-ink-muted">ประเภท</span>
         {([
           ["all", "ทั้งหมด"],
           ["product", "สินค้า"],
@@ -179,10 +179,10 @@ export function Catalog({
             onClick={() => onKindFilterChange(value)}
             data-testid={`catalog-kind-${value}`}
             aria-pressed={kindFilter === value}
-            className={`rounded border px-3 py-1.5 text-sm ${
+            className={`rounded-full border px-4 py-2 text-sm ${
               kindFilter === value
-                ? "border-ink bg-ink text-surface"
-                : "border-border bg-surface text-ink-muted"
+                ? "border-accent bg-accent text-background"
+                : "border-border bg-surface text-ink-muted hover:text-ink"
             }`}
           >
             {label}
@@ -227,13 +227,13 @@ export function Catalog({
           </div>
         )}
         {isLoading && <p className="text-sm text-ink-muted">กำลังโหลดรายการ...</p>}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {catalog.map((item) =>
           item.kind === "device" && item.acquisition === "sf_credit" ? (
             <div
               key={`${item.kind}-${item.id}`}
               data-testid={`catalog-item-device-${item.id}`}
-              className="ucom-surface flex flex-col p-3"
+              className="ucom-surface flex flex-col !border-dashed rounded-xl p-3"
             >
               <div className="font-medium">{item.name}</div>
               <div className="text-sm text-ink-muted">
@@ -267,7 +267,7 @@ export function Catalog({
               type="button"
               data-testid={`catalog-item-${item.kind}-${item.id}`}
               onClick={() => onAddCatalog(item)}
-              className="ucom-surface p-3 text-left transition-colors hover:border-ink"
+              className="ucom-surface rounded-xl p-3 text-left !border-dashed transition-colors hover:border-border-strong"
             >
               <div className="font-medium">{item.name}</div>
               <div className="text-sm text-ink-muted">

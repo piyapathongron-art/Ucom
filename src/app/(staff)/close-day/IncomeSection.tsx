@@ -95,7 +95,7 @@ export default function IncomeSection({
           <button
             type="submit"
             data-testid="close-day-income-submit"
-            className="ucom-primary px-4 py-2 text-sm"
+            className="ucom-primary !rounded-full px-4 py-2 text-sm"
           >
             บันทึกรายรับ
           </button>
@@ -150,7 +150,7 @@ export default function IncomeSection({
                           <button
                             type="button"
                             onClick={() => onSetDeleteConfirmId(null)}
-                            className="ucom-secondary px-2 py-1 text-xs"
+                            className="ucom-secondary !rounded-full px-2 py-1 text-xs"
                           >
                             ยกเลิก
                           </button>
@@ -209,7 +209,7 @@ export default function IncomeSection({
                       <button
                         type="button"
                         onClick={() => onSetDeleteConfirmId(null)}
-                        className="ucom-secondary px-2 py-1 text-xs"
+                        className="ucom-secondary !rounded-full px-2 py-1 text-xs"
                       >
                         ยกเลิก
                       </button>
