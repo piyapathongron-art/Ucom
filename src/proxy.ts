@@ -5,6 +5,10 @@ import { NextResponse, type NextRequest } from "next/server";
 // This refreshes the Supabase session cookie on every request so Server
 // Components always see a valid session without each of them re-checking.
 export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === "/api/line/webhook") {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

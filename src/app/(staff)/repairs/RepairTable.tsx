@@ -1,6 +1,6 @@
 "use client";
 
-import { REPAIR_STATUS_BADGE, REPAIR_STATUS_LABEL, type RepairRow, type RepairStatus } from "./types";
+import { REPAIR_STATUS_BADGE, REPAIR_STATUS_LABEL, type PartPaidFrom, type RepairRow, type RepairStatus } from "./types";
 import type { CloseJobPayload } from "./CloseJobDialog";
 import { RepairDialogs } from "./RepairDialogs";
 import { useRepairRowActions } from "./useRepairRowActions";
@@ -14,12 +14,14 @@ function Row({
 }: {
   row: RepairRow;
   onSetStatus: (id: string, status: string) => Promise<void>;
-  onSetPartCost: (id: string, cost: number) => Promise<void>;
+  onSetPartCost: (id: string, cost: number, paidFrom: PartPaidFrom) => Promise<boolean>;
   onCloseJob: (id: string, payload: CloseJobPayload) => Promise<boolean>;
 }) {
   const {
     partCostDraft,
     setPartCostDraft,
+    partPaidFrom,
+    setPartPaidFrom,
     isEditingPartCost,
     setIsEditingPartCost,
     showAbandonConfirm,
@@ -27,6 +29,7 @@ function Row({
     showCloseDialog,
     setShowCloseDialog,
     savingPartCost,
+    canSavePartCost,
     settingStatus,
     receivedAtStr,
     isInSteps,
@@ -109,20 +112,27 @@ function Row({
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                   <input
                     type="number"
                     inputMode="decimal"
+                    min="0"
+                    step="0.01"
                     value={partCostDraft}
                     onChange={(e) => setPartCostDraft(e.target.value)}
                     placeholder="ต้นทุนอะไหล่"
                     data-testid={`repair-part-cost-input-${row.id}`}
                     className="ucom-field w-24 px-2 py-1.5 text-sm"
                   />
+                  <select aria-label="จ่ายค่าอะไหล่จาก" value={partPaidFrom} onChange={(e) => setPartPaidFrom(e.target.value as PartPaidFrom | "")} data-testid={`repair-part-paid-from-${row.id}`} className="ucom-field px-2 py-1.5 text-sm">
+                    <option value="">วิธีจ่าย</option>
+                    <option value="cash">เงินสด</option>
+                    <option value="transfer">โอน</option>
+                  </select>
                   <button
                     type="button"
                     onClick={handleSavePartCost}
-                    disabled={savingPartCost || partCostDraft.trim() === ""}
+                    disabled={savingPartCost || !canSavePartCost}
                     data-testid={`repair-part-cost-save-${row.id}`}
                     className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-30"
                   >
@@ -206,7 +216,7 @@ export function RepairTable({
 }: {
   rows: RepairRow[];
   onSetStatus: (id: string, status: string) => Promise<void>;
-  onSetPartCost: (id: string, cost: number) => Promise<void>;
+  onSetPartCost: (id: string, cost: number, paidFrom: PartPaidFrom) => Promise<boolean>;
   onCloseJob: (id: string, payload: CloseJobPayload) => Promise<boolean>;
 }) {
   return (

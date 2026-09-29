@@ -13,7 +13,7 @@ import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import { IntakeForm, type RepairIntakeSave } from "./IntakeForm";
 import { RepairTable, RepairTableHead } from "./RepairTable";
 import type { CloseJobPayload } from "./CloseJobDialog";
-import type { RepairRow } from "./types";
+import type { PartPaidFrom, RepairRow } from "./types";
 
 export default function RepairsPage() {
   const supabase = createClient();
@@ -93,9 +93,8 @@ export default function RepairsPage() {
     await run(supabase.rpc("rpc_set_repair_status", { p_job_id: id, p_status: status }), status === "abandoned" ? "ตัดงานทิ้งแล้ว" : undefined);
   };
 
-  const setPartCost = async (id: string, cost: number) => {
-    await run(supabase.rpc("rpc_set_part_cost", { p_job_id: id, p_cost: cost }), "บันทึกต้นทุนอะไหล่แล้ว");
-  };
+  const setPartCost = (id: string, cost: number, paidFrom: PartPaidFrom) =>
+    run(supabase.rpc("rpc_set_part_cost", { p_job_id: id, p_cost: cost, p_paid_from: paidFrom }), "บันทึกต้นทุนอะไหล่แล้ว");
 
   const closeJob = (id: string, payload: CloseJobPayload) =>
     run(supabase.rpc("rpc_close_repair_job", { p_job_id: id, p_sale_payload: payload }), "ออกบิลและปิดงานแล้ว");

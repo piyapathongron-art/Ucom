@@ -1,7 +1,7 @@
 import type { Tables } from "@/lib/types/database";
 
-// part_cost is absent on purpose, not forgotten: staff writes it through
-// rpc_set_part_cost and can never read it back (ADR 0010). The view has no such column.
+// part_cost stays out of this view; daily cash-paid part costs are read through
+// the close-day model (ADR 0026).
 //
 // every view column comes back `| null` from the generator; these five are NOT NULL on
 // repair_jobs, and status also carries a check constraint listing its five words.
@@ -22,6 +22,8 @@ export type RepairStatus =
   | "ready"
   | "collected"
   | "abandoned";
+
+export type PartPaidFrom = "cash" | "transfer";
 
 // the walkable part of the status list, in order. `collected` is not here: collecting
 // means issuing a bill, which only rpc_close_repair_job does.

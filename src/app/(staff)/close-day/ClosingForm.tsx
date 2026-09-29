@@ -16,6 +16,8 @@ interface Props {
   onCloseNoteChange: (v: string) => void;
   queuedCount: number;
   onSubmit: () => Promise<boolean>;
+  onResend: () => Promise<void>;
+  isSending: boolean;
   fmt: (n: number) => string;
 }
 
@@ -26,7 +28,7 @@ function diffText(diff: number, fmt: (n: number) => string) {
   return diff === 0 ? "ตรงพอดี" : diff > 0 ? `เกิน ฿${fmt(diff)}` : `ขาด ฿${fmt(-diff)}`;
 }
 
-export default function ClosingForm({ isToday, closing, toSend, countedCash, onCountedCashChange, closeNote, onCloseNoteChange, queuedCount, onSubmit, fmt }: Props) {
+export default function ClosingForm({ isToday, closing, toSend, countedCash, onCountedCashChange, closeNote, onCloseNoteChange, queuedCount, onSubmit, onResend, isSending, fmt }: Props) {
   const [isReclosing, setIsReclosing] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
@@ -50,9 +52,11 @@ export default function ClosingForm({ isToday, closing, toSend, countedCash, onC
       {closing && (
         <div data-testid="close-day-closed" className="rounded-2xl bg-success-bg px-5 py-4 text-sm font-semibold text-success">
           ปิดร้านแล้ว {timeOf(closing.closed_at)} · นับได้ ฿{fmt(Number(closing.counted_cash))} · {diffText(Number(closing.counted_cash) - toSend, fmt)}
+          {new Date(closing.closed_at).getTime() > new Date(closing.created_at).getTime() && <span className="ml-2 rounded-full px-2 py-1 text-xs">แก้ไข</span>}
           {isToday && !isReclosing && (
             <button type="button" onClick={() => setIsReclosing(true)} data-testid="close-day-reclose" className="ucom-secondary ml-4 px-4 py-1.5 text-xs text-ink">ปิดใหม่อีกครั้ง</button>
           )}
+          <button type="button" onClick={() => void onResend()} disabled={isSending} data-testid="close-day-resend-line" className="ucom-secondary ml-4 px-4 py-1.5 text-xs text-ink disabled:opacity-50">{isSending ? "กำลังส่ง..." : "ส่งสรุปเข้า LINE"}</button>
         </div>
       )}
       {!closing && !isToday && <div className="ucom-surface p-6 text-center text-ink-muted">ยังไม่ได้ปิดวันนี้</div>}

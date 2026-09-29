@@ -2,6 +2,7 @@ import type { Tables } from "@/lib/types/database";
 
 export type StockRow = Tables<"v_pos_stock">;
 export type Category = Tables<"categories">;
+export type Carrier = Pick<Tables<"topup_carriers">, "id" | "name">;
 
 export type StockKind = "product" | "device";
 
@@ -25,6 +26,7 @@ export type ProductSave = {
   name: string;
   sku: string;
   category_id: string;
+  carrier_id?: string | null;
   price: number;
   qty: number;
   is_active: boolean;
