@@ -248,3 +248,24 @@ select.ucom-field {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Printing a bill from /report prints only the open bill panel. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  [data-print-area],
+  [data-print-area] * {
+    visibility: visible;
+  }
+  [data-print-area] {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    color: #000;
+    background: #fff;
+  }
+  [data-print-area] * {
+    color: #000 !important;
+  }
+}

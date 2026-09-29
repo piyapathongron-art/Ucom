@@ -4,7 +4,7 @@ import { Fragment, useEffect, useState } from "react";
 import { PaginationControls } from "@/app/_components/PaginationControls";
 import { createClient } from "@/lib/supabase/client";
 import { pageRange } from "@/lib/supabase/pagination";
-import { SaleLines } from "./DayEntries";
+import { BillDetail } from "./BillDetail";
 import { channelOf } from "./summary";
 
 type BillRow = {
@@ -120,7 +120,7 @@ export function ReportBills({ from, to }: { from: string; to: string }) {
                   {isOpen && (
                     <tr>
                       <td colSpan={5} className="bg-sunken !p-0">
-                        <SaleLines saleId={bill.id} />
+                        <BillDetail saleId={bill.id} netProfit={bill.profit} />
                       </td>
                     </tr>
                   )}

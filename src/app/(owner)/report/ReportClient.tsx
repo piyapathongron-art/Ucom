@@ -5,10 +5,12 @@ import { createClient } from "@/lib/supabase/client";
 import { ErrorPanel } from "@/app/_components/ErrorPanel";
 import { PageFrame } from "@/app/_components/PageFrame";
 import { toThaiError } from "@/lib/errors";
+import { DailyProfit } from "./DailyProfit";
 import { ReportBills } from "./ReportBills";
 import { ReportSummary } from "./ReportSummary";
+import { changeText } from "./summary";
 import { ReportTable } from "./ReportTable";
-import { GROUPING_LABEL, sumRows, todayInBangkok, weekStartOf, type Grouping, type ReportRow } from "./types";
+import { GROUPING_LABEL, previousRange, sumRows, todayInBangkok, weekStartOf, type Grouping, type ReportRow } from "./types";
 
 export type ReportView = "summary" | "bills" | "drill";
 
@@ -27,6 +29,8 @@ export function ReportClient({ initialView }: { initialView: ReportView }) {
   const [grouping, setGrouping] = useState<Grouping>("day");
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [billCount, setBillCount] = useState(0);
+  // sales revenue of the period just before the selected one, same length; null while unknown
+  const [previousRevenue, setPreviousRevenue] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   // rows starts empty, so without this the screen claims the range is empty for as long
@@ -37,11 +41,13 @@ export function ReportClient({ initialView }: { initialView: ReportView }) {
     // a narrow range answers faster than the wide one before it — without this guard the
     // earlier, wider answer lands last and the screen shows rows the range does not contain.
     let isStale = false;
+    const previous = previousRange(from, to);
     Promise.all([
       supabase.from("v_daily_report").select("*").gte("day", from).lte("day", to),
       supabase.from("v_report_entries").select("ref_id", { count: "exact", head: true }).eq("kind", "sale").gte("day", from).lte("day", to),
+      supabase.from("v_daily_report").select("sale_revenue").gte("day", previous.from).lte("day", previous.to),
     ]).then(
-      ([report, bills]) => {
+      ([report, bills, before]) => {
         if (isStale) return;
         if (report.error) {
           setError(toThaiError(report.error));
@@ -51,6 +57,7 @@ export function ReportClient({ initialView }: { initialView: ReportView }) {
           setRows((report.data as ReportRow[]) ?? []);
         }
         setBillCount(bills.count ?? 0);
+        setPreviousRevenue(before.error ? null : sumRows((before.data ?? []) as ReportRow[]).sale_revenue);
         setIsLoading(false);
       },
       // a half-typed date makes the request itself fail rather than come back with an
@@ -92,7 +99,7 @@ export function ReportClient({ initialView }: { initialView: ReportView }) {
 
   const s = sumRows(rows);
   const cards = [
-    { key: "sale_revenue", label: "ยอดขาย", value: s.sale_revenue, sub: `${billCount.toLocaleString("th-TH")} บิล${billCount ? ` · เฉลี่ย ${baht(Math.round(s.sale_revenue / billCount))} / บิล` : ""}` },
+    { key: "sale_revenue", label: "ยอดขาย", value: s.sale_revenue, sub: `${billCount.toLocaleString("th-TH")} บิล${billCount ? ` · เฉลี่ย ${baht(Math.round(s.sale_revenue / billCount))} / บิล` : ""}`, change: changeText(s.sale_revenue, previousRevenue, from === to) },
     { key: "sale_profit", label: "กำไรขายเครื่อง + สินค้า", value: s.sale_profit + s.sf_commission, sub: `รวมค่าคอม SF+ ที่รับแล้ว ${baht(s.sf_commission)}` },
     { key: "repair_profit", label: "กำไรงานซ่อม", value: s.repair_profit, sub: `รายได้ซ่อม ${baht(s.repair_revenue)}` },
     { key: "net_profit", label: "กำไรสุทธิ", value: s.net_profit, sub: `หักค่าใช้จ่าย ${baht(s.expense)}` },
@@ -138,6 +145,9 @@ export function ReportClient({ initialView }: { initialView: ReportView }) {
             <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">{card.label}</p>
             <p className={`text-[26px] font-bold leading-[30px] tabular-nums ${card.value < 0 ? "text-danger" : "text-ink"}`}>{baht(card.value)}</p>
             <p className="text-[12.5px] font-medium text-ink-muted">{card.sub}</p>
+            {card.change && (
+              <p data-testid="card-sale_revenue-change" className={`text-[12.5px] font-medium ${card.change.isUp ? "text-success" : "text-danger"}`}>{card.change.text}</p>
+            )}
           </div>
         ))}
       </div>
@@ -149,7 +159,10 @@ export function ReportClient({ initialView }: { initialView: ReportView }) {
       ) : view === "summary" ? (
         <ReportSummary from={from} to={to} />
       ) : view === "bills" ? (
-        <ReportBills from={from} to={to} />
+        <div className="space-y-4">
+          <DailyProfit rows={rows} />
+          <ReportBills from={from} to={to} />
+        </div>
       ) : (
         <div className="space-y-3">
           <div className="flex gap-1 self-start rounded-full bg-sunken p-1 w-fit">

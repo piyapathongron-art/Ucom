@@ -38,3 +38,12 @@ export function topProducts(items: SoldItem[], limit = 5): { name: string; qty: 
     .sort((a, b) => b.qty - a.qty || a.name.localeCompare(b.name, "th"))
     .slice(0, limit);
 }
+
+// null when there is nothing to compare against (no earlier sales, or the lookup failed)
+export function changeText(current: number, previous: number | null, isSingleDay: boolean): { text: string; isUp: boolean } | null {
+  if (previous === null || previous <= 0) return null;
+  const pct = Math.round(((current - previous) / previous) * 100);
+  // a comparison against a near-empty period reads as noise, so the figure stops at 999%
+  const size = Math.abs(pct) > 999 ? "999%+" : `${Math.abs(pct)}%`;
+  return { text: `${pct >= 0 ? "+" : "−"}${size} จาก${isSingleDay ? "เมื่อวาน" : "ช่วงก่อนหน้า"}`, isUp: pct >= 0 };
+}

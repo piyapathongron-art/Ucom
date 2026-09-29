@@ -46,6 +46,14 @@ export function weekStartOf(day: string): string {
   return date.toISOString().slice(0, 10);
 }
 
+// The stretch of days of equal length that ends the day before `from` (for a day-over-day change).
+export function previousRange(from: string, to: string): { from: string; to: string } {
+  const start = new Date(`${from}T00:00:00Z`);
+  const days = Math.round((new Date(`${to}T00:00:00Z`).getTime() - start.getTime()) / 86_400_000) + 1;
+  const shift = (offset: number) => new Date(start.getTime() + offset * 86_400_000).toISOString().slice(0, 10);
+  return { from: shift(-days), to: shift(-1) };
+}
+
 // A range of Bangkok calendar days as timestamps, for tables filtered on a timestamptz column.
 export function bangkokBounds(from: string, to: string): { start: string; end: string } {
   return { start: `${from}T00:00:00+07:00`, end: `${to}T23:59:59.999+07:00` };

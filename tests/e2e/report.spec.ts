@@ -161,6 +161,10 @@ test.describe("Report", () => {
     // the day's entries come from v_report_entries, which is what v_daily_report sums —
     // if these two ever disagree the drill-down is lying about where the money went
     await expect(page.locator(`[data-testid="report-detail-${dayBucket}"]`)).toBeVisible({ timeout: 15000 });
+    // the day view pages 25 at a time; a busy day (accumulated test data) has more, and the
+    // sum below must cover every entry the row above counted
+    await page.getByTestId(`report-detail-${dayBucket}-pagination-page-size`).selectOption("100");
+    await expect(page.getByTestId(`report-detail-${dayBucket}-pagination-range`)).toContainText(/1[–-]/);
     const profits = page.locator(`[data-testid="day-entries-${dayBucket}"] [data-testid="entry-profit"]`);
     await expect(profits.first()).toBeVisible({ timeout: 15000 });
     const texts = await profits.allTextContents();
@@ -199,6 +203,24 @@ test.describe("Report", () => {
     const saleId = (await openBill.getAttribute("data-testid"))!.replace("open-sale-", "");
     await openBill.click();
     await expect(page.locator(`[data-testid="sale-lines-${saleId}"] tr`).first()).toBeVisible({ timeout: 15000 });
+  });
+
+  test("bills tab: a bill opens its detail and the net agrees with the row; daily profit strip shows", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/report?view=bills");
+    await page.locator('[data-testid="quick-month"]').click();
+    await expect(page.getByTestId("report-daily-profit")).toBeVisible({ timeout: 15000 });
+    const row = page.locator('[data-testid^="report-bill-"]').first();
+    await expect(row).toBeVisible({ timeout: 15000 });
+    const rowRevenue = parseMoney(await row.locator("td").nth(3).textContent());
+    await row.click();
+    const detail = page.locator('[data-testid^="bill-detail-"]');
+    await expect(detail).toBeVisible({ timeout: 15000 });
+    await expect(detail.getByTestId("bill-print")).toBeVisible();
+    await expect(detail.locator("table tbody tr").first()).toBeVisible();
+    const netText = await detail.getByText("ยอดชำระสุทธิ").locator("xpath=following-sibling::dd").textContent();
+    // the detail is rebuilt from the bill's own lines; the list row comes from the report view
+    expect(parseMoney(netText)).toBe(rowRevenue);
   });
 
   test("a range with no activity says so instead of showing an empty table", async ({ page }) => {
