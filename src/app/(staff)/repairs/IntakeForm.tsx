@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Modal } from "@/app/_components/Modal";
 
 export type RepairIntakeSave = {
   customer_name: string;
@@ -11,121 +12,61 @@ export type RepairIntakeSave = {
   note: string | null;
 };
 
-export function IntakeForm({
-  onSave,
-}: {
-  onSave: (input: RepairIntakeSave) => Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [deviceDesc, setDeviceDesc] = useState("");
-  const [symptom, setSymptom] = useState("");
-  const [quotedPrice, setQuotedPrice] = useState("");
-  const [note, setNote] = useState("");
+const EMPTY = { customerName: "", customerPhone: "", deviceDesc: "", symptom: "", quotedPrice: "", note: "" };
+
+function Field({ label, value, onChange, testId, type = "text", placeholder }: { label: string; value: string; onChange: (v: string) => void; testId: string; type?: string; placeholder?: string }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-semibold text-ink-muted">{label}</span>
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} data-testid={testId} className="ucom-field w-full px-4 py-2.5 text-sm" />
+    </label>
+  );
+}
+
+// `onSave` resolves true when the job was created; the dialog stays open (keeping the draft) on failure.
+export function IntakeForm({ open, onClose, onSave }: { open: boolean; onClose: () => void; onSave: (input: RepairIntakeSave) => Promise<boolean> }) {
+  const [draft, setDraft] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const set = (key: keyof typeof EMPTY) => (value: string) => setDraft((d) => ({ ...d, [key]: value }));
+  const canSubmit = draft.customerName.trim() !== "" && draft.deviceDesc.trim() !== "" && !saving;
 
   async function submit() {
-    if (!customerName.trim() || !deviceDesc.trim()) return;
+    if (!canSubmit) return;
     setSaving(true);
-    await onSave({
-      customer_name: customerName,
-      customer_phone: customerPhone.trim() || null,
-      device_desc: deviceDesc,
-      symptom: symptom.trim() || null,
-      quoted_price: quotedPrice ? Number(quotedPrice) : null,
-      note: note.trim() || null,
+    const ok = await onSave({
+      customer_name: draft.customerName,
+      customer_phone: draft.customerPhone.trim() || null,
+      device_desc: draft.deviceDesc,
+      symptom: draft.symptom.trim() || null,
+      quoted_price: draft.quotedPrice ? Number(draft.quotedPrice) : null,
+      note: draft.note.trim() || null,
     });
-    setCustomerName("");
-    setCustomerPhone("");
-    setDeviceDesc("");
-    setSymptom("");
-    setQuotedPrice("");
-    setNote("");
     setSaving(false);
-    setOpen(false);
-  }
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        data-testid="open-intake-form"
-        className="ucom-secondary px-3 py-1.5 text-sm"
-      >
-        + รับงานซ่อม
-      </button>
-    );
+    if (ok) {
+      setDraft(EMPTY);
+      onClose();
+    }
   }
 
   return (
-    <section className="ucom-surface space-y-3 p-4">
-      <div>
-        <p className="font-mono text-[0.68rem] tracking-[0.16em] text-ink-muted">SERVICE / INTAKE</p>
-        <h2 className="mt-1 font-semibold">รับงานซ่อมใหม่</h2>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="รับงานซ่อมใหม่"
+      size="md"
+      footer={<>
+        <button type="button" onClick={onClose} className="ucom-secondary px-5 py-2.5">ยกเลิก</button>
+        <button type="button" onClick={submit} data-testid="intake-submit" disabled={!canSubmit} className="ucom-primary px-5 py-2.5 disabled:opacity-40">รับงาน</button>
+      </>}
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="ชื่อลูกค้า" value={draft.customerName} onChange={set("customerName")} testId="intake-customer-name" />
+        <Field label="เบอร์โทร" value={draft.customerPhone} onChange={set("customerPhone")} testId="intake-customer-phone" />
+        <Field label="เครื่อง/รุ่น" value={draft.deviceDesc} onChange={set("deviceDesc")} testId="intake-device-desc" />
+        <Field label="อาการ" value={draft.symptom} onChange={set("symptom")} testId="intake-symptom" />
+        <Field label="ราคาที่ตกลง" type="number" value={draft.quotedPrice} onChange={set("quotedPrice")} testId="intake-quoted-price" />
+        <Field label="โน้ต" value={draft.note} onChange={set("note")} testId="intake-note" />
       </div>
-      <div className="ucom-toolbar rounded-md border-dashed">
-      <input
-        value={customerName}
-        onChange={(e) => setCustomerName(e.target.value)}
-        placeholder="ชื่อลูกค้า"
-        data-testid="intake-customer-name"
-        className="ucom-field w-40 px-2 py-1.5 text-sm"
-      />
-      <input
-        value={customerPhone}
-        onChange={(e) => setCustomerPhone(e.target.value)}
-        placeholder="เบอร์โทร"
-        data-testid="intake-customer-phone"
-        className="ucom-field w-32 px-2 py-1.5 text-sm"
-      />
-      <input
-        value={deviceDesc}
-        onChange={(e) => setDeviceDesc(e.target.value)}
-        placeholder="เครื่อง/รุ่น"
-        data-testid="intake-device-desc"
-        className="ucom-field w-40 px-2 py-1.5 text-sm"
-      />
-      <input
-        value={symptom}
-        onChange={(e) => setSymptom(e.target.value)}
-        placeholder="อาการ"
-        data-testid="intake-symptom"
-        className="ucom-field w-40 px-2 py-1.5 text-sm"
-      />
-      <input
-        type="number"
-        value={quotedPrice}
-        onChange={(e) => setQuotedPrice(e.target.value)}
-        placeholder="ราคาที่ตกลง"
-        data-testid="intake-quoted-price"
-        className="ucom-field w-24 px-2 py-1.5 text-sm"
-      />
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="โน้ต"
-        data-testid="intake-note"
-        className="ucom-field min-w-[120px] flex-1 px-2 py-1.5 text-sm"
-      />
-      <button
-        type="button"
-        onClick={submit}
-        data-testid="intake-submit"
-        disabled={!customerName.trim() || !deviceDesc.trim() || saving}
-        className="ucom-primary px-3 py-1.5 text-sm disabled:opacity-40"
-      >
-        รับงาน
-      </button>
-      <button
-        type="button"
-        onClick={() => setOpen(false)}
-        className="ucom-secondary px-3 py-1.5 text-sm"
-      >
-        ยกเลิก
-      </button>
-      </div>
-    </section>
+    </Modal>
   );
 }

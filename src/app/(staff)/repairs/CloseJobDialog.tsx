@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Modal } from "@/app/_components/Modal";
 import type { RepairRow } from "./types";
 
 export type CloseJobPayload = {
@@ -18,6 +19,8 @@ export type CloseJobPayload = {
   ];
 };
 
+// `onSubmit` resolves true when the bill was issued; on failure the dialog stays open for a retry
+// (same client_uuid, so a retry after a lost response cannot double-bill).
 export function CloseJobDialog({
   row,
   onClose,
@@ -25,14 +28,14 @@ export function CloseJobDialog({
 }: {
   row: RepairRow;
   onClose: () => void;
-  onSubmit: (payload: CloseJobPayload) => Promise<void>;
+  onSubmit: (payload: CloseJobPayload) => Promise<boolean>;
 }) {
   const [unitPrice, setUnitPrice] = useState(String(row.quoted_price ?? 0));
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [receivingAccount, setReceivingAccount] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  
+
   const clientUuidRef = useRef<string>("");
   useEffect(() => {
     clientUuidRef.current = crypto.randomUUID();
@@ -40,7 +43,7 @@ export function CloseJobDialog({
 
   async function submit() {
     setSubmitting(true);
-    await onSubmit({
+    const ok = await onSubmit({
       client_uuid: clientUuidRef.current,
       payment_method: paymentMethod,
       receiving_account: paymentMethod === "transfer" ? receivingAccount : null,
@@ -55,83 +58,49 @@ export function CloseJobDialog({
       ],
     });
     setSubmitting(false);
+    if (ok) onClose();
   }
 
+  const label = "mb-1 block text-xs font-semibold text-ink-muted";
   return (
-    <div data-testid="close-dialog" className="ucom-surface mt-2 bg-background p-4 md:p-5">
-      <div className="mb-4">
-        <p className="font-medium">{row.customer_name}</p>
-        <p className="text-sm text-ink-muted">{row.device_desc}</p>
-      </div>
-
-      <div className="space-y-3">
+    <Modal
+      open
+      onClose={onClose}
+      title="ปิดงานและออกบิล"
+      footer={<>
+        <button type="button" onClick={onClose} className="ucom-secondary px-5 py-2.5">ยกเลิก</button>
+        <button type="button" onClick={submit} disabled={submitting} data-testid="close-submit" className="ucom-primary px-5 py-2.5 disabled:opacity-40">
+          {submitting ? "กำลังบันทึก..." : "ออกบิลและปิดงาน"}
+        </button>
+      </>}
+    >
+      <div data-testid="close-dialog" className="space-y-3">
         <div>
-          <label className="mb-1 block text-sm text-ink-muted">ราคา</label>
-          <input
-            type="number"
-            value={unitPrice}
-            onChange={(e) => setUnitPrice(e.target.value)}
-            data-testid="close-unit-price"
-            className="ucom-field w-full px-3 py-2 text-sm"
-          />
+          <p className="text-sm font-bold text-ink">{row.customer_name}</p>
+          <p className="text-xs text-ink-muted">{row.device_desc}</p>
         </div>
-
-        <div>
-          <label className="mb-1 block text-sm text-ink-muted">วิธีชำระเงิน</label>
-          <select
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-            data-testid="close-payment-method"
-            className="ucom-field w-full px-3 py-2 text-sm"
-          >
+        <label className="block">
+          <span className={label}>ราคา</span>
+          <input type="number" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} data-testid="close-unit-price" className="ucom-field w-full px-4 py-2.5 text-sm" />
+        </label>
+        <label className="block">
+          <span className={label}>วิธีชำระเงิน</span>
+          <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} data-testid="close-payment-method" className="ucom-field w-full px-4 py-2.5 text-sm">
             <option value="cash">เงินสด</option>
             <option value="transfer">โอน</option>
           </select>
-        </div>
-
+        </label>
         {paymentMethod === "transfer" && (
-          <div>
-            <label className="mb-1 block text-sm text-ink-muted">บัญชีที่รับเงิน</label>
-            <input
-              value={receivingAccount}
-              onChange={(e) => setReceivingAccount(e.target.value)}
-              placeholder="บัญชีที่รับเงิน"
-              data-testid="close-receiving-account"
-              className="ucom-field w-full px-3 py-2 text-sm"
-            />
-          </div>
+          <label className="block">
+            <span className={label}>บัญชีที่รับเงิน</span>
+            <input value={receivingAccount} onChange={(e) => setReceivingAccount(e.target.value)} data-testid="close-receiving-account" className="ucom-field w-full px-4 py-2.5 text-sm" />
+          </label>
         )}
-
-        <div>
-          <label className="mb-1 block text-sm text-ink-muted">โน้ต</label>
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="โน้ต"
-            data-testid="close-note"
-            className="ucom-field w-full px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div className="flex gap-2 pt-2">
-          <button
-            type="button"
-            onClick={submit}
-            disabled={submitting}
-            data-testid="close-submit"
-            className="ucom-primary flex-1 p-2 text-sm disabled:opacity-40"
-          >
-            {submitting ? "กำลังบันทึก..." : "ออกบิลและปิดงาน"}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="ucom-secondary px-4 py-2 text-sm"
-          >
-            ยกเลิก
-          </button>
-        </div>
+        <label className="block">
+          <span className={label}>โน้ต</span>
+          <input value={note} onChange={(e) => setNote(e.target.value)} data-testid="close-note" className="ucom-field w-full px-4 py-2.5 text-sm" />
+        </label>
       </div>
-    </div>
+    </Modal>
   );
 }

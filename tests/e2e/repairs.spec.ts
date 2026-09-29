@@ -68,8 +68,10 @@ test.describe("Repairs", () => {
     await page.goto("/repairs");
     const id = await createJob(page);
     await page.locator(`[data-testid="repair-abandon-${id}"]`).click();
-    await expect(page.locator(`[data-testid="repair-abandon-confirm-${id}"]`)).toBeVisible({ timeout: 15000 });
-    await page.locator(`[data-testid="repair-abandon-confirm-${id}"]`).click();
+    // the desktop row and the mobile card each mount a (closed) confirm dialog; only the open one has role "dialog"
+    const confirm = page.getByRole("dialog").getByTestId(`repair-abandon-confirm-${id}`);
+    await expect(confirm).toBeVisible({ timeout: 15000 });
+    await confirm.click();
     await page.locator('[data-testid="filter-abandoned"]').click();
     await expect(page.locator(`[data-testid="repair-status-${id}"]`)).toHaveText(TH.statusAbandoned, { timeout: 15000 });
     await expect(page.locator(`[data-testid="repair-status-forward-${id}"]`)).toHaveCount(0);

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toThaiError } from "@/lib/errors";
 import { todayInBangkok } from "./utils";
 
 export function useSfCommissions(onSuccess: () => Promise<void>) {
@@ -39,7 +40,7 @@ export function useSfCommissions(onSuccess: () => Promise<void>) {
         p_received_on: recordDate,
       });
       if (rpcErr) {
-        setRecordError(rpcErr.message);
+        setRecordError(toThaiError(rpcErr));
         return;
       }
       setRecordingId(null);
@@ -47,7 +48,7 @@ export function useSfCommissions(onSuccess: () => Promise<void>) {
       setRecordDate(todayInBangkok());
       await onSuccess();
     } catch (err) {
-      setRecordError(err instanceof Error ? err.message : "บันทึกไม่สำเร็จ");
+      setRecordError(toThaiError(err));
     } finally {
       setRecordSubmitting(false);
     }
@@ -79,7 +80,7 @@ export function useSfCommissions(onSuccess: () => Promise<void>) {
         p_received_on: correctDate,
       });
       if (rpcErr) {
-        setCorrectError(rpcErr.message);
+        setCorrectError(toThaiError(rpcErr));
         return;
       }
       setCorrectingId(null);
@@ -88,7 +89,7 @@ export function useSfCommissions(onSuccess: () => Promise<void>) {
       setCorrectReason("");
       await onSuccess();
     } catch (err) {
-      setCorrectError(err instanceof Error ? err.message : "แก้ไขไม่สำเร็จ");
+      setCorrectError(toThaiError(err));
     } finally {
       setCorrectSubmitting(false);
     }

@@ -50,6 +50,7 @@ test.describe('POS — staff', () => {
 
   test('top-up flow', async ({ page }) => {
     // Click True carrier
+    await page.locator('[data-testid="catalog-tab-topup"]').click();
     await page.locator('[data-testid="topup-carrier-True"]').click();
 
     // Fill amount

@@ -5,8 +5,11 @@ import { createClient } from "@/lib/supabase/client";
 import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import { Catalog } from "./Catalog";
 import { Cart, type CheckoutInput } from "./Cart";
+import { toThaiError } from "@/lib/errors";
+import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 import { QueueBanner } from "./QueueBanner";
 import {
+  applyQueueToCatalog,
   enqueue,
   isDatabaseRejection,
   markFailed,
@@ -17,26 +20,36 @@ import {
   type QueuedSale,
 } from "./queue";
 import type { CartLine, CatalogRow, Carrier } from "./types";
-import type { CatalogKindFilter } from "./Catalog";
+import type { CatalogTab, CatalogTabInfo } from "./Catalog";
+import { iconForCategory } from "./CategoryIcon";
+import { useBarcodeScanner } from "./useBarcodeScanner";
 
 type CachedCatalogPage = {
   page?: number;
   pageSize?: number;
   search?: string;
-  kind?: CatalogKindFilter;
+  kind?: CatalogTab;
   total?: number;
   catalog: CatalogRow[];
   topProducts: CatalogRow[];
 };
 
+const BASE_TABS: CatalogTabInfo[] = [
+  { value: "all", label: "ทั้งหมด", icon: "all" },
+  { value: "device", label: "โทรศัพท์", icon: "phone" },
+  { value: "topup", label: "เติมเงิน", icon: "topup" },
+];
+
 export default function PosPage() {
   const supabase = createClient();
 
+  const [pendingRemoveUuid, setPendingRemoveUuid] = useState<string | null>(null);
   const [catalog, setCatalog] = useState<CatalogRow[]>([]);
   const [topProducts, setTopProducts] = useState<CatalogRow[]>([]);
   const [catalogSearch, setCatalogSearch] = useState("");
   const deferredCatalogSearch = useDeferredValue(catalogSearch);
-  const [catalogKind, setCatalogKind] = useState<CatalogKindFilter>("all");
+  const [catalogTab, setCatalogTab] = useState<CatalogTab>("all");
+  const [catalogTabs, setCatalogTabs] = useState<CatalogTabInfo[]>(BASE_TABS);
   const [catalogPage, setCatalogPage] = useState(1);
   const [catalogPageSize, setCatalogPageSize] = useState(24);
   const [catalogTotal, setCatalogTotal] = useState(0);
@@ -49,7 +62,9 @@ export default function PosPage() {
   const [error, setError] = useState<string | null>(null);
   const [queue, setQueue] = useState<QueuedSale[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState<string | null>(null);
   const catalogRequestRef = useRef(0);
+  const scanBusyRef = useRef(false);
 
   async function loadCatalog() {
     const requestId = ++catalogRequestRef.current;
@@ -61,7 +76,10 @@ export default function PosPage() {
       let catalogQuery = supabase
         .from("v_pos_catalog")
         .select("*", { count: "exact" });
-      if (catalogKind !== "all") catalogQuery = catalogQuery.eq("kind", catalogKind);
+      if (catalogTab === "device") catalogQuery = catalogQuery.eq("kind", "device");
+      if (catalogTab.startsWith("cat:")) {
+        catalogQuery = catalogQuery.eq("kind", "product").eq("category_name", catalogTab.slice(4));
+      }
       const searchFilter = orIlike(["name", "code"], deferredCatalogSearch);
       if (searchFilter) catalogQuery = catalogQuery.or(searchFilter);
 
@@ -113,8 +131,11 @@ export default function PosPage() {
       const nextCatalog = enrichDevices(rawCatalog);
       const nextTop = enrichDevices(rawTop);
       const nextTotal = catalogResult.count ?? nextCatalog.length;
-      setCatalog(nextCatalog);
-      setTopProducts(nextTop);
+      const activeQueue = readQueue();
+      const filteredCatalog = applyQueueToCatalog(nextCatalog, activeQueue);
+      const filteredTop = applyQueueToCatalog(nextTop, activeQueue);
+      setCatalog(filteredCatalog);
+      setTopProducts(filteredTop);
       setCatalogTotal(nextTotal);
       // The snapshot is the last successful page shown by the screen. It is only ever
       // written from a successful load, never from the offline queue path.
@@ -122,7 +143,7 @@ export default function PosPage() {
         page: catalogPage,
         pageSize: catalogPageSize,
         search: deferredCatalogSearch,
-        kind: catalogKind,
+        kind: catalogTab,
         total: nextTotal,
         catalog: nextCatalog,
         topProducts: nextTop,
@@ -131,15 +152,18 @@ export default function PosPage() {
       if (requestId !== catalogRequestRef.current) return;
       const cached = readCachedCatalog<CachedCatalogPage>();
       if (cached && Array.isArray(cached.catalog) && Array.isArray(cached.topProducts)) {
-        setCatalog(cached.catalog);
-        setTopProducts(cached.topProducts);
-        setCatalogTotal(cached.total ?? cached.catalog.length);
+        const activeQueue = readQueue();
+        const filteredCatalog = applyQueueToCatalog(cached.catalog, activeQueue);
+        const filteredTop = applyQueueToCatalog(cached.topProducts, activeQueue);
+        setCatalog(filteredCatalog);
+        setTopProducts(filteredTop);
+        setCatalogTotal(cached.total ?? filteredCatalog.length);
         setCatalogError("โหลดรายการล่าสุดไม่สำเร็จ กำลังแสดงหน้าที่โหลดไว้ก่อนหน้า");
       } else {
         setCatalog([]);
         setTopProducts([]);
         setCatalogTotal(0);
-        setCatalogError(loadError instanceof Error ? loadError.message : "โหลดรายการไม่สำเร็จ");
+        setCatalogError(toThaiError(loadError));
       }
     } finally {
       if (requestId === catalogRequestRef.current) setCatalogLoading(false);
@@ -149,13 +173,34 @@ export default function PosPage() {
   useEffect(() => {
     Promise.resolve().then(() => loadCatalog());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogPage, catalogPageSize, catalogKind, deferredCatalogSearch]);
+  }, [catalogPage, catalogPageSize, catalogTab, deferredCatalogSearch]);
 
   useEffect(() => {
     supabase
       .from("v_pos_topup_carriers")
       .select("*")
       .then(({ data }) => setCarriers(data ?? []));
+    // ponytail: tab counts load once per visit; they are hints, a stale device count after a sale is fine.
+    Promise.all([
+      supabase.from("v_pos_catalog").select("kind, category_name"),
+      supabase.from("categories").select("name, sort_order").order("sort_order").order("name"),
+    ]).then(([rows, categories]) => {
+      if (rows.error || categories.error) return;
+      const counts = new Map<string, number>();
+      rows.data.forEach((r) => {
+        const key = r.kind === "device" ? "device" : `cat:${r.category_name ?? ""}`;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      });
+      const categoryTabs = categories.data
+        .filter((c) => counts.has(`cat:${c.name}`))
+        .map((c): CatalogTabInfo => ({ value: `cat:${c.name}`, label: c.name, icon: iconForCategory(c.name), count: counts.get(`cat:${c.name}`) }));
+      setCatalogTabs([
+        { ...BASE_TABS[0], count: rows.data.length },
+        { ...BASE_TABS[1], count: counts.get("device") ?? 0 },
+        ...categoryTabs,
+        BASE_TABS[2],
+      ]);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -220,6 +265,50 @@ export default function PosPage() {
     });
   }
 
+  useBarcodeScanner((code) => {
+    if (scanBusyRef.current) return;
+    scanBusyRef.current = true;
+    setScanFeedback(`กำลังค้นหารหัส ${code}`);
+    void (async () => {
+      try {
+        let item = [...catalog, ...topProducts].find((row) => row.code === code);
+        if (!item) {
+          const { data, error: lookupError } = await supabase
+            .from("v_pos_catalog")
+            .select("*")
+            .eq("code", code)
+            .limit(2);
+          if (lookupError) throw lookupError;
+          if ((data?.length ?? 0) > 1) {
+            setScanFeedback(`รหัส ${code} ตรงกับหลายรายการ กรุณาเลือกสินค้าจากรายการ`);
+            return;
+          }
+          item = applyQueueToCatalog((data ?? []) as CatalogRow[], readQueue())[0];
+        }
+
+        if (!item?.id) {
+          setScanFeedback(`ไม่พบรหัส ${code} หรือสินค้าถูกขายในคิวแล้ว`);
+          return;
+        }
+        if (item.kind === "product" && (item.qty ?? 0) <= 0) {
+          setScanFeedback(`${item.name ?? code} สินค้าหมด`);
+          return;
+        }
+        const existing = lines.find((line) => line.kind !== "topup" && line.kind === item.kind && line.id === item.id);
+        if (existing?.kind === "device" || (existing?.kind === "product" && existing.qty >= existing.maxQty)) {
+          setScanFeedback(`${item.name ?? code} อยู่ในตะกร้าครบจำนวนแล้ว`);
+          return;
+        }
+        addCatalogItem(item);
+        setScanFeedback(`เพิ่ม ${item.name ?? code} ลงตะกร้าแล้ว`);
+      } catch {
+        setScanFeedback(`ค้นหารหัส ${code} ไม่สำเร็จ กรุณาลองอีกครั้ง`);
+      } finally {
+        scanBusyRef.current = false;
+      }
+    })();
+  });
+
   function addTopup(carrier: Carrier, amount: number) {
     if (!carrier.id) return;
     setLines((prev) => [
@@ -248,7 +337,7 @@ export default function PosPage() {
     const { error } = await supabase.rpc("rpc_finance_device", {
       p_device_id: item.id!,
     });
-    if (error) return error.message;
+    if (error) return toThaiError(error);
     await loadCatalog();
     return null;
   }
@@ -305,7 +394,7 @@ export default function PosPage() {
       }
 
       if (isDatabaseRejection(rpcError)) {
-        latest = markFailed(sale.clientUuid, rpcError.message);
+        latest = markFailed(sale.clientUuid, toThaiError(rpcError));
         break;
       }
 
@@ -319,6 +408,11 @@ export default function PosPage() {
   }
 
   async function submit(input: CheckoutInput) {
+    const hasTopup = lines.some((line) => line.kind === "topup");
+    if (hasTopup && !navigator.onLine) {
+      setError("บิลที่มีเติมเงินต้องเชื่อมต่ออินเทอร์เน็ต เพื่อตรวจยอดวอลเล็ตก่อนขาย");
+      return;
+    }
     setSubmitting(true);
     setError(null);
 
@@ -366,11 +460,15 @@ export default function PosPage() {
     // The database answered and said no — the staff has to know now, while the customer
     // is still standing there. Queueing this would only postpone the same refusal.
     if (error && isDatabaseRejection(error)) {
-      setError(error.message);
+      setError(toThaiError(error));
       return;
     }
 
     if (error) {
+      if (hasTopup) {
+        setError("ยังยืนยันยอดวอลเล็ตไม่ได้ กรุณาตรวจการเชื่อมต่อแล้วลองปิดบิลเดิมอีกครั้ง");
+        return;
+      }
       setQueue(
         enqueue({
           clientUuid,
@@ -391,17 +489,46 @@ export default function PosPage() {
     syncQueue();
   }
 
+  // Removing a rejected queued bill loses it for good → confirm in a dialog (not window.confirm).
+  function confirmRemoveQueuedSale() {
+    if (!pendingRemoveUuid) return;
+    const nextQueue = removeFromQueue(pendingRemoveUuid);
+    setPendingRemoveUuid(null);
+    setQueue(nextQueue);
+    loadCatalog();
+  }
+
   return (
-    <main data-page="pos" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:h-[calc(100dvh-3.5rem)]">
-      <QueueBanner queue={queue} isSyncing={isSyncing} onSync={() => syncQueue()} />
-      <div className="flex flex-1 items-center justify-center px-8 py-16 text-center md:hidden">
+    <main data-page="pos" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background lg:h-dvh">
+      <QueueBanner
+        queue={queue}
+        isSyncing={isSyncing}
+        onSync={() => syncQueue()}
+        onRemove={setPendingRemoveUuid}
+      />
+      <ConfirmDialog
+        open={pendingRemoveUuid !== null}
+        title="ลบบิลค้างนี้ทิ้ง?"
+        confirmLabel="ลบบิลทิ้ง"
+        confirmTestId="queue-remove-confirm"
+        onClose={() => setPendingRemoveUuid(null)}
+        onConfirm={confirmRemoveQueuedSale}
+      >
+        <p className="text-sm text-ink">ต้องการลบบิลค้างที่มีปัญหานี้ออกจากคิวใช่หรือไม่?</p>
+        <p className="text-sm text-ink-muted">บิลที่ลบจะไม่ถูกส่งเข้าระบบและกู้คืนไม่ได้</p>
+      </ConfirmDialog>
+      {scanFeedback && (
+        <p role="status" data-testid="scan-feedback" className="border-b border-border px-5 py-2 text-sm text-ink">
+          {scanFeedback}
+        </p>
+      )}
+      <div className="flex flex-1 items-center justify-center px-8 py-16 text-center lg:hidden">
         <div className="max-w-sm">
-          <p className="font-mono text-[0.68rem] uppercase tracking-[0.2em] text-ink-muted">POS / wide display</p>
           <h1 className="mt-3 text-xl font-semibold tracking-tight text-ink">หน้าขายต้องใช้จอกว้างขึ้น</h1>
           <p className="mt-2 text-sm leading-6 text-ink-muted">กรุณาเปิดด้วยแท็บเล็ตหรือคอมพิวเตอร์</p>
         </div>
       </div>
-      <div className="hidden min-h-0 flex-1 md:flex">
+      <div className="hidden min-h-0 flex-1 lg:flex">
         <Catalog
           catalog={catalog}
           topProducts={topProducts}
@@ -413,10 +540,12 @@ export default function PosPage() {
           onSearchChange={(value) => {
             setCatalogSearch(value);
             setCatalogPage(1);
+            if (catalogTab === "topup") setCatalogTab("all");
           }}
-          kindFilter={catalogKind}
-          onKindFilterChange={(value) => {
-            setCatalogKind(value);
+          tabs={catalogTabs}
+          tab={catalogTab}
+          onTabChange={(value) => {
+            setCatalogTab(value);
             setCatalogPage(1);
           }}
           page={catalogPage}

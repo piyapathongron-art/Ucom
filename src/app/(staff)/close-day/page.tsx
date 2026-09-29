@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import { ErrorPanel } from "@/app/_components/ErrorPanel";
 import { PageFrame } from "@/app/_components/PageFrame";
 import BillsSection from "./BillsSection";
 import ItemsSection from "./ItemsSection";
-import ExpensesSection from "./ExpensesSection";
-import IncomeSection from "./IncomeSection";
+import LedgerSection from "./LedgerSection";
 import ClosingSummary from "./ClosingSummary";
 import ClosingForm from "./ClosingForm";
 import { useCloseDayData } from "./useCloseDayData";
@@ -15,7 +16,7 @@ export default function CloseDayPage() {
   return (
     <PageFrame
       page="close-day"
-      eyebrow="CASH HANDOVER / DAILY LEDGER"
+     
       title="ปิดร้าน / สรุปรายวัน"
       description={d.isToday ? "ตรวจยอดเงินสดและส่งมอบก่อนปิดวัน" : "ดูประวัติการปิดวันแบบอ่านอย่างเดียว"}
       dataLoading={d.isLoading}
@@ -30,31 +31,20 @@ export default function CloseDayPage() {
               className="ucom-field px-3 py-1.5 text-sm"
             />
           </label>
-        ) : (
-          <span className="font-mono text-xs tracking-wide text-ink-muted">TODAY / STAFF</span>
-        )
+        ) : undefined
       }
     >
 
       {d.error && (
-        <div data-testid="close-day-error" className="flex flex-wrap items-center justify-between gap-3 rounded border border-danger bg-danger/10 p-4 text-sm text-danger">
-          <span>{d.error}</span>
-          <button
-            type="button"
-            onClick={() => {
-              d.setIsLoading(true);
-              void d.refetch();
-            }}
-            className="ucom-danger px-3 py-1.5 text-sm"
-          >
-            ลองใหม่
-          </button>
+        <div data-testid="close-day-error">
+          <ErrorPanel message={d.error} onRetry={() => { d.setIsLoading(true); void d.refetch(); }} />
         </div>
       )}
 
       {d.queuedCount > 0 && d.isToday && (
-        <div data-testid="close-day-queue-warning" className="rounded border border-warning bg-warning/10 p-4 text-sm text-warning">
-          ยังมีบิลค้างในคิว {d.queuedCount} ใบ ยอดยังไม่ครบ กรุณาซิงก์ก่อนปิดร้าน
+        <div data-testid="close-day-queue-warning" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-warning-bg px-4 py-3 text-sm font-semibold text-warning">
+          <span>ยังมีบิลค้างในคิว {d.queuedCount} ใบ ยอดยังไม่ครบ กรุณาซิงก์หรือจัดการบิลที่มีปัญหาก่อนปิดร้าน</span>
+          <Link href="/pos" className="ucom-secondary px-4 py-1.5 text-xs text-ink">ไปที่หน้าขาย</Link>
         </div>
       )}
 
@@ -69,24 +59,21 @@ export default function CloseDayPage() {
               transferTotal={d.transferTotal}
               cashIncomeTotal={d.cashIncomeTotal}
               cashExpenseTotal={d.cashExpenseTotal}
+              cashConsignmentPayoutTotal={d.cashConsignmentPayoutTotal}
               toSend={d.toSend}
               sfCount={d.sfCount}
               fmt={d.fmt}
             />
 
-            <IncomeSection
-              income={d.income}
+            <LedgerSection
+              kind="income"
+              rows={d.income.map((r) => ({ id: r.id!, name: r.name ?? "", amount: Number(r.amount), method: r.received_to }))}
               isToday={d.isToday}
+              isOwner={d.isOwner}
               deleteConfirmId={d.incomeDeleteConfirmId}
               onSetDeleteConfirmId={d.setIncomeDeleteConfirmId}
-              onAddIncome={d.handleAddIncome}
-              onDeleteIncome={d.handleDeleteIncome}
-              incomeName={d.incomeName}
-              onIncomeNameChange={d.setIncomeName}
-              incomeAmount={d.incomeAmount}
-              onIncomeAmountChange={d.setIncomeAmount}
-              incomeReceivedTo={d.incomeReceivedTo}
-              onIncomeReceivedToChange={d.setIncomeReceivedTo}
+              onAdd={d.handleAddIncome}
+              onDelete={d.handleDeleteIncome}
               fmt={d.fmt}
               page={d.incomePage}
               pageSize={d.incomePageSize}
@@ -96,19 +83,15 @@ export default function CloseDayPage() {
               onPageSizeChange={d.setIncomePageSize}
             />
 
-            <ExpensesSection
-              expenses={d.expenses}
+            <LedgerSection
+              kind="expense"
+              rows={d.expenses.map((r) => ({ id: r.id!, name: r.name ?? "", amount: Number(r.amount), method: r.paid_from }))}
               isToday={d.isToday}
+              isOwner={d.isOwner}
               deleteConfirmId={d.deleteConfirmId}
               onSetDeleteConfirmId={d.setDeleteConfirmId}
-              onAddExpense={d.handleAddExpense}
-              onDeleteExpense={d.handleDeleteExpense}
-              expenseName={d.expenseName}
-              onExpenseNameChange={d.setExpenseName}
-              expenseAmount={d.expenseAmount}
-              onExpenseAmountChange={d.setExpenseAmount}
-              expensePaidFrom={d.expensePaidFrom}
-              onExpensePaidFromChange={d.setExpensePaidFrom}
+              onAdd={d.handleAddExpense}
+              onDelete={d.handleDeleteExpense}
               fmt={d.fmt}
               page={d.expensePage}
               pageSize={d.expensePageSize}
@@ -120,7 +103,6 @@ export default function CloseDayPage() {
 
             <ClosingForm
               isToday={d.isToday}
-              isClosingSuccess={d.isClosingSuccess}
               closing={d.closing}
               toSend={d.toSend}
               countedCash={d.countedCash}

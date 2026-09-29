@@ -1,301 +1,73 @@
 "use client";
 
-import { Fragment, useState } from "react";
-import type { Category, StockRow } from "./types";
-import { useStockRowEdit } from "./useStockRowEdit";
-import { StockRowCard } from "./StockRowCard";
-import { QtyStepper } from "./QtyStepper";
+import { ACQUISITION_LABEL, STATUS_LABEL, type StockKind, type StockRow } from "./types";
 
-export type ProductSave = {
-  id?: string;
-  name: string;
-  sku: string;
-  category_id: string;
-  price: number;
-  qty: number;
-  is_active: boolean;
-  cost?: number; // used only when creating (id empty) — RPC ignores it on edit
+const baht = (n: number | null) => (n == null ? "-" : `฿${n.toLocaleString("th-TH")}`);
+
+const STATUS_TONE: Record<string, string> = {
+  active: "bg-success-bg text-success",
+  in_stock: "bg-success-bg text-success",
+  consigned_out: "bg-warning-bg text-warning",
 };
 
-export type DeviceSave = {
-  id?: string;
-  imei: string;
-  model_name: string;
-  // exactly one of these is sent per save — which one depends on acquisition
-  // (list_price for purchased/consigned_in, sale_price for sf_credit, see
-  // useStockRowEdit). The RPC preserves whichever is omitted.
-  list_price?: number;
-  sale_price?: number;
-  status: string;
-  cost?: number; // used only when creating (id empty) — RPC ignores it on edit
-};
-
-const deviceStatuses = ["in_stock", "consigned_out", "written_off"];
-
-function Row({
-  row,
-  categories,
-  isOwner,
-  cost,
-  onSaveProduct,
-  onSaveDevice,
-  onSaveCost,
-}: {
-  row: StockRow;
-  categories: Category[];
-  isOwner: boolean;
-  cost: number | null | undefined;
-  onSaveProduct: (input: ProductSave) => Promise<void>;
-  onSaveDevice: (input: DeviceSave) => Promise<void>;
-  onSaveCost: (kind: string, id: string, cost: number) => Promise<void>;
-}) {
-  const {
-    name,
-    setName,
-    code,
-    setCode,
-    categoryId,
-    setCategoryId,
-    price,
-    setPrice,
-    qty,
-    setQty,
-    status,
-    setStatus,
-    costDraft,
-    setCostDraft,
-    saving,
-    dirty,
-    save,
-    saveCost,
-  } = useStockRowEdit({
-    row,
-    categories,
-    cost,
-    onSaveProduct,
-    onSaveDevice,
-    onSaveCost,
-  });
-  const [open, setOpen] = useState(false);
-
-  if (!row.id || !row.kind) return null;
-
-  const columnCount = isOwner ? 8 : 7;
-
+export function StockTableHead({ kind, canEditCost }: { kind: StockKind; canEditCost: boolean }) {
+  const isProduct = kind === "product";
   return (
-    <Fragment>
-      <tr data-testid={`stock-row-${row.kind}-${row.id}`}>
-        <td className="p-2 text-sm text-ink-muted">
-          {row.kind === "product" ? "สินค้า" : "เครื่อง"}
-        </td>
-        <td className="p-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            data-testid={`stock-name-${row.id}`}
-            className="ucom-field w-full px-2 py-1.5 text-sm"
-          />
-        </td>
-        <td className="p-2">
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder={row.kind === "product" ? "SKU" : "IMEI"}
-            className="ucom-field w-32 px-2 py-1.5 text-sm"
-          />
-        </td>
-        <td className="p-2">
-          <input
-            type="number"
-            inputMode="decimal"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="ucom-field w-24 px-2 py-1.5 text-sm"
-          />
-        </td>
-        <td className="p-2">
-          {row.kind === "product" ? (
-            <QtyStepper value={qty} onChange={setQty} testId={`stock-qty-${row.id}`} />
-          ) : (
-            <span className="text-sm text-ink-muted">1</span>
-          )}
-        </td>
-        {isOwner && (
-          <td className="p-2">
-            <div className="flex items-center gap-1">
-              <input
-                type="number"
-                inputMode="decimal"
-                value={costDraft}
-                onChange={(e) => setCostDraft(e.target.value)}
-                data-testid={`stock-cost-${row.id}`}
-                className="ucom-field w-20 px-2 py-1.5 text-sm"
-              />
-              <button
-                type="button"
-                onClick={saveCost}
-                disabled={saving || costDraft === String(cost ?? "")}
-                data-testid={`stock-save-cost-${row.id}`}
-                className="ucom-secondary px-2 py-1 text-xs disabled:opacity-30"
-              >
-                บันทึกทุน
-              </button>
-            </div>
-          </td>
-        )}
-        <td className="p-2">
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            data-testid={`stock-expand-${row.id}`}
-            aria-label="แสดงประเภทและสถานะ"
-            className="text-ink-muted"
-          >
-            {open ? "▾" : "▸"}
-          </button>
-        </td>
-        <td className="p-2">
-          <button
-            type="button"
-            onClick={save}
-            disabled={!dirty || saving}
-            data-testid={`stock-save-${row.id}`}
-            className="ucom-primary px-3 py-1.5 text-xs disabled:opacity-30"
-          >
-            บันทึก
-          </button>
-        </td>
+    <thead>
+      <tr>
+        <th>{isProduct ? "สินค้า" : "เครื่อง"}</th>
+        <th>{isProduct ? "หมวด" : "ที่มา"}</th>
+        {canEditCost && <th className="text-right" data-testid="cost-column-header">ต้นทุน</th>}
+        <th className="text-right">ราคาขาย</th>
+        {isProduct && <th className="text-right">คงเหลือ</th>}
+        <th>สถานะ</th>
       </tr>
-      {open && (
-        <tr data-testid={`stock-detail-${row.id}`} className="bg-background">
-          <td />
-          <td colSpan={columnCount - 1} className="p-2">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="mb-1 block text-xs text-ink-muted">หมวดหมู่/ที่มา</label>
-                {row.kind === "product" ? (
-                  <select
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    className="ucom-field px-2 py-1.5 text-sm"
-                  >
-                    <option value="">ไม่มีหมวดหมู่</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id!}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="text-sm text-ink-muted">{row.acquisition}</span>
-                )}
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-ink-muted">สถานะ</label>
-                {row.kind === "product" ? (
-                  <select
-                    value={status === "active" ? "active" : "inactive"}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="ucom-field px-2 py-1.5 text-sm"
-                  >
-                    <option value="active">ขายอยู่</option>
-                    <option value="inactive">เลิกขาย</option>
-                  </select>
-                ) : (
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    disabled={!deviceStatuses.includes(row.status ?? "")}
-                    className="ucom-field px-2 py-1.5 text-sm disabled:bg-background disabled:text-ink-muted"
-                  >
-                    {!deviceStatuses.includes(row.status ?? "") && (
-                      <option value={status}>{status}</option>
-                    )}
-                    {deviceStatuses.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            </div>
-          </td>
-        </tr>
-      )}
-    </Fragment>
+    </thead>
   );
 }
 
-export function StockTable({
-  rows,
-  categories,
-  isOwner,
-  costById,
-  onSaveProduct,
-  onSaveDevice,
-  onSaveCost,
-}: {
+// Read-only: editing happens in the drawer, opened by clicking the row.
+export function StockTable({ rows, kind, canEditCost, costById, onOpen }: {
   rows: StockRow[];
-  categories: Category[];
-  isOwner: boolean;
+  kind: StockKind;
+  canEditCost: boolean;
   costById: Record<string, number | null>;
-  onSaveProduct: (input: ProductSave) => Promise<void>;
-  onSaveDevice: (input: DeviceSave) => Promise<void>;
-  onSaveCost: (kind: string, id: string, cost: number) => Promise<void>;
+  onOpen: (row: StockRow) => void;
 }) {
   return (
-    <>
-      <div className="ucom-table-wrap hidden md:block">
-        <table className="ucom-table">
-          <thead>
-            <tr className="text-sm text-ink-muted">
-              <th className="p-2">ชนิด</th>
-              <th className="p-2">ชื่อ</th>
-              <th className="p-2">รหัส</th>
-              <th className="p-2">ราคา</th>
-              <th className="p-2">จำนวน</th>
-              {isOwner && (
-                <th className="p-2" data-testid="cost-column-header">
-                  ต้นทุน
-                </th>
-              )}
-              <th className="p-2" />
-              <th className="p-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <Row
-                key={`${row.kind}-${row.id}`}
-                row={row}
-                categories={categories}
-                isOwner={isOwner}
-                cost={row.id ? costById[row.id] : undefined}
-                onSaveProduct={onSaveProduct}
-                onSaveDevice={onSaveDevice}
-                onSaveCost={onSaveCost}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="space-y-2 md:hidden">
-        {rows.map((row) =>
-          row.id && row.kind ? (
-            <StockRowCard
-              key={`${row.kind}-${row.id}`}
-              row={row}
-              categories={categories}
-              isOwner={isOwner}
-              cost={row.id ? costById[row.id] : undefined}
-              onSaveProduct={onSaveProduct}
-              onSaveDevice={onSaveDevice}
-              onSaveCost={onSaveCost}
-            />
-          ) : null,
-        )}
-      </div>
-    </>
+    <div className="ucom-table-wrap">
+      <table className="ucom-table">
+        <StockTableHead kind={kind} canEditCost={canEditCost} />
+        <tbody>
+          {rows.map((row) => {
+            if (!row.id || !row.kind) return null;
+            const status = row.status ?? "";
+            return (
+              <tr key={`${row.kind}-${row.id}`} data-testid={`stock-row-${row.kind}-${row.id}`} onClick={() => onOpen(row)} className="cursor-pointer hover:bg-brand-ink/40">
+                <td>
+                  <button type="button" onClick={() => onOpen(row)} data-testid={`stock-open-${row.id}`} className="text-left focus-visible:outline-2 focus-visible:outline-accent">
+                    <span data-testid={`stock-name-${row.id}`} className="block text-[13.5px] font-semibold text-ink">{row.name}</span>
+                    <span className="block text-xs text-ink-muted">{row.code}</span>
+                  </button>
+                </td>
+                <td className="text-[13px] text-ink-muted">{row.kind === "product" ? row.category_name ?? "-" : ACQUISITION_LABEL[row.acquisition ?? ""] ?? "-"}</td>
+                {canEditCost && (
+                  <td className="text-right text-[13.5px] font-semibold tabular-nums">
+                    {row.acquisition === "consigned_in" ? <span className="text-ink-faint">-</span> : baht(costById[row.id] ?? null)}
+                  </td>
+                )}
+                <td className="text-right text-[13.5px] font-semibold tabular-nums">{baht(row.price)}</td>
+                {kind === "product" && <td className="text-right text-[13.5px] font-semibold tabular-nums">{(row.qty ?? 0).toLocaleString("th-TH")}</td>}
+                <td>
+                  <span className={`inline-block rounded-full px-2.5 py-[3px] text-[11px] font-semibold ${STATUS_TONE[status] ?? "border border-border-strong bg-sunken text-ink-muted"}`}>
+                    {STATUS_LABEL[status] ?? status}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

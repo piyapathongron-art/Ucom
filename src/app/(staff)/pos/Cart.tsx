@@ -31,6 +31,7 @@ export function Cart({
     "cash",
   );
   const [receivingAccount, setReceivingAccount] = useState("");
+  const [thaiAid, setThaiAid] = useState(false);
   const [billDiscount, setBillDiscount] = useState("0");
   const [billDiscountReason, setBillDiscountReason] = useState("");
   const [note, setNote] = useState("");
@@ -39,11 +40,11 @@ export function Cart({
   const total = itemsTotal - (Number(billDiscount) || 0);
 
   return (
-    <aside className="flex h-full min-h-0 w-[min(100%,28rem)] min-w-[22rem] flex-col border-l border-border bg-surface">
+    <aside className="flex h-full min-h-0 w-[20rem] min-w-[20rem] flex-col border-l border-border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.35),0_8px_20px_rgba(0,0,0,0.45)] xl:w-[22rem] xl:min-w-[22rem]">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div>
-          <p className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-ink-muted">Receipt / current bill</p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-ink">บิลปัจจุบัน</h2>
+          <p className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-ink-muted">บิลปัจจุบัน</p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-ink">รายการในตะกร้า</h2>
         </div>
         <span className="font-mono text-xs text-ink-muted">{lines.length} รายการ</span>
       </div>
@@ -69,9 +70,10 @@ export function Cart({
                 <button
                   type="button"
                   onClick={() => onRemoveLine(line.uid)}
-                  className="ucom-danger px-2 py-1 text-xs"
+                  aria-label="ลบรายการนี้"
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-ink-muted hover:bg-background hover:text-danger"
                 >
-                  ลบ
+                  ×
                 </button>
               </div>
 
@@ -84,7 +86,7 @@ export function Cart({
                         qty: Math.max(1, line.qty - 1),
                       } as Partial<CartLine>)
                     }
-                    className="ucom-secondary h-7 w-7 px-0 text-sm"
+                    className="ucom-secondary !rounded-full h-7 w-7 px-0 text-sm"
                   >
                     −
                   </button>
@@ -96,7 +98,7 @@ export function Cart({
                         qty: Math.min(line.maxQty, line.qty + 1),
                       } as Partial<CartLine>)
                     }
-                    className="ucom-secondary h-7 w-7 px-0 text-sm"
+                    className="ucom-secondary !rounded-full h-7 w-7 px-0 text-sm"
                   >
                     +
                   </button>
@@ -162,20 +164,20 @@ export function Cart({
         {error && (
           <p
             data-testid="checkout-error"
-            className="rounded border border-danger/30 bg-danger/10 p-2 text-sm text-danger"
+            className="rounded-2xl bg-danger/10 p-2 text-sm text-danger"
           >
             {error}
           </p>
         )}
 
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <button
             type="button"
             data-testid="pay-cash"
-            onClick={() => setPaymentMethod("cash")}
-            className={`flex-1 rounded border p-2 text-sm ${
-              paymentMethod === "cash"
-                ? "border-ink bg-ink text-surface"
+            onClick={() => { setPaymentMethod("cash"); setThaiAid(false); }}
+            className={`rounded-full border p-2 text-sm ${
+              paymentMethod === "cash" && !thaiAid
+                ? "border-accent bg-accent text-background"
                 : "border-border bg-surface text-ink-muted"
             }`}
           >
@@ -184,21 +186,22 @@ export function Cart({
           <button
             type="button"
             data-testid="pay-transfer"
-            onClick={() => setPaymentMethod("transfer")}
-            className={`flex-1 rounded border p-2 text-sm ${
-              paymentMethod === "transfer"
-                ? "border-ink bg-ink text-surface"
+            onClick={() => { setPaymentMethod("transfer"); setThaiAid(false); }}
+            className={`rounded-full border p-2 text-sm ${
+              paymentMethod === "transfer" && !thaiAid
+                ? "border-accent bg-accent text-background"
                 : "border-border bg-surface text-ink-muted"
             }`}
           >
             โอน
           </button>
+          <button type="button" onClick={() => { setPaymentMethod("transfer"); setReceivingAccount("ไทยช่วยไทย"); setThaiAid(true); }} className={`rounded-full border p-2 text-sm ${thaiAid ? "border-accent bg-accent text-background" : "border-border bg-surface text-ink-muted"}`}>ไทยช่วยไทย</button>
         </div>
 
         {paymentMethod === "transfer" && (
           <input
             value={receivingAccount}
-            onChange={(e) => setReceivingAccount(e.target.value)}
+            onChange={(e) => { setReceivingAccount(e.target.value); setThaiAid(e.target.value === "ไทยช่วยไทย"); }}
             placeholder="บัญชีที่รับเงิน"
             data-testid="receiving-account"
             className="ucom-field w-full px-3 py-2 text-sm"
@@ -237,7 +240,7 @@ export function Cart({
           </div>
           <div className="mt-1 flex items-center justify-between">
             <span className="text-lg font-semibold">ยอดสุทธิ</span>
-            <span className="font-mono text-xl font-semibold tabular-nums">{total.toLocaleString()} บาท</span>
+            <span className="font-mono text-2xl font-semibold tabular-nums text-accent">{total.toLocaleString()} บาท</span>
           </div>
         </div>
 
@@ -254,7 +257,7 @@ export function Cart({
               note,
             })
           }
-          className="ucom-primary w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          className="ucom-primary w-full !rounded-full px-4 py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
         >
           {submitting ? "กำลังบันทึก..." : "ปิดบิล"}
         </button>

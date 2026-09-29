@@ -7,9 +7,9 @@ function todayInBangkok(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
 }
 
-// Cells render through toLocaleString(), so "-1,500" has to come back as -1500.
+// Table cells render "-1,500" and cards "−฿1,500"; both have to come back as -1500.
 function parseMoney(text: string | null): number {
-  return Number((text ?? "").replace(/,/g, "").trim());
+  return Number((text ?? "").replace(/−/g, "-").replace(/[฿,\s]/g, ""));
 }
 
 // A day with no money movement has no row at all, which reads as zero — the report is
@@ -26,7 +26,7 @@ async function readCell(page: Page, bucket: string, columnIndex: number): Promis
 // specs that also write repair jobs into today.
 async function expectRedWhenNegative(page: Page, locator: string, value: number) {
   const cls = (await page.locator(locator).getAttribute("class")) ?? "";
-  expect(cls.includes("text-red-600")).toBe(value < 0);
+  expect(cls.includes("text-danger")).toBe(value < 0);
 }
 
 // column order on the report table: bucket, sale_revenue, sale_profit, repair_revenue,
@@ -42,7 +42,7 @@ test.describe("Report", () => {
     const ownerCtx = await browser.newContext();
     const owner = await ownerCtx.newPage();
     await loginAs(owner, "admin");
-    await owner.goto("/report");
+    await owner.goto("/report?view=drill");
     await owner.locator('[data-testid="quick-today"]').click();
     const profitBefore = await readCell(owner, today, COL_REPAIR_PROFIT);
     const revenueBefore = await readCell(owner, today, COL_REPAIR_REVENUE);
@@ -65,7 +65,8 @@ test.describe("Report", () => {
     await expect(staff.locator(`[data-testid="repair-part-paid-${id}"]`)).toBeVisible({ timeout: 15000 });
 
     await staff.locator(`[data-testid="repair-abandon-${id}"]`).click();
-    await staff.locator(`[data-testid="repair-abandon-confirm-${id}"]`).click();
+    // mobile card and desktop row both mount a confirm dialog — click the visible one
+    await staff.locator(`[data-testid="repair-abandon-confirm-${id}"]`).filter({ visible: true }).click();
     await staff.locator('[data-testid="filter-abandoned"]').click();
     await expect(staff.locator(`[data-testid="repair-status-${id}"]`)).toHaveCount(1, { timeout: 15000 });
 
@@ -96,22 +97,22 @@ test.describe("Report", () => {
 
   test("quick actions set the range and the grouping together", async ({ page }) => {
     await loginAs(page, "admin");
-    await page.goto("/report");
+    await page.goto("/report?view=drill");
     const today = todayInBangkok();
 
     await page.locator('[data-testid="quick-today"]').click();
     await expect(page.locator('[data-testid="report-from"]')).toHaveValue(today);
     await expect(page.locator('[data-testid="report-to"]')).toHaveValue(today);
-    await expect(page.locator('[data-testid="group-day"]')).toHaveClass(/bg-white/);
+    await expect(page.locator('[data-testid="group-day"]')).toHaveAttribute("aria-pressed", "true");
 
     await page.locator('[data-testid="quick-month"]').click();
     await expect(page.locator('[data-testid="report-from"]')).toHaveValue(today.slice(0, 7) + "-01");
-    await expect(page.locator('[data-testid="group-day"]')).toHaveClass(/bg-white/);
+    await expect(page.locator('[data-testid="group-day"]')).toHaveAttribute("aria-pressed", "true");
 
     await page.locator('[data-testid="quick-year"]').click();
     await expect(page.locator('[data-testid="report-from"]')).toHaveValue(today.slice(0, 4) + "-01-01");
     await expect(page.locator('[data-testid="report-to"]')).toHaveValue(today);
-    await expect(page.locator('[data-testid="group-month"]')).toHaveClass(/bg-white/);
+    await expect(page.locator('[data-testid="group-month"]')).toHaveAttribute("aria-pressed", "true");
     // grouping by month means the bucket label is YYYY-MM, not a full date
     await expect(page.locator(`[data-testid="report-row-${today.slice(0, 7)}"]`)).toHaveCount(1, { timeout: 15000 });
   });
@@ -123,9 +124,9 @@ test.describe("Report", () => {
       if (req.url().includes("v_daily_report")) fetches += 1;
     });
 
-    await page.goto("/report");
+    await page.goto("/report?view=drill");
     await page.locator('[data-testid="quick-year"]').click();
-    await expect(page.locator('[data-testid="group-month"]')).toHaveClass(/bg-white/);
+    await expect(page.locator('[data-testid="group-month"]')).toHaveAttribute("aria-pressed", "true");
     await page.waitForTimeout(1000);
     const afterLoad = fetches;
     expect(afterLoad).toBeGreaterThan(0);
@@ -138,7 +139,7 @@ test.describe("Report", () => {
 
   test("drilling year → month → day → bill keeps the numbers of the row above", async ({ page }) => {
     await loginAs(page, "admin");
-    await page.goto("/report");
+    await page.goto("/report?view=drill");
     await page.locator('[data-testid="quick-year"]').click();
     await page.locator('[data-testid="group-year"]').click();
 
@@ -160,26 +161,69 @@ test.describe("Report", () => {
     // the day's entries come from v_report_entries, which is what v_daily_report sums —
     // if these two ever disagree the drill-down is lying about where the money went
     await expect(page.locator(`[data-testid="report-detail-${dayBucket}"]`)).toBeVisible({ timeout: 15000 });
+    // the day view pages 25 at a time; a busy day (accumulated test data) has more, and the
+    // sum below must cover every entry the row above counted
+    await page.getByTestId(`report-detail-${dayBucket}-pagination-page-size`).selectOption("100");
+    await expect(page.getByTestId(`report-detail-${dayBucket}-pagination-range`)).toContainText(/1[–-]/);
     const profits = page.locator(`[data-testid="day-entries-${dayBucket}"] [data-testid="entry-profit"]`);
     await expect(profits.first()).toBeVisible({ timeout: 15000 });
     const texts = await profits.allTextContents();
     const summed = texts.reduce((acc, t) => acc + parseMoney(t.replace("กำไร", "")), 0);
     expect(summed).toBeCloseTo(dayNet, 2);
 
-    // the newest day can easily be a repair-only or expense-only day, and skipping the
-    // bill assertion on those days would let the line-item feature rot behind a green
-    // test — walk down the days until one actually has a bill to open.
-    const dayRows = page.locator(`[data-testid^="report-row-${monthBucket}-"]`);
-    let openBill = page.locator('[data-testid^="open-sale-"]').first();
-    for (let i = 1; (await openBill.count()) === 0 && i < (await dayRows.count()); i += 1) {
-      await dayRows.nth(i).click();
-      openBill = page.locator('[data-testid^="open-sale-"]').first();
+    // The first month can have only repairs or expenses. Find a month and day
+    // with sales before checking the bill drill-down.
+    const monthRows = page.getByTestId(new RegExp(`^report-row-${year}-\\d{2}$`));
+    let saleMonth: string | null = null;
+    for (const row of await monthRows.all()) {
+      if (parseMoney(await row.locator("td").nth(1).textContent()) <= 0) continue;
+      saleMonth = (await row.getAttribute("data-testid"))!.replace("report-row-", "");
+      // the first month is already open — clicking it again would collapse it
+      if (saleMonth !== monthBucket) await row.click();
+      break;
     }
+    if (!saleMonth) throw new Error("No month with sales in the selected year");
+
+    const saleDayRows = page.getByTestId(new RegExp(`^report-row-${saleMonth}-\\d{2}$`));
+    let saleDay: string | null = null;
+    for (const row of await saleDayRows.all()) {
+      if (parseMoney(await row.locator("td").nth(1).textContent()) <= 0) continue;
+      saleDay = (await row.getAttribute("data-testid"))!.replace("report-row-", "");
+      if (saleDay !== dayBucket) await row.click();
+      break;
+    }
+    if (!saleDay) throw new Error("No day with sales in the selected month");
+
+    const saleDetail = page.getByTestId(`report-detail-${saleDay}`);
+    await expect(saleDetail).toBeVisible({ timeout: 15000 });
+    await saleDetail.getByTestId("report-detail-kind").selectOption("sale");
+    const openBill = saleDetail.getByTestId(/^open-sale-/).first();
     await expect(openBill).toBeVisible({ timeout: 15000 });
 
     const saleId = (await openBill.getAttribute("data-testid"))!.replace("open-sale-", "");
     await openBill.click();
     await expect(page.locator(`[data-testid="sale-lines-${saleId}"] tr`).first()).toBeVisible({ timeout: 15000 });
+  });
+
+  test("bills tab: a bill opens its detail and the net agrees with the row; daily profit strip shows", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/report?view=bills");
+    await page.locator('[data-testid="quick-month"]').click();
+    await expect(page.getByTestId("report-daily-profit")).toBeVisible({ timeout: 15000 });
+    const row = page.locator('[data-testid^="report-bill-"]').first();
+    await expect(row).toBeVisible({ timeout: 15000 });
+    const billNo = (await row.getByTestId("bill-no").textContent()) ?? "";
+    expect(billNo).toMatch(/^#\d{4,}$/);
+    const rowRevenue = parseMoney(await row.locator("td").nth(4).textContent());
+    await row.click();
+    const detail = page.locator("[data-print-area]");
+    await expect(detail).toBeVisible({ timeout: 15000 });
+    await expect(detail.getByTestId("bill-print")).toBeVisible();
+    await expect(detail.getByTestId("bill-detail-no")).toContainText(billNo);
+    await expect(detail.locator("table tbody tr").first()).toBeVisible();
+    const netText = await detail.getByText("ยอดชำระสุทธิ").locator("xpath=following-sibling::dd").textContent();
+    // the detail is rebuilt from the bill's own lines; the list row comes from the report view
+    expect(parseMoney(netText)).toBe(rowRevenue);
   });
 
   test("a range with no activity says so instead of showing an empty table", async ({ page }) => {

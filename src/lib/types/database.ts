@@ -35,6 +35,84 @@ export type Database = {
         }
         Relationships: []
       }
+      consignments: {
+        Row: {
+          counterparty_name: string
+          created_at: string
+          created_by: string | null
+          device_unit_id: string
+          direction: string
+          gross_sale_amount: number | null
+          id: string
+          imei_snapshot: string
+          listed_price: number
+          model_snapshot: string
+          paid_at: string | null
+          paid_by: string | null
+          partner_share: number | null
+          payout_method: string | null
+          reported_at: string | null
+          reported_by: string | null
+          returned_at: string | null
+          returned_by: string | null
+          sale_id: string | null
+          settled_at: string | null
+          settled_by: string | null
+          sold_at: string | null
+          status: string
+        }
+        Insert: {
+          counterparty_name: string
+          created_at?: string
+          created_by?: string | null
+          device_unit_id: string
+          direction: string
+          gross_sale_amount?: number | null
+          id?: string
+          imei_snapshot: string
+          listed_price: number
+          model_snapshot: string
+          paid_at?: string | null
+          paid_by?: string | null
+          partner_share?: number | null
+          payout_method?: string | null
+          reported_at?: string | null
+          reported_by?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
+          sale_id?: string | null
+          settled_at?: string | null
+          settled_by?: string | null
+          sold_at?: string | null
+          status: string
+        }
+        Update: {
+          counterparty_name?: string
+          created_at?: string
+          created_by?: string | null
+          device_unit_id?: string
+          direction?: string
+          gross_sale_amount?: number | null
+          id?: string
+          imei_snapshot?: string
+          listed_price?: number
+          model_snapshot?: string
+          paid_at?: string | null
+          paid_by?: string | null
+          partner_share?: number | null
+          payout_method?: string | null
+          reported_at?: string | null
+          reported_by?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
+          sale_id?: string | null
+          settled_at?: string | null
+          settled_by?: string | null
+          sold_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       day_closings: {
         Row: {
           closed_at: string
@@ -92,6 +170,7 @@ export type Database = {
           sf_paid_full_at: string | null
           status: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           acquisition: string
@@ -111,6 +190,7 @@ export type Database = {
           sf_paid_full_at?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           acquisition?: string
@@ -130,6 +210,7 @@ export type Database = {
           sf_paid_full_at?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -244,6 +325,7 @@ export type Database = {
           qty: number
           sku: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           category_id?: string | null
@@ -257,6 +339,7 @@ export type Database = {
           qty?: number
           sku?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           category_id?: string | null
@@ -270,6 +353,7 @@ export type Database = {
           qty?: number
           sku?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -400,6 +484,7 @@ export type Database = {
           qty: number
           sale_id: string
           topup_carrier_id: string | null
+          wallet_applied_at: string | null
           unit_cost: number
           unit_price: number
         }
@@ -414,6 +499,7 @@ export type Database = {
           qty?: number
           sale_id: string
           topup_carrier_id?: string | null
+          wallet_applied_at?: string | null
           unit_cost?: number
           unit_price: number
         }
@@ -428,6 +514,7 @@ export type Database = {
           qty?: number
           sale_id?: string
           topup_carrier_id?: string | null
+          wallet_applied_at?: string | null
           unit_cost?: number
           unit_price?: number
         }
@@ -507,6 +594,7 @@ export type Database = {
       sales: {
         Row: {
           bill_discount: number
+          bill_no: number
           bill_discount_reason: string | null
           client_uuid: string | null
           created_at: string
@@ -520,6 +608,7 @@ export type Database = {
         }
         Insert: {
           bill_discount?: number
+          bill_no?: number
           bill_discount_reason?: string | null
           client_uuid?: string | null
           created_at?: string
@@ -533,6 +622,7 @@ export type Database = {
         }
         Update: {
           bill_discount?: number
+          bill_no?: number
           bill_discount_reason?: string | null
           client_uuid?: string | null
           created_at?: string
@@ -751,8 +841,38 @@ export type Database = {
           },
         ]
       }
+      topup_wallet_openings: {
+        Row: {
+          amount: number
+          carrier_id: string
+          created_by: string | null
+          opened_at: string
+        }
+        Insert: {
+          amount: number
+          carrier_id: string
+          created_by?: string | null
+          opened_at?: string
+        }
+        Update: {
+          amount?: number
+          carrier_id?: string
+          created_by?: string | null
+          opened_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
+      v_close_day_consignment_payouts: {
+        Row: {
+          amount: number | null
+          day: string | null
+          id: string | null
+          paid_from: string | null
+        }
+        Relationships: []
+      }
       v_close_day_bills: {
         Row: {
           bill_total: number | null
@@ -900,6 +1020,32 @@ export type Database = {
         }
         Relationships: []
       }
+      v_pos_consignments: {
+        Row: {
+          acquisition: string | null
+          counterparty_name: string | null
+          created_at: string | null
+          device_status: string | null
+          device_unit_id: string | null
+          direction: string | null
+          gross_sale_amount: number | null
+          id: string | null
+          imei: string | null
+          listed_price: number | null
+          model_name: string | null
+          paid_at: string | null
+          partner_share: number | null
+          payout_method: string | null
+          receivable_amount: number | null
+          reported_at: string | null
+          returned_at: string | null
+          sale_id: string | null
+          settled_at: string | null
+          sold_at: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
       v_pos_repairs: {
         Row: {
           closed_at: string | null
@@ -972,6 +1118,7 @@ export type Database = {
           acquisition: string | null
           category_name: string | null
           code: string | null
+          cost: number | null
           id: string | null
           kind: string | null
           name: string | null
@@ -1006,6 +1153,29 @@ export type Database = {
         Update: {
           id?: string | null
           name?: string | null
+        }
+        Relationships: []
+      }
+      v_pos_topup_history: {
+        Row: {
+          amount: number | null
+          carrier_name: string | null
+          cashier_name: string | null
+          commission: number | null
+          is_imported: boolean | null
+          sale_id: string | null
+          sale_item_id: string | null
+          sold_at: string | null
+        }
+        Relationships: []
+      }
+      v_pos_topup_wallet_balance: {
+        Row: {
+          balance: number | null
+          carrier_id: string | null
+          commission_today: number | null
+          is_initialized: boolean | null
+          name: string | null
         }
         Relationships: []
       }
@@ -1129,6 +1299,8 @@ export type Database = {
           carrier_id: string | null
           commission_rate: number | null
           name: string | null
+          opened_at: string | null
+          opening_amount: number | null
           spent: number | null
           topped_up: number | null
         }
@@ -1138,6 +1310,7 @@ export type Database = {
     Functions: {
       pos_is_member: { Args: never; Returns: boolean }
       pos_is_owner: { Args: never; Returns: boolean }
+      rpc_open_topup_wallet: { Args: { p_carrier_id: string; p_amount: number }; Returns: undefined }
       rpc_add_shop_expense: {
         Args: { p_amount: number; p_name: string; p_paid_from: string }
         Returns: string
@@ -1153,6 +1326,31 @@ export type Database = {
       rpc_close_repair_job: {
         Args: { p_job_id: string; p_sale_payload: Json }
         Returns: string
+      }
+      rpc_consignment_open_out: {
+        Args: { p_device_id: string; p_counterparty: string; p_listed_price: number }
+        Returns: string
+      }
+      rpc_consignment_open_in: {
+        Args: { p_imei: string; p_model_name: string; p_counterparty: string; p_listed_price: number }
+        Returns: string
+      }
+      rpc_consignment_return: { Args: { p_id: string }; Returns: undefined }
+      rpc_consignment_report_out: {
+        Args: { p_id: string; p_sale_price: number; p_partner_share: number }
+        Returns: undefined
+      }
+      rpc_consignment_settle_out: {
+        Args: { p_id: string; p_payment_method: string; p_receiving_account: string | null }
+        Returns: string
+      }
+      rpc_consignment_sell_in: {
+        Args: { p_id: string; p_sale_price: number; p_partner_share: number; p_payment_method: string; p_receiving_account: string | null }
+        Returns: string
+      }
+      rpc_consignment_pay_in: {
+        Args: { p_id: string; p_payment_method: string }
+        Returns: undefined
       }
       rpc_correct_sf_commission: {
         Args: {
@@ -1180,6 +1378,10 @@ export type Database = {
       }
       rpc_set_part_cost: {
         Args: { p_cost: number; p_job_id: string }
+        Returns: undefined
+      }
+      rpc_set_stock_cost: {
+        Args: { p_cost: number; p_id: string; p_kind: string }
         Returns: undefined
       }
       rpc_set_repair_status: {

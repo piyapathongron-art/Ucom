@@ -28,6 +28,20 @@ free plan ซึ่งเปิด active project ได้สูงสุด 2 
 **ทุกตารางของ POS อยู่ใน `public` ของโปรเจกต์ `bihgcdceovfettoxmgme` ใช้ชื่อตารางตามที่ออกแบบไว้
 ไม่มี prefix**
 
+Ucom owns only its scoped schema changes. Its historical migration filenames do not match the shared project's
+pre-existing migration history, while a schema diff confirms that the remote also owns DailyGold's
+`display_settings` and shared grants. Therefore Ucom must not run `supabase db push` against this project and
+must not rewrite unrelated migration-history entries.
+
+For each future Ucom schema change:
+
+1. Link and confirm the project ref, then run a read-only preflight against the relevant tables, views, functions,
+   triggers, and grants.
+2. Review `supabase db diff --linked` to identify shared-schema or grant drift.
+3. After explicit production approval, execute only the reviewed Ucom migration through the Management API and
+   record only that migration version as applied.
+4. Read back the changed schema and grants; never repair DailyGold or historical Ucom versions by inference.
+
 ## ทางเลือกที่ไม่เลือก
 
 | ทาง | ทำไมไม่เอา |
@@ -52,3 +66,5 @@ free plan ซึ่งเปิด active project ได้สูงสุด 2 
 - **free plan pause โปรเจกต์เมื่อไม่มี query 7 วัน** — ตอนร้านใช้จริงทุกวันไม่โดน
   แต่ช่วง dev ที่เว้นวรรคยาวจะโดน pause ต้องกด resume เอง
 - free plan **ไม่มี automated daily backup** → ดู ADR 0009
+- Migration history remains an audit record of both products. A future canonical shared migration repository is the
+  only path that can safely restore ordinary `supabase db push` for this project.

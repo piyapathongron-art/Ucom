@@ -31,7 +31,7 @@ function money(n: number): string {
 // and its part cost, which the entry row already shows in full.
 // ponytail: fetched per bill on open, no cache — a bill is opened once and has a handful
 // of lines. Cache it if the owner starts opening dozens in a row.
-function SaleLines({ saleId }: { saleId: string }) {
+export function SaleLines({ saleId }: { saleId: string }) {
   const supabase = createClient();
   const [lines, setLines] = useState<SaleLine[] | null>(null);
   const [failed, setFailed] = useState(false);

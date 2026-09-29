@@ -1,7 +1,8 @@
 "use client";
 
 import { REPAIR_STATUS_BADGE, REPAIR_STATUS_LABEL, type RepairRow, type RepairStatus } from "./types";
-import { CloseJobDialog, type CloseJobPayload } from "./CloseJobDialog";
+import type { CloseJobPayload } from "./CloseJobDialog";
+import { RepairDialogs } from "./RepairDialogs";
 import { useRepairRowActions } from "./useRepairRowActions";
 
 export function RepairRowCard({
@@ -13,7 +14,7 @@ export function RepairRowCard({
   row: RepairRow;
   onSetStatus: (id: string, status: string) => Promise<void>;
   onSetPartCost: (id: string, cost: number) => Promise<void>;
-  onCloseJob: (id: string, payload: CloseJobPayload) => Promise<void>;
+  onCloseJob: (id: string, payload: CloseJobPayload) => Promise<boolean>;
 }) {
   const {
     partCostDraft,
@@ -71,7 +72,7 @@ export function RepairRowCard({
                   type="button"
                   onClick={() => handleSetStatus(prevStep)}
                   disabled={settingStatus}
-                  className="ucom-secondary px-2 py-1 text-xs disabled:opacity-40"
+                  className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-40"
                 >
                   ย้อนกลับ
                 </button>
@@ -81,7 +82,7 @@ export function RepairRowCard({
                   type="button"
                   onClick={() => handleSetStatus(nextStep)}
                   disabled={settingStatus}
-                  className="ucom-primary px-2 py-1 text-xs disabled:opacity-40"
+                  className="ucom-primary !rounded-full px-2 py-1 text-xs disabled:opacity-40"
                 >
                   {REPAIR_STATUS_LABEL[nextStep as RepairStatus]}
                 </button>
@@ -102,7 +103,7 @@ export function RepairRowCard({
                 <button
                   type="button"
                   onClick={() => setIsEditingPartCost(true)}
-                  className="ucom-secondary px-2 py-1 text-xs"
+                  className="ucom-secondary !rounded-full px-2 py-1 text-xs"
                 >
                   แก้ไข
                 </button>
@@ -121,7 +122,7 @@ export function RepairRowCard({
                   type="button"
                   onClick={handleSavePartCost}
                   disabled={savingPartCost || partCostDraft.trim() === ""}
-                  className="ucom-secondary px-2 py-1 text-xs disabled:opacity-30"
+                  className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-30"
                 >
                   บันทึก
                 </button>
@@ -132,7 +133,7 @@ export function RepairRowCard({
                       setIsEditingPartCost(false);
                       setPartCostDraft("");
                     }}
-                    className="ucom-secondary px-2 py-1 text-xs"
+                    className="ucom-secondary !rounded-full px-2 py-1 text-xs"
                   >
                     ยกเลิก
                   </button>
@@ -148,55 +149,30 @@ export function RepairRowCard({
           <button
             type="button"
             onClick={() => setShowCloseDialog(!showCloseDialog)}
-            className="ucom-secondary px-2 py-1 text-sm"
+            className="ucom-secondary !rounded-full px-2 py-1 text-sm"
           >
             ปิดงาน/ออกบิล
           </button>
 
-          {showAbandonConfirm ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  handleSetStatus("abandoned");
-                  setShowAbandonConfirm(false);
-                }}
-                className="ucom-danger px-2 py-1 text-xs"
-              >
-                ยืนยันทิ้งงาน
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAbandonConfirm(false)}
-                className="ucom-secondary px-2 py-1 text-xs"
-              >
-                ยกเลิก
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowAbandonConfirm(true)}
-              className="ucom-danger border-0 px-0 py-1 text-sm underline"
-            >
-              ลูกค้าทิ้ง
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowAbandonConfirm(true)}
+            className="ucom-danger border-0 px-0 py-1 text-sm underline"
+          >
+            ลูกค้าทิ้ง
+          </button>
         </div>
       )}
 
-      {showCloseDialog && (
-        <div className="pt-2">
-          <CloseJobDialog
-            row={row}
-            onClose={() => setShowCloseDialog(false)}
-            onSubmit={async (payload) => {
-              await onCloseJob(row.id, payload);
-              setShowCloseDialog(false);
-            }}
-          />
-        </div>
-      )}
+      <RepairDialogs
+        row={row}
+        showClose={showCloseDialog}
+        showAbandon={showAbandonConfirm}
+        onCloseClose={() => setShowCloseDialog(false)}
+        onCloseAbandon={() => setShowAbandonConfirm(false)}
+        onCloseJob={onCloseJob}
+        onAbandon={() => handleSetStatus("abandoned")}
+      />
     </div>
   );
 }
