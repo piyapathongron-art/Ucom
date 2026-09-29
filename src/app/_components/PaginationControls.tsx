@@ -40,7 +40,7 @@ export function PaginationControls({
       </span>
       <div className="flex items-center gap-2">
         {onPageSizeChange && (
-          <label className="flex items-center gap-1">
+          <label className="relative flex items-center gap-1">
             <span className="sr-only">จำนวนต่อหน้า</span>
             <select
               value={safePageSize}
