@@ -314,6 +314,7 @@ export type Database = {
       }
       products: {
         Row: {
+          carrier_id: string | null
           category_id: string | null
           cost: number
           created_at: string
@@ -328,6 +329,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          carrier_id?: string | null
           category_id?: string | null
           cost?: number
           created_at?: string
@@ -342,6 +344,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          carrier_id?: string | null
           category_id?: string | null
           cost?: number
           created_at?: string
@@ -356,6 +359,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "products_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "topup_carriers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_category_id_fkey"
             columns: ["category_id"]
@@ -398,6 +408,7 @@ export type Database = {
           note: string | null
           part_cost: number | null
           part_paid_at: string | null
+          part_paid_from: string | null
           quoted_price: number | null
           received_at: string
           sale_id: string | null
@@ -416,6 +427,7 @@ export type Database = {
           note?: string | null
           part_cost?: number | null
           part_paid_at?: string | null
+          part_paid_from?: string | null
           quoted_price?: number | null
           received_at?: string
           sale_id?: string | null
@@ -434,6 +446,7 @@ export type Database = {
           note?: string | null
           part_cost?: number | null
           part_paid_at?: string | null
+          part_paid_from?: string | null
           quoted_price?: number | null
           received_at?: string
           sale_id?: string | null
@@ -864,6 +877,15 @@ export type Database = {
       }
     }
     Views: {
+      v_close_day_parts: {
+        Row: {
+          amount: number | null
+          day: string | null
+          id: string | null
+          job_label: string | null
+        }
+        Relationships: []
+      }
       v_close_day_consignment_payouts: {
         Row: {
           amount: number | null
@@ -1116,6 +1138,7 @@ export type Database = {
       v_pos_stock: {
         Row: {
           acquisition: string | null
+          carrier_id: string | null
           category_name: string | null
           code: string | null
           cost: number | null
@@ -1323,6 +1346,7 @@ export type Database = {
         Args: { p_counted_cash: number; p_note: string }
         Returns: string
       }
+      rpc_close_day_digest: { Args: { p_date: string }; Returns: Json }
       rpc_close_repair_job: {
         Args: { p_job_id: string; p_sale_payload: Json }
         Returns: string
@@ -1377,7 +1401,7 @@ export type Database = {
         Returns: string
       }
       rpc_set_part_cost: {
-        Args: { p_cost: number; p_job_id: string }
+        Args: { p_cost: number; p_job_id: string; p_paid_from: string }
         Returns: undefined
       }
       rpc_set_stock_cost: {

@@ -60,6 +60,8 @@ export default function CloseDayPage() {
               cashIncomeTotal={d.cashIncomeTotal}
               cashExpenseTotal={d.cashExpenseTotal}
               cashConsignmentPayoutTotal={d.cashConsignmentPayoutTotal}
+              cashPartTotal={d.cashPartTotal}
+              parts={d.parts}
               toSend={d.toSend}
               sfCount={d.sfCount}
               fmt={d.fmt}
@@ -111,6 +113,8 @@ export default function CloseDayPage() {
               onCloseNoteChange={d.setCloseNote}
               queuedCount={d.queuedCount}
               onSubmit={d.handleCloseDay}
+              onResend={d.handleResend}
+              isSending={d.isSending}
               fmt={d.fmt}
             />
           </div>

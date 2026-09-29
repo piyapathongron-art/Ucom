@@ -1,9 +1,13 @@
+type PartLine = { id: string | null; job_label: string | null; amount: number | null };
+
 interface Props {
   cashTotal: number;
   transferTotal: number;
   cashIncomeTotal: number;
   cashExpenseTotal: number;
   cashConsignmentPayoutTotal: number;
+  cashPartTotal: number;
+  parts: PartLine[];
   toSend: number;
   sfCount: number;
   fmt: (n: number) => string;
@@ -15,6 +19,8 @@ export default function ClosingSummary({
   cashIncomeTotal,
   cashExpenseTotal,
   cashConsignmentPayoutTotal,
+  cashPartTotal,
+  parts,
   toSend,
   sfCount,
   fmt,
@@ -42,7 +48,23 @@ export default function ClosingSummary({
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">จ่ายเจ้าของเครื่องฝากเข้า (เงินสด)</p>
           <p data-testid="close-day-consignment-payout-total" className="text-xl font-semibold font-mono tabular-nums mt-1">{fmt(cashConsignmentPayoutTotal)}</p>
         </div>
+        <div className="ucom-surface p-4">
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">ค่าอะไหล่จากลิ้นชัก</p>
+          <p data-testid="close-day-part-total" className="text-xl font-semibold font-mono tabular-nums mt-1">{fmt(cashPartTotal)}</p>
+        </div>
       </div>
+
+      {parts.length > 0 && (
+        <div className="ucom-surface p-4">
+          <p className="mb-2 text-sm font-semibold">เงินออกจากลิ้นชัก · อะไหล่</p>
+          {parts.map((part) => (
+            <div key={part.id} className="flex justify-between gap-3 text-sm">
+              <span>อะไหล่ · {part.job_label}</span>
+              <span className="font-mono tabular-nums">฿{fmt(Number(part.amount))}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="ucom-surface p-4">
         <p className="text-sm font-medium text-ink">ยอดที่ต้องส่ง</p>

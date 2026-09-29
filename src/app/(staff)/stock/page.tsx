@@ -12,7 +12,7 @@ import { PaginationControls } from "@/app/_components/PaginationControls";
 import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import { StockTable, StockTableHead } from "./StockTable";
 import { StockDrawer } from "./StockDrawer";
-import { STATUS_LABEL, type Category, type DeviceSave, type ProductSave, type StockKind, type StockRow } from "./types";
+import { STATUS_LABEL, type Carrier, type Category, type DeviceSave, type ProductSave, type StockKind, type StockRow } from "./types";
 
 const STATUS_BY_KIND: Record<StockKind, string[]> = {
   product: ["active", "inactive"],
@@ -26,6 +26,8 @@ export default function StockPage() {
 
   const [rows, setRows] = useState<StockRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [isOwner, setIsOwner] = useState(false);
   const [costById, setCostById] = useState<Record<string, number | null>>({});
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
@@ -86,6 +88,17 @@ export default function StockPage() {
       .from("categories")
       .select("*")
       .then(({ data }) => setCategories(data ?? []));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from("profiles").select("role").eq("id", user.id).single().then(({ data }) => {
+        if (data?.role !== "owner") return;
+        setIsOwner(true);
+        supabase.from("topup_carriers").select("id, name").order("name").then(({ data: carrierRows, error: carrierError }) => {
+          if (carrierError) toast.error(toThaiError(carrierError));
+          else setCarriers(carrierRows ?? []);
+        });
+      });
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -116,6 +129,7 @@ export default function StockPage() {
         qty: input.qty,
         is_active: input.is_active,
         cost: input.cost ?? null,
+        ...(input.carrier_id !== undefined ? { carrier_id: input.carrier_id } : {}),
       },
     }), input.id ? "บันทึกสินค้าแล้ว" : "เพิ่มสินค้าแล้ว");
     if (ok) void loadStock();
@@ -247,6 +261,8 @@ export default function StockPage() {
           kind={drawer.kind}
           row={drawerRow}
           categories={categories}
+          carriers={carriers}
+          canEditCarrier={isOwner && carriers.length > 0}
           canEditCost
           cost={drawerRow?.id ? costById[drawerRow.id] : undefined}
           onClose={() => setDrawer(null)}
