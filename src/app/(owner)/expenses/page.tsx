@@ -1,304 +1,99 @@
 "use client";
 
-import { ExpenseTable } from "./ExpenseTable";
-import { useExpensesPage } from "./useExpensesPage";
+import Link from "next/link";
+import { useState } from "react";
+import { EmptyState } from "@/app/_components/EmptyState";
+import { ErrorPanel } from "@/app/_components/ErrorPanel";
+import { LEDGER_METHOD_LABEL, LedgerAddDialog } from "@/app/_components/LedgerAddDialog";
 import { PageFrame } from "@/app/_components/PageFrame";
 import { PaginationControls } from "@/app/_components/PaginationControls";
+import { SkeletonRows } from "@/app/_components/Skeleton";
+import { useLedgerPage, type LedgerTab } from "./useLedgerPage";
 
-export default function ExpensesPage() {
-  const {
-    expenseName,
-    setExpenseName,
-    expenseAmount,
-    setExpenseAmount,
-    expenseDate,
-    setExpenseDate,
-    expenses,
-    filterFrom,
-    setFilterFrom,
-    filterTo,
-    setFilterTo,
-    expenseSearch,
-    setExpenseSearch,
-    expensePage,
-    setExpensePage,
-    expensePageSize,
-    setExpensePageSize,
-    expenseTotalCount,
-    isExpensesLoading,
-    walletBalances,
-    carriers,
-    selectedCarrier,
-    setSelectedCarrier,
-    topupAmount,
-    setTopupAmount,
-    error,
-    isLoading,
-    deleteConfirmId,
-    setDeleteConfirmId,
-    handleAddExpense,
-    handleDeleteExpense,
-    handleAddTopup,
-    totalExpense,
-    retry,
-  } = useExpensesPage();
+const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const TABS: [LedgerTab, string][] = [["expense", "รายจ่าย"], ["income", "รายรับนอกบิล"]];
+
+function Head({ methodLabel }: { methodLabel: string }) {
+  return <thead><tr><th>วันที่</th><th>รายการ</th><th>{methodLabel}</th><th className="text-right">จำนวนเงิน</th><th /></tr></thead>;
+}
+
+export default function LedgerPage() {
+  const l = useLedgerPage();
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const isExpense = l.tab === "expense";
+  const methodLabel = isExpense ? "จ่ายจาก" : "รับเข้า";
+  const total = isExpense ? l.expenseTotal : l.incomeTotal;
+  const net = l.incomeTotal - l.expenseTotal;
+  const isFiltered = l.search !== "";
+  const filterCls = "ucom-field px-4 py-2 text-sm";
 
   return (
     <PageFrame
       page="expenses"
-      eyebrow="OWNER / CASH LEDGER"
-      title="รายจ่าย & เติมเงินวอลเล็ต"
-      description="บันทึกรายจ่าย ตรวจยอดรวม และเติมเงินคงเหลือของแต่ละค่าย"
-      actions={<span className="font-mono text-xs tracking-wide text-ink-muted">OWNER ONLY</span>}
-    >
-
-      {error && (
-        <div
-          data-testid="expenses-error"
-          className="flex flex-wrap items-center justify-between gap-3 border border-danger bg-danger/10 p-4 text-sm text-danger"
-        >
-          <span>{error}</span>
-          <button type="button" onClick={retry} className="ucom-danger px-3 py-1.5 text-sm">
-            ลองใหม่
-          </button>
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="text-ink-muted">กำลังโหลด...</div>
-      ) : (
+      title="รายรับ–รายจ่ายนอกบิล"
+      description="เฉพาะรายการที่ไม่ผ่านบิลขาย — ยอดขายไม่รวมอยู่ในหน้านี้"
+      actions={
         <>
-          {/* Section 1: Expenses */}
-          <section className="space-y-5">
-            <h2 className="text-xl font-semibold text-ink">รายจ่าย</h2>
-
-            <form onSubmit={handleAddExpense} className="ucom-toolbar items-end">
-              <div>
-                <label className="block text-sm font-medium text-ink-muted mb-1">
-                  รายการ
-                </label>
-                <input
-                  type="text"
-                  required
-                  data-testid="expense-name"
-                  value={expenseName}
-                  onChange={(e) => setExpenseName(e.target.value)}
-                  className="ucom-field px-3 py-2 text-sm"
-                  placeholder="ชื่อรายการ"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ink-muted mb-1">
-                  จำนวนเงิน (บาท)
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="0.01"
-                  step="any"
-                  data-testid="expense-amount"
-                  value={expenseAmount}
-                  onChange={(e) => setExpenseAmount(e.target.value)}
-                  className="ucom-field px-3 py-2 text-sm"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ink-muted mb-1">
-                  วันที่
-                </label>
-                <input
-                  type="date"
-                  required
-                  data-testid="expense-date"
-                  value={expenseDate}
-                  onChange={(e) => setExpenseDate(e.target.value)}
-                  className="ucom-field px-3 py-2 text-sm"
-                />
-              </div>
-
-              <button
-                type="submit"
-                data-testid="expense-submit"
-                className="ucom-primary px-4 py-2 text-sm"
-              >
-                บันทึกรายจ่าย
-              </button>
-            </form>
-
-            <div className="ucom-toolbar items-end">
-              <div>
-                <label className="block text-sm font-medium text-ink-muted mb-1">ตั้งแต่วันที่</label>
-                <input
-                  type="date"
-                  value={filterFrom}
-                  onChange={(event) => {
-                    setFilterFrom(event.target.value);
-                    setExpensePage(1);
-                  }}
-                  data-testid="expense-filter-from"
-                  className="ucom-field px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-ink-muted mb-1">ถึงวันที่</label>
-                <input
-                  type="date"
-                  value={filterTo}
-                  onChange={(event) => {
-                    setFilterTo(event.target.value);
-                    setExpensePage(1);
-                  }}
-                  data-testid="expense-filter-to"
-                  className="ucom-field px-3 py-2 text-sm"
-                />
-              </div>
-              <input
-                value={expenseSearch}
-                onChange={(event) => {
-                  setExpenseSearch(event.target.value);
-                  setExpensePage(1);
-                }}
-                data-testid="expense-filter-search"
-                placeholder="ค้นหาชื่อรายการ"
-                className="ucom-field w-full px-3 py-2 text-sm md:w-72"
-              />
-            </div>
-
-            {isExpensesLoading ? (
-              <p className="text-sm text-ink-muted">กำลังโหลดรายการรายจ่าย...</p>
-            ) : (
-              <ExpenseTable
-                expenses={expenses}
-                deleteConfirmId={deleteConfirmId}
-                onSetDeleteConfirmId={setDeleteConfirmId}
-                onDeleteExpense={handleDeleteExpense}
-              />
-            )}
-
-            <PaginationControls
-              page={expensePage}
-              pageSize={expensePageSize}
-              total={expenseTotalCount}
-              isLoading={isExpensesLoading}
-              label="รายจ่าย"
-              testIdPrefix="expense-pagination"
-              onPageChange={setExpensePage}
-              onPageSizeChange={(value) => {
-                setExpensePageSize(value);
-                setExpensePage(1);
-              }}
-            />
-
-            <div data-testid="expense-total" className="border-t border-border pt-3 text-right font-medium text-ink">
-              รวม:{" "}
-              <span className="font-mono">
-                {totalExpense.toLocaleString("th-TH", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </span>{" "}
-              บาท
-            </div>
-          </section>
-
-          <hr className="border-border" />
-
-          {/* Section 2: Wallet top-up */}
-          <section className="space-y-5">
-            <h2 className="text-xl font-semibold text-ink">เติมเงินวอลเล็ต</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {walletBalances.map((wb) => (
-                <div
-                  key={wb.carrier_id ?? wb.name}
-                  data-testid={`wallet-balance-${wb.carrier_id}`}
-                  className="ucom-surface space-y-2 p-4"
-                >
-                  <div className="font-semibold text-lg text-ink">{wb.name}</div>
-                  <div className="text-sm text-ink-muted flex justify-between">
-                    <span>ยอดเติมสะสม:</span>
-                    <span className="font-mono">
-                      {Number(wb.topped_up ?? 0).toLocaleString("th-TH", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{" "}
-                      บาท
-                    </span>
-                  </div>
-                  <div className="text-sm text-ink-muted flex justify-between">
-                    <span>ยอดใช้ไป:</span>
-                    <span className="font-mono">
-                      {Number(wb.spent ?? 0).toLocaleString("th-TH", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{" "}
-                      บาท
-                    </span>
-                  </div>
-                  <div className="text-sm font-semibold text-ink flex justify-between pt-2 border-t border-border">
-                    <span>คงเหลือ:</span>
-                    <span className="font-mono">
-                      {Number(wb.balance ?? 0).toLocaleString("th-TH", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{" "}
-                      บาท
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <form onSubmit={handleAddTopup} className="ucom-toolbar items-end">
-              <div>
-                <label className="block text-sm font-medium text-ink-muted mb-1">
-                  ผู้ให้บริการ
-                </label>
-                <select
-                  data-testid="topup-carrier"
-                  value={selectedCarrier}
-                  onChange={(e) => setSelectedCarrier(e.target.value)}
-                  className="ucom-field px-3 py-2 text-sm"
-                >
-                  {carriers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ink-muted mb-1">
-                  จำนวนเงินเติม (บาท)
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="0.01"
-                  step="any"
-                  data-testid="topup-amount"
-                  value={topupAmount}
-                  onChange={(e) => setTopupAmount(e.target.value)}
-                  className="ucom-field px-3 py-2 text-sm"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <button
-                type="submit"
-                data-testid="topup-submit"
-                className="ucom-primary px-4 py-2 text-sm"
-              >
-                บันทึกเติมเงิน
-              </button>
-            </form>
-          </section>
+          <Link href="/close-day" className="ucom-secondary px-[18px] py-2.5">ไปหน้าปิดร้าน</Link>
+          <button type="button" onClick={() => setIsAddOpen(true)} data-testid="open-ledger-add" className="ucom-primary px-[18px] py-2.5">
+            + {isExpense ? "บันทึกรายจ่าย" : "บันทึกรายรับ"}
+          </button>
         </>
-      )}
+      }
+    >
+      {l.error && <div data-testid="expenses-error"><ErrorPanel message={l.error} onRetry={l.reload} /></div>}
+
+      <div className="ucom-toolbar">
+        <div role="tablist" className="flex gap-1 rounded-full bg-sunken p-1">
+          {TABS.map(([key, label]) => (
+            <button key={key} role="tab" type="button" aria-selected={l.tab === key} data-testid={`ledger-tab-${key}`} onClick={() => l.setTab(key)} className={`rounded-full px-5 py-1.5 text-sm ${l.tab === key ? "bg-brand-ink font-semibold text-white" : "text-ink-muted"}`}>{label}</button>
+          ))}
+        </div>
+        <label className="flex items-center gap-2 text-xs text-ink-muted">ตั้งแต่<input type="date" value={l.filterFrom} onChange={(e) => { l.setFilterFrom(e.target.value); l.setPage(1); }} data-testid="expense-filter-from" className={filterCls} /></label>
+        <label className="flex items-center gap-2 text-xs text-ink-muted">ถึง<input type="date" value={l.filterTo} onChange={(e) => { l.setFilterTo(e.target.value); l.setPage(1); }} data-testid="expense-filter-to" className={filterCls} /></label>
+        <input value={l.search} onChange={(e) => { l.setSearch(e.target.value); l.setPage(1); }} data-testid="expense-filter-search" placeholder="ค้นหาชื่อรายการ" className={`${filterCls} ml-auto w-full md:w-72`} />
+      </div>
+
+      {l.isLoading && l.rows.length === 0 ? <SkeletonRows cols={5} head={<Head methodLabel={methodLabel} />} /> : l.rows.length > 0 ? (
+        <div className="ucom-table-wrap">
+          <table className="ucom-table">
+            <Head methodLabel={methodLabel} />
+            <tbody>
+              {l.rows.map((row) => (
+                <tr key={row.id} data-testid={`expense-row-${row.id}`}>
+                  <td className="text-[13px] text-ink-muted">{row.day}</td>
+                  <td className="text-[13.5px] font-semibold">{row.name}</td>
+                  <td className="text-[13px] text-ink-muted">{row.method ? LEDGER_METHOD_LABEL[l.tab][row.method] ?? row.method : "-"}</td>
+                  <td className="text-right text-[13.5px] font-semibold tabular-nums">{money(row.amount)}</td>
+                  <td>
+                    <div className="flex items-center justify-end gap-2">
+                      {l.deleteConfirmId === row.id ? (
+                        <>
+                          <button type="button" onClick={() => void l.deleteEntry(row.id)} data-testid={`expense-delete-confirm-${row.id}`} className="rounded-full bg-danger px-3.5 py-1.5 text-xs font-bold text-on-accent">ยืนยันลบ</button>
+                          <button type="button" onClick={() => l.setDeleteConfirmId(null)} className="ucom-secondary px-3.5 py-1.5 text-xs">ยกเลิก</button>
+                        </>
+                      ) : (
+                        <button type="button" onClick={() => l.setDeleteConfirmId(row.id)} data-testid={`expense-delete-${row.id}`} className="ucom-danger px-3.5 py-1.5 text-xs">ลบ</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : !l.error && (isFiltered
+        ? <EmptyState title="ไม่พบรายการตามตัวกรอง" onClearFilter={() => { l.setSearch(""); l.setPage(1); }} />
+        : <EmptyState title={isExpense ? "ไม่มีรายจ่ายในช่วงนี้" : "ไม่มีรายรับนอกบิลในช่วงนี้"} hint="กดปุ่มมุมขวาบนเพื่อบันทึกรายการ" />)}
+
+      <PaginationControls page={l.page} pageSize={l.pageSize} total={l.totalCount} isLoading={l.isLoading} label={isExpense ? "รายจ่าย" : "รายรับ"} testIdPrefix="expense-pagination" onPageChange={l.setPage} onPageSizeChange={(v) => { l.setPageSize(v); l.setPage(1); }} />
+
+      <div className="ucom-surface flex flex-wrap items-center justify-end gap-x-8 gap-y-1 px-6 py-4 text-sm">
+        <p data-testid="expense-total">รวม{isExpense ? "รายจ่าย" : "รายรับ"}: <span className="font-semibold tabular-nums">{money(total)}</span> บาท</p>
+        <p data-testid="ledger-net" className={net < 0 ? "text-danger" : "text-success"}>สุทธิ (รับ − จ่าย): <span className="font-semibold tabular-nums">{money(net)}</span> บาท</p>
+      </div>
+
+      {isAddOpen && <LedgerAddDialog kind={l.tab} withDate={isExpense} defaultDate={l.today} testIdPrefix={isExpense ? "expense" : "income"} onClose={() => setIsAddOpen(false)} onSubmit={l.addEntry} />}
     </PageFrame>
   );
 }

@@ -39,7 +39,7 @@ export default async function LoginPage({
         </div>
 
         {error && (
-          <p className="border border-danger bg-danger/10 p-3 text-sm text-danger">
+          <p className="rounded-2xl bg-danger/10 p-3 text-sm text-danger">
             {error === "missing"
               ? "กรอกชื่อผู้ใช้และรหัสผ่านให้ครบ"
               : "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"}

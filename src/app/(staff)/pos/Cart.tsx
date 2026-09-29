@@ -164,7 +164,7 @@ export function Cart({
         {error && (
           <p
             data-testid="checkout-error"
-            className="rounded border border-danger/30 bg-danger/10 p-2 text-sm text-danger"
+            className="rounded-2xl bg-danger/10 p-2 text-sm text-danger"
           >
             {error}
           </p>

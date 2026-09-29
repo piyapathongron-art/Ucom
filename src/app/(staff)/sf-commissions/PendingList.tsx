@@ -51,7 +51,6 @@ export function PendingList({
   return (
     <section data-testid="sf-pending-section" className="space-y-4">
       <div>
-        <p className="font-mono text-[0.68rem] tracking-[0.16em] text-warning">PENDING / RECEIPT</p>
         <h2 className="mt-1 text-xl font-semibold">รอบันทึกค่าคอม ({total})</h2>
       </div>
       <input

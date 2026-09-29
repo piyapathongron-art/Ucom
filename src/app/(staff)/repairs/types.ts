@@ -37,8 +37,8 @@ export const REPAIR_STATUS_LABEL: Record<RepairStatus, string> = {
 
 export const REPAIR_STATUS_BADGE: Record<RepairStatus, string> = {
   pending: "bg-sunken text-ink-muted border border-border-strong",
-  in_progress: "bg-[#392a0c] text-warning",
+  in_progress: "bg-warning-bg text-warning",
   ready: "bg-sunken text-ink-muted border border-border-strong",
-  collected: "bg-[#0f3322] text-success",
+  collected: "bg-success-bg text-success",
   abandoned: "bg-sunken text-ink-muted border border-border-strong",
 };

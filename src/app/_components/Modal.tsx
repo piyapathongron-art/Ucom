@@ -2,21 +2,21 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 
+const SIZE = { sm: "max-w-[480px]", md: "max-w-[640px]", lg: "max-w-[880px]" } as const;
+
 export function Modal({
   open,
   onClose,
   title,
-  eyebrow,
   footer,
-  size = "md",
+  size = "sm",
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
-  eyebrow?: string;
   footer: ReactNode;
-  size?: "md" | "lg";
+  size?: "sm" | "md" | "lg";
   children: ReactNode;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -34,15 +34,12 @@ export function Modal({
       onClose={onClose}
       onCancel={onClose}
       className={`backdrop:bg-background/80 backdrop:backdrop-blur-sm m-auto w-full ${
-        size === "lg" ? "max-w-2xl" : "max-w-md"
-      } rounded-xl border border-border bg-surface p-0 text-ink shadow-2xl`}
+        SIZE[size]
+      } rounded-[20px] bg-surface p-0 text-ink shadow-2xl`}
     >
       <div className="flex max-h-[85vh] flex-col">
-        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-3">
           <div>
-            {eyebrow ? (
-              <p className="font-mono text-[0.68rem] tracking-[0.16em] text-ink-muted">{eyebrow}</p>
-            ) : null}
             <h2 className="text-lg font-semibold">{title}</h2>
           </div>
           <button
@@ -57,9 +54,9 @@ export function Modal({
           </button>
         </div>
 
-        <div className="space-y-4 overflow-y-auto px-5 py-5">{children}</div>
+        <div className="space-y-4 overflow-y-auto px-6 py-3">{children}</div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-border px-5 py-4">
+        <div className="flex items-center justify-end gap-3 px-6 pt-3 pb-5">
           {footer}
         </div>
       </div>

@@ -18,6 +18,7 @@ test("add a shop expense and see the cash-to-send total update, then delete it",
   const initialToSend = parseNumber((await toSendElem.textContent()) || "0");
 
   const name = "ZZTEST-CLOSE-" + Date.now();
+  await page.locator('[data-testid="open-close-day-expense-add"]').click();
   await page.locator('[data-testid="close-day-expense-name"]').fill(name);
   await page.locator('[data-testid="close-day-expense-amount"]').fill("150");
   await page.locator('[data-testid="close-day-expense-paid-from"]').selectOption("cash");
@@ -53,6 +54,7 @@ test("add off-bill cash income and see the cash-to-send total update, then delet
   const initialToSend = parseNumber((await toSendElem.textContent()) || "0");
 
   const name = "ZZTEST-INCOME-" + Date.now();
+  await page.locator('[data-testid="open-close-day-income-add"]').click();
   await page.locator('[data-testid="close-day-income-name"]').fill(name);
   await page.locator('[data-testid="close-day-income-amount"]').fill("200");
   await page.locator('[data-testid="close-day-income-received-to"]').selectOption("cash");
@@ -88,6 +90,7 @@ test("add off-bill transfer income and confirm it does not change the cash-to-se
   const initialToSend = parseNumber((await toSendElem.textContent()) || "0");
 
   const name = "ZZTEST-INCOME-XFER-" + Date.now();
+  await page.locator('[data-testid="open-close-day-income-add"]').click();
   await page.locator('[data-testid="close-day-income-name"]').fill(name);
   await page.locator('[data-testid="close-day-income-amount"]').fill("300");
   await page.locator('[data-testid="close-day-income-received-to"]').selectOption("transfer");

@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { toThaiError } from "@/lib/errors";
+import type { LedgerValues } from "@/app/_components/LedgerAddDialog";
 import { createClient } from "@/lib/supabase/client";
 import { pageRange } from "@/lib/supabase/pagination";
 import { todayInBangkok } from "../../(owner)/report/types";
@@ -9,6 +12,7 @@ type BillRow = Tables<"v_close_day_bills">;
 type ItemRow = Tables<"v_close_day_items">;
 type ExpenseRow = Tables<"v_close_day_expenses">;
 type IncomeRow = Tables<"v_close_day_income">;
+type ConsignmentPayoutRow = Tables<"v_close_day_consignment_payouts">;
 type ClosingRow = Tables<"day_closings">;
 
 export function useCloseDayData() {
@@ -25,6 +29,7 @@ export function useCloseDayData() {
   const [billSummary, setBillSummary] = useState<Pick<BillRow, "bill_total" | "payment_method">[]>([]);
   const [expenseSummary, setExpenseSummary] = useState<Pick<ExpenseRow, "amount" | "paid_from">[]>([]);
   const [incomeSummary, setIncomeSummary] = useState<Pick<IncomeRow, "amount" | "received_to">[]>([]);
+  const [consignmentPayoutSummary, setConsignmentPayoutSummary] = useState<Pick<ConsignmentPayoutRow, "amount" | "paid_from">[]>([]);
   const [sfCount, setSfCount] = useState(0);
   const [billPage, setBillPage] = useState(1);
   const [billPageSize, setBillPageSize] = useState(25);
@@ -44,12 +49,6 @@ export function useCloseDayData() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [expenseName, setExpenseName] = useState("");
-  const [expenseAmount, setExpenseAmount] = useState("");
-  const [expensePaidFrom, setExpensePaidFrom] = useState<"cash" | "transfer">("cash");
-  const [incomeName, setIncomeName] = useState("");
-  const [incomeAmount, setIncomeAmount] = useState("");
-  const [incomeReceivedTo, setIncomeReceivedTo] = useState<"cash" | "transfer">("cash");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [incomeDeleteConfirmId, setIncomeDeleteConfirmId] = useState<string | null>(null);
 
@@ -95,7 +94,7 @@ export function useCloseDayData() {
       supabase.from("v_close_day_expenses").select("amount, paid_from").eq("day", date),
     ]);
     if (pageResult.error || summaryResult.error) {
-      setError(pageResult.error?.message ?? summaryResult.error?.message ?? "โหลดรายจ่ายไม่สำเร็จ");
+      setError("โหลดรายจ่ายไม่สำเร็จ");
       return;
     }
     const nextExpenses = pageResult.data ?? [];
@@ -121,7 +120,7 @@ export function useCloseDayData() {
       supabase.from("v_close_day_income").select("amount, received_to").eq("day", date),
     ]);
     if (pageResult.error || summaryResult.error) {
-      setError(pageResult.error?.message ?? summaryResult.error?.message ?? "โหลดรายรับนอกบิลไม่สำเร็จ");
+      setError("โหลดรายรับนอกบิลไม่สำเร็จ");
       return;
     }
     const nextIncome = pageResult.data ?? [];
@@ -140,7 +139,7 @@ export function useCloseDayData() {
     const itemRange = pageRange(itemPage, itemPageSize);
     const expenseRange = pageRange(expensePage, expensePageSize);
     const incomeRange = pageRange(incomePage, incomePageSize);
-    const [rBills, rBillSummary, rItems, rExp, rExpSummary, rIncome, rIncomeSummary, rSf, rClosing] = await Promise.all([
+    const [rBills, rBillSummary, rItems, rExp, rExpSummary, rIncome, rIncomeSummary, rPayouts, rSf, rClosing] = await Promise.all([
       supabase
         .from("v_close_day_bills")
         .select("*", { count: "exact" })
@@ -171,13 +170,14 @@ export function useCloseDayData() {
         .order("id", { ascending: false })
         .range(incomeRange.from, incomeRange.to),
       supabase.from("v_close_day_income").select("amount, received_to").eq("day", targetDate),
+      supabase.from("v_close_day_consignment_payouts").select("amount, paid_from").eq("day", targetDate),
       supabase.from("v_close_day_sf").select("imei", { count: "exact", head: true }).eq("day", targetDate),
       supabase.from("day_closings").select("*").eq("closing_date", targetDate).maybeSingle(),
     ]);
     if (isStale()) return;
-    const firstError = [rBills, rBillSummary, rItems, rExp, rExpSummary, rIncome, rIncomeSummary, rSf, rClosing].find((result) => result.error)?.error;
+    const firstError = [rBills, rBillSummary, rItems, rExp, rExpSummary, rIncome, rIncomeSummary, rPayouts, rSf, rClosing].find((result) => result.error)?.error;
     if (firstError) {
-      setError(firstError.message);
+      setError(toThaiError(firstError));
       setIsLoading(false);
       return;
     }
@@ -205,6 +205,7 @@ export function useCloseDayData() {
     setBillSummary(rBillSummary.data || []);
     setExpenseSummary(rExpSummary.data || []);
     setIncomeSummary(rIncomeSummary.data || []);
+    setConsignmentPayoutSummary(rPayouts.data || []);
     setSfCount(rSf.count ?? 0);
     setClosing(rClosing.data || null);
 
@@ -224,87 +225,47 @@ export function useCloseDayData() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, billPage, billPageSize, itemPage, itemPageSize, expensePage, expensePageSize, incomePage, incomePageSize]);
 
-  const handleAddExpense = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    const amountNum = parseFloat(expenseAmount);
-    if (!expenseName.trim() || isNaN(amountNum) || amountNum <= 0) return;
+  // Each write toasts a Thai message; add handlers resolve true on success so the dialog can close.
+  async function write(call: PromiseLike<{ error: unknown }>, successMessage: string, refresh: () => Promise<void>) {
     try {
-      const { error: rpcErr } = await supabase.rpc("rpc_add_shop_expense", {
-        p_name: expenseName.trim(),
-        p_amount: amountNum,
-        p_paid_from: expensePaidFrom
-      });
-      if (rpcErr) return setError(rpcErr.message);
-      setExpenseName("");
-      setExpenseAmount("");
-      await fetchExpensesOnly();
+      const { error: rpcErr } = await call;
+      if (rpcErr) throw rpcErr;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "บันทึกรายจ่ายไม่สำเร็จ");
+      toast.error(toThaiError(err), { duration: Infinity });
+      return false;
     }
-  };
+    toast.success(successMessage);
+    await refresh();
+    return true;
+  }
+
+  const handleAddExpense = (v: LedgerValues) =>
+    write(supabase.rpc("rpc_add_shop_expense", { p_name: v.name, p_amount: v.amount, p_paid_from: v.method }), "บันทึกรายจ่ายแล้ว", fetchExpensesOnly);
+
+  const handleAddIncome = (v: LedgerValues) =>
+    write(supabase.rpc("rpc_add_shop_income", { p_name: v.name, p_amount: v.amount, p_received_to: v.method }), "บันทึกรายรับแล้ว", fetchIncomeOnly);
 
   const handleDeleteExpense = async (id: string) => {
-    setError(null);
-    try {
-      const { error: rpcErr } = await supabase.rpc("rpc_delete_shop_expense", { p_id: id });
-      if (rpcErr) return setError(rpcErr.message);
-      setDeleteConfirmId(null);
-      await fetchExpensesOnly();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "ลบรายจ่ายไม่สำเร็จ");
-    }
-  };
-
-  const handleAddIncome = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    const amountNum = parseFloat(incomeAmount);
-    if (!incomeName.trim() || isNaN(amountNum) || amountNum <= 0) return;
-    try {
-      const { error: rpcErr } = await supabase.rpc("rpc_add_shop_income", {
-        p_name: incomeName.trim(),
-        p_amount: amountNum,
-        p_received_to: incomeReceivedTo
-      });
-      if (rpcErr) return setError(rpcErr.message);
-      setIncomeName("");
-      setIncomeAmount("");
-      await fetchIncomeOnly();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "บันทึกรายรับไม่สำเร็จ");
-    }
+    if (await write(supabase.rpc("rpc_delete_shop_expense", { p_id: id }), "ลบรายจ่ายแล้ว", fetchExpensesOnly)) setDeleteConfirmId(null);
   };
 
   const handleDeleteIncome = async (id: string) => {
-    setError(null);
-    try {
-      const { error: rpcErr } = await supabase.rpc("rpc_delete_shop_income", { p_id: id });
-      if (rpcErr) return setError(rpcErr.message);
-      setIncomeDeleteConfirmId(null);
-      await fetchIncomeOnly();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "ลบรายรับไม่สำเร็จ");
-    }
+    if (await write(supabase.rpc("rpc_delete_shop_income", { p_id: id }), "ลบรายรับแล้ว", fetchIncomeOnly)) setIncomeDeleteConfirmId(null);
   };
 
-  const handleCloseDay = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  const handleCloseDay = async () => {
     const cashNum = parseFloat(countedCash);
-    if (isNaN(cashNum) || cashNum < 0) return;
-    try {
-      const { error: rpcErr } = await supabase.rpc("rpc_close_day", {
-        p_counted_cash: cashNum,
-        p_note: (closeNote.trim() || null) as unknown as string
-      });
-      if (rpcErr) return setError(rpcErr.message);
-      setIsClosingSuccess(true);
-      const { data } = await supabase.from("day_closings").select("*").eq("closing_date", date).maybeSingle();
-      if (data) setClosing(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "ปิดร้านไม่สำเร็จ");
-    }
+    if (isNaN(cashNum) || cashNum < 0) return false;
+    const ok = await write(
+      supabase.rpc("rpc_close_day", { p_counted_cash: cashNum, p_note: (closeNote.trim() || null) as unknown as string }),
+      "ปิดร้านแล้ว",
+      async () => {
+        const { data } = await supabase.from("day_closings").select("*").eq("closing_date", date).maybeSingle();
+        if (data) setClosing(data);
+      },
+    );
+    if (ok) setIsClosingSuccess(true);
+    return ok;
   };
 
   const fmt = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -313,7 +274,8 @@ export function useCloseDayData() {
   const transferTotal = billSummary.filter(b => b.payment_method === "transfer").reduce((s, b) => s + Number(b.bill_total), 0);
   const cashExpenseTotal = expenseSummary.filter(e => e.paid_from === "cash").reduce((s, e) => s + Number(e.amount), 0);
   const cashIncomeTotal = incomeSummary.filter(i => i.received_to === "cash").reduce((s, i) => s + Number(i.amount), 0);
-  const toSend = cashTotal + cashIncomeTotal - cashExpenseTotal;
+  const cashConsignmentPayoutTotal = consignmentPayoutSummary.filter(p => p.paid_from === "cash").reduce((s, p) => s + Number(p.amount), 0);
+  const toSend = cashTotal + cashIncomeTotal - cashExpenseTotal - cashConsignmentPayoutTotal;
 
   const isToday = date === todayInBangkok();
 
@@ -330,12 +292,10 @@ export function useCloseDayData() {
     incomePage, incomePageSize, incomeTotal, setIncomePage,
     setIncomePageSize: (v: number) => { setIncomePageSize(v); setIncomePage(1); },
     queuedCount, isLoading, error, setIsLoading,
-    expenseName, setExpenseName, expenseAmount, setExpenseAmount, expensePaidFrom, setExpensePaidFrom,
-    incomeName, setIncomeName, incomeAmount, setIncomeAmount, incomeReceivedTo, setIncomeReceivedTo,
     deleteConfirmId, setDeleteConfirmId, incomeDeleteConfirmId, setIncomeDeleteConfirmId,
     countedCash, setCountedCash, closeNote, setCloseNote, isClosingSuccess,
     handleAddExpense, handleDeleteExpense, handleAddIncome, handleDeleteIncome, handleCloseDay,
-    fmt, cashTotal, transferTotal, cashExpenseTotal, cashIncomeTotal, toSend, isToday,
+    fmt, cashTotal, transferTotal, cashExpenseTotal, cashIncomeTotal, cashConsignmentPayoutTotal, toSend, isToday,
     refetch: () => fetchData(date, () => false),
   };
 }

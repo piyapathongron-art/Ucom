@@ -19,6 +19,7 @@ test("record an expense and see it in the monthly list and total", async ({ page
   const initialTotal = parseNumber(initialTotalText || "0");
 
   const name = "ZZTEST-EXP-" + Date.now();
+  await page.locator('[data-testid="open-ledger-add"]').click();
   await page.locator('[data-testid="expense-name"]').fill(name);
   await page.locator('[data-testid="expense-amount"]').fill("321");
   await page.locator('[data-testid="expense-submit"]').click();
@@ -42,7 +43,8 @@ test("record an expense and see it in the monthly list and total", async ({ page
 
 test("top up a wallet and see the balance increase", async ({ page }) => {
   await loginAs(page, "admin");
-  await page.goto("/expenses");
+  await page.goto("/topup");
+  await page.locator('[data-testid="open-wallet-fund"]').click();
 
   const select = page.locator('[data-testid="topup-carrier"]');
   await select.waitFor({ state: "visible" });

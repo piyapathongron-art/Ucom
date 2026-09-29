@@ -1,12 +1,17 @@
 "use client";
 
 import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { PageFrame, PageSection } from "@/app/_components/PageFrame";
+import { PageFrame } from "@/app/_components/PageFrame";
+import { EmptyState } from "@/app/_components/EmptyState";
+import { ErrorPanel } from "@/app/_components/ErrorPanel";
+import { SkeletonRows } from "@/app/_components/Skeleton";
+import { toThaiError } from "@/lib/errors";
 import { PaginationControls } from "@/app/_components/PaginationControls";
 import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import { IntakeForm, type RepairIntakeSave } from "./IntakeForm";
-import { RepairTable } from "./RepairTable";
+import { RepairTable, RepairTableHead } from "./RepairTable";
 import type { CloseJobPayload } from "./CloseJobDialog";
 import type { RepairRow } from "./types";
 
@@ -22,6 +27,8 @@ export default function RepairsPage() {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isIntakeOpen, setIsIntakeOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const requestRef = useRef(0);
 
   async function loadRepairs() {
@@ -56,7 +63,7 @@ export default function RepairsPage() {
       if (requestId !== requestRef.current) return;
       setRows([]);
       setTotal(0);
-      setError(loadError instanceof Error ? loadError.message : "โหลดงานซ่อมไม่สำเร็จ");
+      setError(toThaiError(loadError));
     } finally {
       if (requestId === requestRef.current) setIsLoading(false);
     }
@@ -65,80 +72,49 @@ export default function RepairsPage() {
   useEffect(() => {
     Promise.resolve().then(() => loadRepairs());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, statusFilter, deferredSearch]);
+  }, [page, pageSize, statusFilter, deferredSearch, reloadKey]);
 
-  async function createJob(input: RepairIntakeSave) {
-    setError(null);
-    const { error } = await supabase.rpc("rpc_create_repair_job", {
-      payload: input,
-    });
+  // Runs one mutation RPC: toasts a Thai message on failure, reloads the list on success.
+  async function run(call: PromiseLike<{ error: unknown }>, successMessage?: string) {
+    const { error } = await call;
     if (error) {
-      setError(error.message);
-      return;
+      toast.error(toThaiError(error), { duration: Infinity });
+      return false;
     }
-    void loadRepairs();
+    if (successMessage) toast.success(successMessage);
+    setReloadKey((value) => value + 1);
+    return true;
   }
 
-  async function setStatus(id: string, status: string) {
-    setError(null);
-    const { error } = await supabase.rpc("rpc_set_repair_status", {
-      p_job_id: id,
-      p_status: status,
-    });
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    void loadRepairs();
-  }
+  const createJob = (input: RepairIntakeSave) =>
+    run(supabase.rpc("rpc_create_repair_job", { payload: input }), "รับงานซ่อมแล้ว");
 
-  async function setPartCost(id: string, cost: number) {
-    setError(null);
-    const { error } = await supabase.rpc("rpc_set_part_cost", {
-      p_job_id: id,
-      p_cost: cost,
-    });
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    void loadRepairs();
-  }
+  const setStatus = async (id: string, status: string) => {
+    await run(supabase.rpc("rpc_set_repair_status", { p_job_id: id, p_status: status }), status === "abandoned" ? "ตัดงานทิ้งแล้ว" : undefined);
+  };
 
-  async function closeJob(id: string, payload: CloseJobPayload) {
-    setError(null);
-    const { error } = await supabase.rpc("rpc_close_repair_job", {
-      p_job_id: id,
-      p_sale_payload: payload,
-    });
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    void loadRepairs();
-  }
+  const setPartCost = async (id: string, cost: number) => {
+    await run(supabase.rpc("rpc_set_part_cost", { p_job_id: id, p_cost: cost }), "บันทึกต้นทุนอะไหล่แล้ว");
+  };
+
+  const closeJob = (id: string, payload: CloseJobPayload) =>
+    run(supabase.rpc("rpc_close_repair_job", { p_job_id: id, p_sale_payload: payload }), "ออกบิลและปิดงานแล้ว");
 
   return (
     <PageFrame
       page="repairs"
-      eyebrow="SERVICE / WORKFLOW"
       title="งานซ่อม"
-      description="รับงาน ติดตามสถานะ บันทึกต้นทุนอะไหล่ และออกบิลเมื่อส่งมอบ"
-      actions={<span className="font-mono text-xs tracking-wide text-ink-muted">STAFF DESK</span>}
+      description={`${total.toLocaleString("th-TH")} งานตามตัวกรองปัจจุบัน`}
+      actions={
+        <button type="button" onClick={() => setIsIntakeOpen(true)} data-testid="open-intake-form" className="ucom-primary px-[18px] py-2.5">
+          + รับงานซ่อมใหม่
+        </button>
+      }
     >
+      {error && <ErrorPanel message={error} onRetry={() => setReloadKey((value) => value + 1)} />}
 
-      {error && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border border-danger bg-danger/10 p-3 text-sm text-danger">
-          <span>{error}</span>
-          <button type="button" onClick={() => void loadRepairs()} className="ucom-danger px-3 py-1.5 text-sm">
-            ลองใหม่
-          </button>
-        </div>
-      )}
+      <IntakeForm open={isIntakeOpen} onClose={() => setIsIntakeOpen(false)} onSave={createJob} />
 
-      <IntakeForm onSave={createJob} />
-
-      <PageSection title="คิวงานซ่อม" description={`${total.toLocaleString("th-TH")} งานตามตัวกรองปัจจุบัน`}>
       <div className="ucom-toolbar">
         <div className="flex flex-wrap gap-1 rounded-full bg-sunken p-1">
           <button
@@ -148,7 +124,7 @@ export default function RepairsPage() {
               setPage(1);
             }}
             data-testid="filter-open"
-            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "open" ? "bg-[#2c2a38] text-white font-semibold" : "text-ink-muted"}`}
+            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "open" ? "bg-brand-ink text-white font-semibold" : "text-ink-muted"}`}
           >
             เปิดอยู่
           </button>
@@ -159,7 +135,7 @@ export default function RepairsPage() {
               setPage(1);
             }}
             data-testid="filter-collected"
-            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "collected" ? "bg-[#2c2a38] text-white font-semibold" : "text-ink-muted"}`}
+            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "collected" ? "bg-brand-ink text-white font-semibold" : "text-ink-muted"}`}
           >
             รับแล้ว
           </button>
@@ -170,7 +146,7 @@ export default function RepairsPage() {
               setPage(1);
             }}
             data-testid="filter-abandoned"
-            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "abandoned" ? "bg-[#2c2a38] text-white font-semibold" : "text-ink-muted"}`}
+            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "abandoned" ? "bg-brand-ink text-white font-semibold" : "text-ink-muted"}`}
           >
             ลูกค้าทิ้ง
           </button>
@@ -181,7 +157,7 @@ export default function RepairsPage() {
               setPage(1);
             }}
             data-testid="filter-all"
-            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "all" ? "bg-[#2c2a38] text-white font-semibold" : "text-ink-muted"}`}
+            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "all" ? "bg-brand-ink text-white font-semibold" : "text-ink-muted"}`}
           >
             ทั้งหมด
           </button>
@@ -198,18 +174,14 @@ export default function RepairsPage() {
         />
       </div>
 
-      {isLoading && <p className="text-sm text-ink-muted">กำลังโหลดงานซ่อม...</p>}
-
-      <RepairTable
-        rows={rows}
-        onSetStatus={setStatus}
-        onSetPartCost={setPartCost}
-        onCloseJob={closeJob}
-      />
-      {!isLoading && rows.length === 0 && (
-        <p className="rounded border border-dashed border-border p-6 text-center text-sm text-ink-muted">
-          ไม่พบงานตามตัวกรอง
-        </p>
+      {isLoading && rows.length === 0 ? (
+        <SkeletonRows cols={7} head={<RepairTableHead />} />
+      ) : rows.length > 0 ? (
+        <RepairTable rows={rows} onSetStatus={setStatus} onSetPartCost={setPartCost} onCloseJob={closeJob} />
+      ) : !error && (
+        statusFilter === "open" && !search
+          ? <EmptyState title="ยังไม่มีงานซ่อมที่เปิดอยู่" hint="กด “รับงานซ่อมใหม่” เพื่อเริ่มรับงาน" />
+          : <EmptyState title="ไม่พบงานตามตัวกรอง" onClearFilter={() => { setSearch(""); setStatusFilter("open"); setPage(1); }} />
       )}
       <PaginationControls
         page={page}
@@ -224,7 +196,9 @@ export default function RepairsPage() {
           setPage(1);
         }}
       />
-      </PageSection>
+      <p className="ucom-info">
+        “ลูกค้าทิ้ง” คือการตัดงานทิ้ง ไม่ใช่การยกเลิกงาน — แถวจะไม่ถูกลบและกดกลับไปสถานะอื่นไม่ได้
+      </p>
     </PageFrame>
   );
 }

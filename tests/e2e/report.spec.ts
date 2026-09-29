@@ -26,7 +26,7 @@ async function readCell(page: Page, bucket: string, columnIndex: number): Promis
 // specs that also write repair jobs into today.
 async function expectRedWhenNegative(page: Page, locator: string, value: number) {
   const cls = (await page.locator(locator).getAttribute("class")) ?? "";
-  expect(cls.includes("text-red-600")).toBe(value < 0);
+  expect(cls.includes("text-danger")).toBe(value < 0);
 }
 
 // column order on the report table: bucket, sale_revenue, sale_profit, repair_revenue,
@@ -102,16 +102,16 @@ test.describe("Report", () => {
     await page.locator('[data-testid="quick-today"]').click();
     await expect(page.locator('[data-testid="report-from"]')).toHaveValue(today);
     await expect(page.locator('[data-testid="report-to"]')).toHaveValue(today);
-    await expect(page.locator('[data-testid="group-day"]')).toHaveClass(/bg-white/);
+    await expect(page.locator('[data-testid="group-day"]')).toHaveAttribute("aria-pressed", "true");
 
     await page.locator('[data-testid="quick-month"]').click();
     await expect(page.locator('[data-testid="report-from"]')).toHaveValue(today.slice(0, 7) + "-01");
-    await expect(page.locator('[data-testid="group-day"]')).toHaveClass(/bg-white/);
+    await expect(page.locator('[data-testid="group-day"]')).toHaveAttribute("aria-pressed", "true");
 
     await page.locator('[data-testid="quick-year"]').click();
     await expect(page.locator('[data-testid="report-from"]')).toHaveValue(today.slice(0, 4) + "-01-01");
     await expect(page.locator('[data-testid="report-to"]')).toHaveValue(today);
-    await expect(page.locator('[data-testid="group-month"]')).toHaveClass(/bg-white/);
+    await expect(page.locator('[data-testid="group-month"]')).toHaveAttribute("aria-pressed", "true");
     // grouping by month means the bucket label is YYYY-MM, not a full date
     await expect(page.locator(`[data-testid="report-row-${today.slice(0, 7)}"]`)).toHaveCount(1, { timeout: 15000 });
   });
@@ -125,7 +125,7 @@ test.describe("Report", () => {
 
     await page.goto("/report");
     await page.locator('[data-testid="quick-year"]').click();
-    await expect(page.locator('[data-testid="group-month"]')).toHaveClass(/bg-white/);
+    await expect(page.locator('[data-testid="group-month"]')).toHaveAttribute("aria-pressed", "true");
     await page.waitForTimeout(1000);
     const afterLoad = fetches;
     expect(afterLoad).toBeGreaterThan(0);
@@ -166,15 +166,32 @@ test.describe("Report", () => {
     const summed = texts.reduce((acc, t) => acc + parseMoney(t.replace("กำไร", "")), 0);
     expect(summed).toBeCloseTo(dayNet, 2);
 
-    // the newest day can easily be a repair-only or expense-only day, and skipping the
-    // bill assertion on those days would let the line-item feature rot behind a green
-    // test — walk down the days until one actually has a bill to open.
-    const dayRows = page.locator(`[data-testid^="report-row-${monthBucket}-"]`);
-    let openBill = page.locator('[data-testid^="open-sale-"]').first();
-    for (let i = 1; (await openBill.count()) === 0 && i < (await dayRows.count()); i += 1) {
-      await dayRows.nth(i).click();
-      openBill = page.locator('[data-testid^="open-sale-"]').first();
+    // The first month can have only repairs or expenses. Find a month and day
+    // with sales before checking the bill drill-down.
+    const monthRows = page.getByTestId(new RegExp(`^report-row-${year}-\\d{2}$`));
+    let saleMonth: string | null = null;
+    for (const row of await monthRows.all()) {
+      if (parseMoney(await row.locator("td").nth(1).textContent()) <= 0) continue;
+      saleMonth = (await row.getAttribute("data-testid"))!.replace("report-row-", "");
+      await row.click();
+      break;
     }
+    if (!saleMonth) throw new Error("No month with sales in the selected year");
+
+    const saleDayRows = page.getByTestId(new RegExp(`^report-row-${saleMonth}-\\d{2}$`));
+    let saleDay: string | null = null;
+    for (const row of await saleDayRows.all()) {
+      if (parseMoney(await row.locator("td").nth(1).textContent()) <= 0) continue;
+      saleDay = (await row.getAttribute("data-testid"))!.replace("report-row-", "");
+      await row.click();
+      break;
+    }
+    if (!saleDay) throw new Error("No day with sales in the selected month");
+
+    const saleDetail = page.getByTestId(`report-detail-${saleDay}`);
+    await expect(saleDetail).toBeVisible({ timeout: 15000 });
+    await saleDetail.getByTestId("report-detail-kind").selectOption("sale");
+    const openBill = saleDetail.getByTestId(/^open-sale-/).first();
     await expect(openBill).toBeVisible({ timeout: 15000 });
 
     const saleId = (await openBill.getAttribute("data-testid"))!.replace("open-sale-", "");

@@ -26,7 +26,7 @@ async function createSfDevice(
   const modelName = "ZZTEST-SF-" + suffix;
   const imei = String(Date.now()) + String(Math.floor(Math.random() * 1000));
 
-  await page.goto("/stock");
+  await page.goto("/consignments?tab=sf");
   await page.locator('[data-testid="open-sf-intake"]').click();
   await page.locator('[data-testid="sf-order-no"]').fill("TEST-SF-" + suffix);
   await page.locator('[data-testid="sf-device-imei-0"]').fill(imei.slice(0, 15));
@@ -70,6 +70,7 @@ test("financing an SF device does not require commission; report increases only 
 
   // Device now appears in pending list on /sf-commissions
   await staff.goto("/sf-commissions");
+  await staff.locator('[data-testid="sf-tab-pending"]').click();
   const pendingSection = staff.locator('[data-testid="sf-pending-section"]');
   const pendingCard = pendingSection.locator("text=" + modelName);
   await expect(pendingCard).toBeVisible({ timeout: 10000 });
@@ -103,6 +104,7 @@ test("financing an SF device does not require commission; report increases only 
   await expect(deviceCard2).toHaveCount(0);
 
   await staff.goto("/sf-commissions");
+  await staff.locator('[data-testid="sf-tab-pending"]').click();
   const pendingRow2 = staff.locator("tr", { hasText: modelName2 });
   await pendingRow2.locator('[data-testid^="sf-record-open-"]').click();
   const amountInput2 = pendingRow2.locator('[data-testid^="sf-record-amount-"]');
@@ -117,11 +119,13 @@ test("financing an SF device does not require commission; report increases only 
 
   // ── Staff cannot see correction button for confirmed receipts ──
   await staff.goto("/sf-commissions");
+  await staff.locator('[data-testid="sf-tab-receipts"]').click();
   const confirmRow = staff.locator("tr", { hasText: modelName });
   await expect(confirmRow.locator('[data-testid^="sf-correct-open-"]')).toHaveCount(0);
 
   // ── Owner can correct a receipt ──
   await owner.goto("/sf-commissions");
+  await owner.locator('[data-testid="sf-tab-receipts"]').click();
   const ownerConfirmRow = owner.locator("tr", { hasText: modelName });
   await ownerConfirmRow.locator('[data-testid^="sf-correct-open-"]').click();
   const correctAmount = ownerConfirmRow.locator('[data-testid^="sf-correct-amount-"]');

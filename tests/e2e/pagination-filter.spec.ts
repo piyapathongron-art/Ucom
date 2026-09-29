@@ -15,7 +15,8 @@ test.describe("server-side pagination and filters — read only", () => {
     await loginAs(page, "staff");
     await page.goto("/pos");
     await expect(page.locator('[data-testid="catalog-search"]')).toBeVisible();
-    await expect(page.locator('[data-testid="cart-lines"]')).toBeVisible();
+    await expect(page.getByText("ยังไม่มีรายการในบิล")).toBeVisible();
+    await expect(page.locator('[data-testid="cart-lines"]')).toHaveAttribute("data-count", "0");
     await expect(page.locator('[data-testid="checkout-submit"]')).toBeVisible();
     await expect(page.locator('[data-testid="catalog-pagination-controls"]')).toBeVisible();
 
@@ -36,7 +37,7 @@ test.describe("server-side pagination and filters — read only", () => {
 
     await page.goto("/stock");
     await expect(page.locator('[data-testid="stock-pagination-controls"]')).toBeVisible();
-    await page.locator('[data-testid="stock-kind-filter"]').selectOption("device");
+    await page.locator('[data-testid="stock-kind-device"]').click();
     await expect(page.locator('[data-testid="stock-pagination-page"]')).toHaveText(/1 \/ 1|1 \/ \d+/);
 
     await page.goto("/repairs");

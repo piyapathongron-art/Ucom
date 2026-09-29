@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 
 test.use({ baseURL: "http://localhost:3002" });
 
@@ -10,17 +11,38 @@ async function loginAsStaff(page: Page) {
   await page.waitForURL((url) => !url.pathname.includes("/login"));
 }
 
-// The suite runs against prod, so the bill this test rings up must be one whose absence
-// from the real books is obvious: a single top-up of a fixed small amount.
-async function ringUpTopup(page: Page, amount: string) {
-  await page.locator('[data-testid="topup-carrier-True"]').click();
-  await page.locator('[data-testid="topup-amount"]').fill(amount);
-  await page.locator('[data-testid="topup-add"]').click();
+async function createTestProduct(page: Page): Promise<string> {
+  const name = `ZZTEST-OFFLINE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  await page.goto("/stock");
+  await page.locator('[data-testid="open-add-product"]').click();
+  await page.locator('[data-testid="add-product-name"]').fill(name);
+  await page.locator('[data-testid="add-product-price"]').fill("100");
+  await page.locator('[data-testid="add-product-qty"]').fill("3");
+  await page.locator('[data-testid="add-product-submit"]').click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  return name;
+}
+
+async function ringUpProduct(page: Page, name: string) {
+  await page.locator('[data-testid="catalog-search"]').fill(name);
+  const item = page.locator('[data-testid^="catalog-item-product-"]');
+  await expect(item).toHaveCount(1);
+  await item.click();
   await page.locator('[data-testid="pay-cash"]').click();
-  // a top-up line snapshots the carrier name, so the bill carries no ZZTEST marker of
-  // its own — the note is the only place the teardown can recognise it by
-  await page.locator('[data-testid="bill-note"]').fill("ZZTEST-OFFLINE");
   await page.locator('[data-testid="checkout-submit"]').click();
+}
+
+async function expectPersistedSale(clientUuid: string) {
+  process.loadEnvFile(".env.local");
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Missing Supabase test credentials");
+  const admin = createClient(url, key);
+  await expect.poll(async () => {
+    const { data, error } = await admin.from("sales").select("id").eq("client_uuid", clientUuid);
+    if (error) throw error;
+    return data?.length;
+  }).toBe(1);
 }
 
 test("a sale rung up offline reaches the database once the network returns", async ({
@@ -28,26 +50,23 @@ test("a sale rung up offline reaches the database once the network returns", asy
   context,
 }) => {
   await loginAsStaff(page);
+  const name = await createTestProduct(page);
   await page.goto("/pos");
   await expect(page.locator('[data-testid="catalog-search"]')).toBeVisible();
-  // the carrier buttons come from a second query — ringing up a top-up before they
-  // land would fail for a reason that has nothing to do with being offline
-  await expect(page.locator('[data-testid="topup-carrier-True"]')).toBeVisible();
+  await page.locator('[data-testid="catalog-search"]').fill(name);
+  await expect(page.locator('[data-testid^="catalog-item-product-"]')).toHaveCount(1);
 
   // no queue banner while everything is healthy
   await expect(page.locator('[data-testid="queue-banner"]')).toHaveCount(0);
 
   await context.setOffline(true);
 
-  await ringUpTopup(page, "50");
+  await ringUpProduct(page, name);
   await expect(page.locator('[data-testid="queue-count"]')).toHaveText(
     "บิลค้าง 1 ใบ",
   );
-
-  await ringUpTopup(page, "60");
-  await expect(page.locator('[data-testid="queue-count"]')).toHaveText(
-    "บิลค้าง 2 ใบ",
-  );
+  const clientUuid = await page.evaluate(() => JSON.parse(localStorage.getItem("ucom-pos-queue-v1") ?? "[]")[0]?.clientUuid as string);
+  expect(clientUuid).toBeTruthy();
 
   // nothing was rejected, so the banner must not be in its red state
   await expect(page.locator('[data-testid="queue-rejected"]')).toHaveCount(0);
@@ -60,21 +79,24 @@ test("a sale rung up offline reaches the database once the network returns", asy
   await expect(page.locator('[data-testid="queue-banner"]')).toHaveCount(0, {
     timeout: 15000,
   });
+  await expectPersistedSale(clientUuid);
 });
 
 test("the queue survives a reload while offline", async ({ page, context }) => {
   await loginAsStaff(page);
+  const name = await createTestProduct(page);
   await page.goto("/pos");
   await expect(page.locator('[data-testid="catalog-search"]')).toBeVisible();
-  // the carrier buttons come from a second query — ringing up a top-up before they
-  // land would fail for a reason that has nothing to do with being offline
-  await expect(page.locator('[data-testid="topup-carrier-True"]')).toBeVisible();
+  await page.locator('[data-testid="catalog-search"]').fill(name);
+  await expect(page.locator('[data-testid^="catalog-item-product-"]')).toHaveCount(1);
 
   await context.setOffline(true);
-  await ringUpTopup(page, "70");
+  await ringUpProduct(page, name);
   await expect(page.locator('[data-testid="queue-count"]')).toHaveText(
     "บิลค้าง 1 ใบ",
   );
+  const clientUuid = await page.evaluate(() => JSON.parse(localStorage.getItem("ucom-pos-queue-v1") ?? "[]")[0]?.clientUuid as string);
+  expect(clientUuid).toBeTruthy();
 
   await context.setOffline(false);
   await page.reload();
@@ -83,6 +105,7 @@ test("the queue survives a reload while offline", async ({ page, context }) => {
   await expect(page.locator('[data-testid="queue-banner"]')).toHaveCount(0, {
     timeout: 15000,
   });
+  await expectPersistedSale(clientUuid);
 });
 
 test("discarding a rejected offline sale clears the queue and banner", async ({ page }) => {
@@ -113,13 +136,11 @@ test("discarding a rejected offline sale clears the queue and banner", async ({ 
   await expect(page.locator('[data-testid="queue-count"]')).toHaveText("บิลค้าง 1 ใบ");
   await expect(page.locator('[data-testid="queue-rejected"]')).toBeVisible();
 
-  // Dialog auto-accept
-  page.on("dialog", (dialog) => dialog.accept());
-
   // Click discard button
   const discardBtn = page.locator(`[data-testid="queue-remove-${rejectedUuid}"]`);
   await expect(discardBtn).toBeVisible();
   await discardBtn.click();
+  await page.locator('[data-testid="queue-remove-confirm"]').click();
 
   // Banner should disappear completely
   await expect(page.locator('[data-testid="queue-banner"]')).toHaveCount(0);

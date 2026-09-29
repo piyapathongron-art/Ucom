@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { ErrorPanel } from "@/app/_components/ErrorPanel";
 import { PageFrame } from "@/app/_components/PageFrame";
+import { toThaiError } from "@/lib/errors";
 import { ReportTable } from "./ReportTable";
 import { GROUPING_LABEL, sumRows, todayInBangkok, type Grouping, type ReportRow } from "./types";
 
@@ -33,7 +35,7 @@ export default function ReportPage() {
         ({ data, error: fetchError }) => {
           if (isStale) return;
           if (fetchError) {
-            setError(fetchError.message);
+            setError(toThaiError(fetchError));
             setRows([]);
           } else {
             setError(null);
@@ -85,28 +87,13 @@ export default function ReportPage() {
   return (
     <PageFrame
       page="report"
-      eyebrow="OWNER / REPORTING"
+     
       title="รายงาน"
       description="ดูผลประกอบการตามช่วงเวลา และเจาะจากปี → เดือน → วัน → รายละเอียดบิล"
       dataLoading={isLoading}
-      actions={<span className="font-mono text-xs tracking-wide text-ink-muted">OWNER ONLY</span>}
     >
 
-      {error && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border border-danger bg-danger/10 p-3 text-sm text-danger">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => {
-              setIsLoading(true);
-              setReloadKey((value) => value + 1);
-            }}
-            className="ucom-danger px-3 py-1.5 text-sm"
-          >
-            ลองใหม่
-          </button>
-        </div>
-      )}
+      {error && <ErrorPanel message={error} onRetry={() => { setIsLoading(true); setReloadKey((value) => value + 1); }} />}
 
       <div className="ucom-toolbar">
         <div className="flex gap-2">
@@ -161,8 +148,9 @@ export default function ReportPage() {
               type="button"
               onClick={() => setGrouping(g)}
               data-testid={`group-${g}`}
+              aria-pressed={grouping === g}
               className={`rounded-full px-4 py-1.5 text-sm ${
-                grouping === g ? "bg-[#2c2a38] text-white font-semibold" : "text-ink-muted"
+                grouping === g ? "bg-brand-ink text-white font-semibold" : "text-ink-muted"
               }`}
             >
               {label}

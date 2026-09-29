@@ -22,8 +22,8 @@ export function QueueBanner({
       data-testid="queue-banner"
       className={
         rejected.length > 0
-          ? "border-b border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger"
-          : "border-b border-warning/40 bg-warning/10 px-4 py-2 text-sm text-warning"
+          ? "bg-danger/10 px-4 py-2.5 text-sm font-semibold text-danger"
+          : "bg-warning-bg px-4 py-2.5 text-sm font-semibold text-warning"
       }
     >
       <div className="mx-auto flex max-w-[1440px] items-center gap-3">
@@ -33,7 +33,7 @@ export function QueueBanner({
           onClick={onSync}
           disabled={isSyncing}
           data-testid="queue-sync"
-          className="rounded border border-current px-2 py-1 text-xs font-medium underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-50"
+          className="rounded-full border border-current px-3 py-1 text-xs font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-50"
         >
           {isSyncing ? "กำลังส่ง" : "ส่งบิลค้าง"}
         </button>
@@ -49,7 +49,7 @@ export function QueueBanner({
                   type="button"
                   data-testid={`queue-remove-${s.clientUuid}`}
                   onClick={() => onRemove(s.clientUuid)}
-                  className="rounded border border-danger/40 bg-danger/20 px-2 py-0.5 text-[0.7rem] font-medium text-danger hover:bg-danger/30 transition-colors"
+                  className="rounded-full bg-danger/20 px-3 py-1 text-[0.7rem] font-bold text-danger hover:bg-danger/30 transition-colors"
                 >
                   ลบบิลนี้ทิ้ง
                 </button>
