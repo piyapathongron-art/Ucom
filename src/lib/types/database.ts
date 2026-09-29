@@ -594,6 +594,7 @@ export type Database = {
       sales: {
         Row: {
           bill_discount: number
+          bill_no: number
           bill_discount_reason: string | null
           client_uuid: string | null
           created_at: string
@@ -607,6 +608,7 @@ export type Database = {
         }
         Insert: {
           bill_discount?: number
+          bill_no?: number
           bill_discount_reason?: string | null
           client_uuid?: string | null
           created_at?: string
@@ -620,6 +622,7 @@ export type Database = {
         }
         Update: {
           bill_discount?: number
+          bill_no?: number
           bill_discount_reason?: string | null
           client_uuid?: string | null
           created_at?: string

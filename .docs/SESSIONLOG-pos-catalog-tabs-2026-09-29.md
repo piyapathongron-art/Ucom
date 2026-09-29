@@ -71,5 +71,11 @@
 - Verify: `tsc`/`eslint`/`summary.check` ผ่าน; Playwright report 6/6, sf 2/2, read-only 16/16 (รอบก่อนแก้เทส drill ตก 1 ตัวจากเหตุข้างต้น รันซ้ำผ่าน); ภาพหน้าจอแท็บบิล (เปิดบิลหนึ่งใบ) ตรวจแล้ว
 - **ยังไม่ได้ verify:** การพิมพ์จริง (เปิด print dialog / ดู print preview) — ตรวจแค่ปุ่มมีและ CSS เขียนแล้ว
 
-### เฟส 2b — เลขที่บิล (ยังไม่ทำ: design fork + migration = R0)
-ตัวเลือกอยู่ในแชท รอผู้ใช้เคาะ
+### เฟส 2b — เลขที่บิล `sales.bill_no` (ทำแล้ว, ผู้ใช้เลือกทาง ข และอนุมัติ R0)
+- migration `20260929150000_sales_bill_no.sql` — apply ลง prod แล้วด้วย `supabase db query --linked -f`: sequence `sales_bill_no_seq`, คอลัมน์ `bill_no bigint` NOT NULL default nextval, unique index; เติมบิลเดิม 1,093 แถวเรียง `sold_at, created_at, id` เป็น 1..1093 (UPDATE 1 คอลัมน์ ไม่ลบ) · `sales` ไม่มี trigger
+- ตรวจหลัง apply (SQL): 1093/1093 แถวมีเลข ไม่ซ้ำ ช่วง 1–1093, default/NOT NULL/index ครบ, sequence รอ 1094
+- ตรวจผ่านหน้าจอ: `pos.spec` (เงินสด, โอน) + `offline.spec` (บิลจากคิวออฟไลน์) สร้างบิลใหม่ได้เลข 1094, 1095, 1096, 1097 ตามลำดับ ไม่ซ้ำ
+- หน้าบ้าน: คอลัมน์ "เลขที่บิล" (`#0092`, `billLabel`) ในแท็บบิล + หัวรายละเอียดบิล (พิมพ์ในใบเสร็จด้วย) · `database.ts` เพิ่ม `bill_no` ใน `sales`
+- เทส: `report.spec` bills tab ตรวจรูปแบบเลขและตรงกับหัวรายละเอียด; รอบนี้ report 6/6, pos 5/5, offline 4/4, read-only 13/13
+- ข้อสังเกต: เลขให้ตอนบิลถึงเซิร์ฟเวอร์ (บิลออฟไลน์ไม่เรียงตามเวลากดขาย), sequence ข้ามเลขได้ถ้า insert ล้ม — ไม่ซ้ำแต่ไม่การันตีต่อเนื่อง
+- ยังไม่ verify: การพิมพ์ใบเสร็จจริงบนเครื่องพิมพ์/print preview

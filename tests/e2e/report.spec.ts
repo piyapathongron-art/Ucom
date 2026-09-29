@@ -212,11 +212,14 @@ test.describe("Report", () => {
     await expect(page.getByTestId("report-daily-profit")).toBeVisible({ timeout: 15000 });
     const row = page.locator('[data-testid^="report-bill-"]').first();
     await expect(row).toBeVisible({ timeout: 15000 });
-    const rowRevenue = parseMoney(await row.locator("td").nth(3).textContent());
+    const billNo = (await row.getByTestId("bill-no").textContent()) ?? "";
+    expect(billNo).toMatch(/^#\d{4,}$/);
+    const rowRevenue = parseMoney(await row.locator("td").nth(4).textContent());
     await row.click();
-    const detail = page.locator('[data-testid^="bill-detail-"]');
+    const detail = page.locator("[data-print-area]");
     await expect(detail).toBeVisible({ timeout: 15000 });
     await expect(detail.getByTestId("bill-print")).toBeVisible();
+    await expect(detail.getByTestId("bill-detail-no")).toContainText(billNo);
     await expect(detail.locator("table tbody tr").first()).toBeVisible();
     const netText = await detail.getByText("ยอดชำระสุทธิ").locator("xpath=following-sibling::dd").textContent();
     // the detail is rebuilt from the bill's own lines; the list row comes from the report view

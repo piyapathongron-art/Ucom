@@ -5,10 +5,11 @@ import { PaginationControls } from "@/app/_components/PaginationControls";
 import { createClient } from "@/lib/supabase/client";
 import { pageRange } from "@/lib/supabase/pagination";
 import { BillDetail } from "./BillDetail";
-import { channelOf } from "./summary";
+import { billLabel, channelOf } from "./summary";
 
 type BillRow = {
   id: string;
+  billNo: number | null;
   occurredAt: string | null;
   channel: string;
   staff: string;
@@ -47,7 +48,7 @@ export function ReportBills({ from, to }: { from: string; to: string }) {
           .order("occurred_at", { ascending: false }).order("ref_id").range(a, b);
         if (entries.error) throw entries.error;
         const ids = (entries.data ?? []).map((e) => e.ref_id!).filter(Boolean);
-        const headers = ids.length ? await supabase.from("sales").select("id, receiving_account, created_by").in("id", ids) : { data: [], error: null };
+        const headers = ids.length ? await supabase.from("sales").select("id, bill_no, receiving_account, created_by").in("id", ids) : { data: [], error: null };
         if (headers.error) throw headers.error;
         // Staff names are a nicety: if profiles are not readable the column shows "-".
         const staffIds = [...new Set((headers.data ?? []).map((h) => h.created_by).filter(Boolean))] as string[];
@@ -59,6 +60,7 @@ export function ReportBills({ from, to }: { from: string; to: string }) {
           const h = header.get(e.ref_id ?? "");
           return {
             id: e.ref_id ?? "",
+            billNo: h?.bill_no ?? null,
             occurredAt: e.occurred_at,
             channel: channelOf(e.detail, h?.receiving_account ?? null),
             staff: name.get(h?.created_by ?? "") ?? "-",
@@ -93,6 +95,7 @@ export function ReportBills({ from, to }: { from: string; to: string }) {
         <table data-testid="report-bills" className="ucom-table whitespace-nowrap">
           <thead>
             <tr>
+              <th>เลขที่บิล</th>
               <th>เวลา</th>
               <th>ช่องทาง</th>
               <th>พนักงาน</th>
@@ -111,6 +114,7 @@ export function ReportBills({ from, to }: { from: string; to: string }) {
                     aria-expanded={isOpen}
                     className="cursor-pointer hover:bg-brand-ink/40"
                   >
+                    <td data-testid="bill-no" className="font-semibold tabular-nums">{billLabel(bill.billNo)}</td>
                     <td className="tabular-nums text-ink-muted">{when(bill.occurredAt)}</td>
                     <td>{bill.channel}</td>
                     <td className="text-ink-muted">{bill.staff}</td>
@@ -119,7 +123,7 @@ export function ReportBills({ from, to }: { from: string; to: string }) {
                   </tr>
                   {isOpen && (
                     <tr>
-                      <td colSpan={5} className="bg-sunken !p-0">
+                      <td colSpan={6} className="bg-sunken !p-0">
                         <BillDetail saleId={bill.id} netProfit={bill.profit} />
                       </td>
                     </tr>

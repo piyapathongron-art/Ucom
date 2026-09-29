@@ -47,3 +47,8 @@ export function changeText(current: number, previous: number | null, isSingleDay
   const size = Math.abs(pct) > 999 ? "999%+" : `${Math.abs(pct)}%`;
   return { text: `${pct >= 0 ? "+" : "−"}${size} จาก${isSingleDay ? "เมื่อวาน" : "ช่วงก่อนหน้า"}`, isUp: pct >= 0 };
 }
+
+// #0092 style; numbers past 9999 simply grow.
+export function billLabel(billNo: number | null | undefined): string {
+  return billNo == null ? "-" : `#${String(billNo).padStart(4, "0")}`;
+}

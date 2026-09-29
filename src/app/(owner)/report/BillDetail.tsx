@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { channelOf } from "./summary";
+import { billLabel, channelOf } from "./summary";
 
 type Line = { id: string; name_snapshot: string | null; qty: number | null; unit_price: number | null; unit_cost: number | null; item_discount: number | null };
 type Bill = {
+  billNo: number | null;
   soldAt: string | null;
   channel: string;
   staff: string;
@@ -29,7 +30,7 @@ export function BillDetail({ saleId, netProfit }: { saleId: string; netProfit: n
     Promise.resolve().then(async () => {
       try {
         const [sale, items] = await Promise.all([
-          supabase.from("sales").select("sold_at, payment_method, receiving_account, bill_discount, created_by").eq("id", saleId).single(),
+          supabase.from("sales").select("bill_no, sold_at, payment_method, receiving_account, bill_discount, created_by").eq("id", saleId).single(),
           supabase.from("sale_items").select("id, name_snapshot, qty, unit_price, unit_cost, item_discount").eq("sale_id", saleId).order("id"),
         ]);
         if (sale.error || items.error) throw new Error("bill load failed");
@@ -38,6 +39,7 @@ export function BillDetail({ saleId, netProfit }: { saleId: string; netProfit: n
           : null;
         if (isStale) return;
         setBill({
+          billNo: sale.data.bill_no,
           soldAt: sale.data.sold_at,
           channel: channelOf(sale.data.payment_method, sale.data.receiving_account),
           staff: person?.data?.display_name ?? "-",
@@ -66,7 +68,7 @@ export function BillDetail({ saleId, netProfit }: { saleId: string; netProfit: n
     <div data-testid={`bill-detail-${saleId}`} data-print-area className="space-y-4 px-5 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-ink">{when}</p>
+          <p data-testid="bill-detail-no" className="text-sm font-semibold text-ink">บิล {billLabel(bill.billNo)} · {when}</p>
           <p className="text-xs text-ink-muted">พนักงาน: {bill.staff} · ช่องทาง: {bill.channel}</p>
         </div>
         <button type="button" onClick={() => window.print()} data-testid="bill-print" className="ucom-secondary px-4 py-2 text-sm print:hidden">

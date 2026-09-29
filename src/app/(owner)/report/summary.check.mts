@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { changeText, channelOf, salesByChannel, topProducts } from "./summary.ts";
+import { billLabel, changeText, channelOf, salesByChannel, topProducts } from "./summary.ts";
 import { previousRange, weekStartOf } from "./types.ts";
 
 assert.equal(channelOf("cash", null), "เงินสด");
@@ -47,5 +47,10 @@ assert.deepEqual(changeText(50, 100, false), { text: "−50% จากช่ว�
 assert.deepEqual(changeText(100, 100, false), { text: "+0% จากช่วงก่อนหน้า", isUp: true });
 
 assert.deepEqual(changeText(90000, 100, false), { text: "+999%+ จากช่วงก่อนหน้า", isUp: true });
+
+assert.equal(billLabel(92), "#0092");
+assert.equal(billLabel(1093), "#1093");
+assert.equal(billLabel(12345), "#12345");
+assert.equal(billLabel(null), "-");
 
 console.log("summary.check ok");
