@@ -105,7 +105,7 @@ test("temporary wallet openings support dedicated and POS sales, then reject ove
   await staff.getByLabel("ค่าย").selectOption(trueId);
   await staff.getByLabel("จำนวนเงินที่ลูกค้าจ่าย").fill("50");
   await staff.getByRole("button", { name: /ยืนยันขายเติมเงิน/ }).click();
-  await expect(staff.getByRole("status")).toContainText("ขายเติมเงินสำเร็จ");
+  await expect(staff.getByText("ขายเติมเงินสำเร็จ")).toBeVisible();
   const firstUuid = [...saleUuids][0];
   expect(firstUuid).toBeTruthy();
   const firstSale = await saleState(firstUuid);
@@ -135,7 +135,7 @@ test("temporary wallet openings support dedicated and POS sales, then reject ove
   await staff.getByLabel("ค่าย").selectOption(trueId);
   await staff.getByLabel("จำนวนเงินที่ลูกค้าจ่าย").fill("2000");
   await staff.getByRole("button", { name: /ยืนยันขายเติมเงิน/ }).click();
-  await expect(staff.locator('p[role="alert"]')).toContainText("ยอดวอลเล็ตค่ายนี้ไม่พอ");
+  await expect(staff.getByText("ยอดวอลเล็ตค่ายนี้ไม่พอ")).toBeVisible();
   expect(Number((await walletBalance(trueId)).balance)).toBe(932.1);
 
   await staffContext.close();

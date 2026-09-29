@@ -65,7 +65,8 @@ test.describe("Report", () => {
     await expect(staff.locator(`[data-testid="repair-part-paid-${id}"]`)).toBeVisible({ timeout: 15000 });
 
     await staff.locator(`[data-testid="repair-abandon-${id}"]`).click();
-    await staff.locator(`[data-testid="repair-abandon-confirm-${id}"]`).click();
+    // mobile card and desktop row both mount a confirm dialog — click the visible one
+    await staff.locator(`[data-testid="repair-abandon-confirm-${id}"]`).filter({ visible: true }).click();
     await staff.locator('[data-testid="filter-abandoned"]').click();
     await expect(staff.locator(`[data-testid="repair-status-${id}"]`)).toHaveCount(1, { timeout: 15000 });
 
@@ -173,7 +174,8 @@ test.describe("Report", () => {
     for (const row of await monthRows.all()) {
       if (parseMoney(await row.locator("td").nth(1).textContent()) <= 0) continue;
       saleMonth = (await row.getAttribute("data-testid"))!.replace("report-row-", "");
-      await row.click();
+      // the first month is already open — clicking it again would collapse it
+      if (saleMonth !== monthBucket) await row.click();
       break;
     }
     if (!saleMonth) throw new Error("No month with sales in the selected year");
@@ -183,7 +185,7 @@ test.describe("Report", () => {
     for (const row of await saleDayRows.all()) {
       if (parseMoney(await row.locator("td").nth(1).textContent()) <= 0) continue;
       saleDay = (await row.getAttribute("data-testid"))!.replace("report-row-", "");
-      await row.click();
+      if (saleDay !== dayBucket) await row.click();
       break;
     }
     if (!saleDay) throw new Error("No day with sales in the selected month");

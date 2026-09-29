@@ -127,6 +127,45 @@ test("W4 SF+: intake dialog → highlighted in บิลค้าง → duplica
   await expect(row).toHaveCount(0);
 });
 
+test("W4b SF+: edit removes an existing device row; the order keeps the rest; last row cannot be removed", async ({ page }) => {
+  await loginAs(page, "staff");
+  await page.goto("/consignments?tab=sf");
+  const s = stamp();
+  const orderNo = `TEST-SF-${s}`;
+  const model = `ZZTEST-SFRM-${s}`;
+  const base = String(Date.now()).padEnd(15, "3").slice(0, 14);
+  const imeis = [`${base}1`, `${base}2`];
+
+  await page.getByTestId("open-sf-intake").click();
+  await page.getByTestId("sf-order-no").fill(orderNo);
+  await page.getByTestId("sf-device-imei-0").fill(imeis[0]);
+  await page.getByTestId("sf-device-model-0").fill(model);
+  await page.getByTestId("sf-device-price-0").fill("3000");
+  await page.getByRole("button", { name: "+ เพิ่มแถวเครื่อง" }).click();
+  await page.getByTestId("sf-device-imei-1").fill(imeis[1]);
+  await page.getByTestId("sf-intake-submit").click();
+  await expect(dialog(page)).toBeHidden();
+  const row = page.locator("tr", { hasText: orderNo });
+  await expect(row).toBeVisible();
+
+  await row.getByRole("button", { name: "แก้ไข" }).click();
+  await expect(page.getByTestId("sf-device-imei-1")).toHaveValue(imeis[1]);
+  await page.getByTestId("sf-device-remove-1").click();
+  await expect(page.getByTestId("sf-removed-summary")).toContainText("1");
+  await expect(page.getByTestId("sf-device-remove-0")).toBeDisabled();
+  await page.getByTestId("sf-due-edit-submit").click();
+  await expect(dialog(page)).toBeHidden();
+
+  await row.getByRole("button", { name: "แก้ไข" }).click();
+  await expect(page.getByTestId("sf-device-imei-0")).toHaveValue(imeis[0]);
+  await expect(page.getByTestId("sf-device-imei-1")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  await row.getByRole("button", { name: "ลบ", exact: true }).click();
+  await row.getByRole("button", { name: "ยืนยันลบ" }).click();
+  await expect(row).toHaveCount(0);
+});
+
 test("W7 ledger: expense (dated) + off-bill income move totals and net exactly; deletes restore them", async ({ page }) => {
   await loginAs(page, "admin");
   await page.goto("/expenses");
@@ -165,6 +204,32 @@ test("W7 ledger: expense (dated) + off-bill income move totals and net exactly; 
   await expRow.getByRole("button", { name: "ยืนยันลบ" }).click();
   await expect(expRow).toHaveCount(0);
   await expect.poll(async () => num(await net().textContent())).toBeCloseTo(net0, 2);
+});
+
+test("W8 close-day: closing writes day_closings, re-close updates the counted cash", async ({ page }) => {
+  await loginAs(page, "staff");
+  await page.goto("/close-day");
+  const toSend = page.getByTestId("close-day-to-send");
+  await expect(toSend).toBeVisible();
+  const expected = num(await toSend.textContent());
+  const closeWith = async (counted: number, note: string) => {
+    await page.getByTestId("close-day-counted-cash").fill(String(counted));
+    await page.getByTestId("close-day-note").fill(note);
+    await page.getByTestId("close-day-confirm").click();
+    await page.getByTestId("close-day-confirm-submit").click();
+  };
+  if (await page.getByTestId("close-day-reclose").isVisible()) await page.getByTestId("close-day-reclose").click();
+
+  await closeWith(expected, "ZZTEST-W8");
+  const closed = page.getByTestId("close-day-closed");
+  await expect(closed).toContainText("ปิดร้านแล้ว");
+  await expect(closed).toContainText(`฿${expected.toLocaleString("en-US", { minimumFractionDigits: 2 })}`);
+
+  await page.getByTestId("close-day-reclose").click();
+  await closeWith(expected + 10, "ZZTEST-W8-reclose");
+  await expect(closed).toContainText(`฿${(expected + 10).toLocaleString("en-US", { minimumFractionDigits: 2 })}`);
+  await page.reload();
+  await expect(page.getByTestId("close-day-closed")).toContainText(`฿${(expected + 10).toLocaleString("en-US", { minimumFractionDigits: 2 })}`);
 });
 
 test("W10 settings: carrier commission rate saves, persists, and is restored", async ({ page }) => {
