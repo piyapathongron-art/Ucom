@@ -30,7 +30,9 @@ assert.equal(message.altText, "ปิดร้าน 28 ก.ย. · ขาย �
 assert.match(body, /ปิดร้าน จ\. 28 ก\.ย\. 69/);
 assert.match(body, /ปิดโดย พนักงาน · 20:14/);
 assert.match(body, /ยอดที่ต้องส่ง \(เงินสด\)/);
-assert.match(body, /AIS 3 \/ 0 \/ 16/);
+assert.match(body, /"text":"3 · 0 · 16"/);
+assert.match(body, /"text":"1,050 · 1,547"/);
+assert.match(body, /"text":"รวม"/);
 assert.match(body, /เติมเข้า \+4,000/);
 assert.match(body, /อะไหล่ · งานซ่อม A/);
 assert.match(body, /https:\/\/pos\.example\.com\/close-day\?date=2026-09-28/);

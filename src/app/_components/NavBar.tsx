@@ -50,7 +50,7 @@ export default function NavBar({ links, onLogout, displayName, role }: NavBarPro
   </div>;
 
   return <>
-    <aside className="hidden min-h-dvh w-60 shrink-0 flex-col bg-sunken px-4 py-5 lg:flex"><Brand /><nav aria-label="เมนูหลัก" className="mt-8 flex flex-col gap-1">{renderLinks(links.main, false)}</nav>{bottom(false)}</aside>
+    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col overflow-y-auto bg-sunken px-4 py-5 lg:flex"><Brand /><nav aria-label="เมนูหลัก" className="mt-8 flex flex-col gap-1">{renderLinks(links.main, false)}</nav>{bottom(false)}</aside>
     <header className="flex h-14 items-center justify-between bg-sunken px-4 lg:hidden"><Brand /><button type="button" onClick={() => dialogRef.current?.showModal()} aria-label="เปิดเมนู" className="rounded-xl bg-surface p-2 text-ink"><svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" /></svg></button></header>
     <dialog ref={dialogRef} onClick={(event) => event.target === dialogRef.current && close()} className="m-0 ml-auto h-full max-h-full w-[min(20rem,86vw)] bg-sunken p-4 text-ink shadow-2xl backdrop:bg-black/60 open:flex open:flex-col"><div className="flex items-center justify-between pb-4"><Brand /><button type="button" onClick={close} aria-label="ปิดเมนู" className="rounded-xl bg-surface px-2 py-1 text-ink-muted">×</button></div><nav aria-label="เมนูหลัก" className="mt-2 flex flex-col gap-1">{renderLinks(links.main, true)}</nav>{bottom(true)}</dialog>
   </>;
