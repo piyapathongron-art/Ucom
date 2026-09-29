@@ -39,6 +39,18 @@ export function todayInBangkok(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
 }
 
+// Weeks start on Monday, as the shop counts them.
+export function weekStartOf(day: string): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+  return date.toISOString().slice(0, 10);
+}
+
+// A range of Bangkok calendar days as timestamps, for tables filtered on a timestamptz column.
+export function bangkokBounds(from: string, to: string): { start: string; end: string } {
+  return { start: `${from}T00:00:00+07:00`, end: `${to}T23:59:59.999+07:00` };
+}
+
 export function bucketOf(day: string, grouping: Grouping): string {
   if (grouping === "month") return day.slice(0, 7);
   if (grouping === "year") return day.slice(0, 4);

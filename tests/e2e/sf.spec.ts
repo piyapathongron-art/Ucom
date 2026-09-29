@@ -45,7 +45,7 @@ test("financing an SF device does not require commission; report increases only 
   const ownerContext = await browser.newContext();
   const owner = await ownerContext.newPage();
   await loginAs(owner, "admin");
-  await owner.goto("/report");
+  await owner.goto("/report?view=drill");
   await owner.locator('[data-testid="quick-today"]').click();
   const saleBefore = await readReportCell(owner, today, 1);
   const commissionBefore = await readReportCell(owner, today, 5);
@@ -136,7 +136,7 @@ test("financing an SF device does not require commission; report increases only 
   await owner.waitForTimeout(2000);
 
   // Report now shows corrected amount
-  await owner.goto("/report");
+  await owner.goto("/report?view=drill");
   await owner.locator('[data-testid="quick-today"]').click();
   expect(await readReportCell(owner, today, 5)).toBe(commissionBefore + 300);
 
@@ -149,7 +149,7 @@ test("cash sale of an SF device books cost = list_price, not 0", async ({ browse
   const ownerContext = await browser.newContext();
   const owner = await ownerContext.newPage();
   await loginAs(owner, "admin");
-  await owner.goto("/report");
+  await owner.goto("/report?view=drill");
   await owner.locator('[data-testid="quick-today"]').click();
   const profitBefore = await readReportCell(owner, today, 2); // กำไรขาย
 

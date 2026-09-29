@@ -7,9 +7,9 @@ function todayInBangkok(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
 }
 
-// Cells render through toLocaleString(), so "-1,500" has to come back as -1500.
+// Table cells render "-1,500" and cards "−฿1,500"; both have to come back as -1500.
 function parseMoney(text: string | null): number {
-  return Number((text ?? "").replace(/,/g, "").trim());
+  return Number((text ?? "").replace(/−/g, "-").replace(/[฿,\s]/g, ""));
 }
 
 // A day with no money movement has no row at all, which reads as zero — the report is
@@ -42,7 +42,7 @@ test.describe("Report", () => {
     const ownerCtx = await browser.newContext();
     const owner = await ownerCtx.newPage();
     await loginAs(owner, "admin");
-    await owner.goto("/report");
+    await owner.goto("/report?view=drill");
     await owner.locator('[data-testid="quick-today"]').click();
     const profitBefore = await readCell(owner, today, COL_REPAIR_PROFIT);
     const revenueBefore = await readCell(owner, today, COL_REPAIR_REVENUE);
@@ -97,7 +97,7 @@ test.describe("Report", () => {
 
   test("quick actions set the range and the grouping together", async ({ page }) => {
     await loginAs(page, "admin");
-    await page.goto("/report");
+    await page.goto("/report?view=drill");
     const today = todayInBangkok();
 
     await page.locator('[data-testid="quick-today"]').click();
@@ -124,7 +124,7 @@ test.describe("Report", () => {
       if (req.url().includes("v_daily_report")) fetches += 1;
     });
 
-    await page.goto("/report");
+    await page.goto("/report?view=drill");
     await page.locator('[data-testid="quick-year"]').click();
     await expect(page.locator('[data-testid="group-month"]')).toHaveAttribute("aria-pressed", "true");
     await page.waitForTimeout(1000);
@@ -139,7 +139,7 @@ test.describe("Report", () => {
 
   test("drilling year → month → day → bill keeps the numbers of the row above", async ({ page }) => {
     await loginAs(page, "admin");
-    await page.goto("/report");
+    await page.goto("/report?view=drill");
     await page.locator('[data-testid="quick-year"]').click();
     await page.locator('[data-testid="group-year"]').click();
 

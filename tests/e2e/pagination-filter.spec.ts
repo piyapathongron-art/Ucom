@@ -54,7 +54,7 @@ test.describe("server-side pagination and filters — read only", () => {
     await page.locator('[data-testid="expense-filter-search"]').fill("zzznomatch99");
     await expect(page.locator('[data-testid="expense-pagination-page"]')).toHaveText(/1 \/ 1/);
 
-    await page.goto("/report");
+    await page.goto("/report?view=drill");
     await page.locator('[data-testid="quick-today"]').click();
     const firstDayRow = page.locator('[data-testid^="report-row-"]').last();
     if (await firstDayRow.count()) {

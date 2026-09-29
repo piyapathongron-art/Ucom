@@ -220,7 +220,7 @@ body {
   border-color: var(--color-border-strong);
 }
 
-.ucom-page[data-page="report"] [data-testid="card-net_profit"] p:last-child {
+.ucom-page[data-page="report"] [data-testid="card-net_profit"] p:nth-child(2) {
   color: var(--color-accent);
 }
 

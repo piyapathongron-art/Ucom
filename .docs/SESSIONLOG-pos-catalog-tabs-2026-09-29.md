@@ -49,3 +49,20 @@
 ## Facts
 - `supabase db push` ใช้ไม่ได้ (ประวัติ migration local ≠ remote) → apply ด้วย `supabase db query --linked -f <file>`
 - เครื่องมือ MCP `execute_sql` ไม่มีสิทธิ์ในโปรเจกต์นี้ → ใช้ service-role script ใน `scripts/` แทน (ลบไฟล์ชั่วคราวหลังรัน)
+
+## รอบสาม — /report ให้ตรงแคนวาส (เฟส 1: หน้าบ้านล้วน ไม่แตะ DB)
+- ผู้ใช้เคาะ: ทำ 2 เฟส, เก็บตารางเจาะลึกเดิมเป็นแท็บที่ 3
+- ช่องว่างที่ควรบอกตั้งแต่แรก: แผน redesign ตั้งไว้ว่า Reports เปลี่ยนแค่ shell/token จึงไม่ได้ทำบอร์ด Reports
+- `page.tsx` เป็น server component อ่าน `?view=summary|bills|drill` → `ReportClient` (ช่วงเวลา วันนี้/สัปดาห์นี้/เดือนนี้/ปีนี้ + กำหนดเอง, แท็บ 3 อัน, การ์ด 4 ใบ) · `ReportSummary` (ช่องทางรับเงิน, สินค้าขายดี, ค่าคอม SF+, งานซ่อมที่ปิด) · `ReportBills` (บิลในช่วง, คลิกดูรายการ) · `summary.ts` + `summary.check.mts` · `fetchAllPages` ใน `lib/supabase/pagination.ts` (ยอดเงินต้องเห็นทุกแถว เกิน 1000 แถวของ PostgREST)
+- ช่วงเริ่มต้นเปลี่ยนจาก "เดือนนี้" เป็น "วันนี้" ตามแคนวาส
+- ไทยช่วยไทย แยกจาก โอนเงิน ด้วย `sales.receiving_account` (ตามที่ Cart บันทึก)
+- สเปกที่ใช้ตารางเจาะลึก (`report`, `sf`, `pagination-filter`) เปิด `/report?view=drill`; `parseMoney` รับ ฿ และ −
+
+### Verify
+- `tsc` / `eslint` / `summary.check.mts` ผ่าน
+- Playwright: `report` 5/5, `sf` 2/2, `pagination-filter` 3/3, read-only 13/13 (รวม R13 ไม่มี console error ทุกหน้า) = 23/23
+- ภาพหน้าจอ 1440×960 (Playwright, บัญชี owner): สรุป + รายการบิล (เปิดบิล 1 ใบ) + reload แล้วยังอยู่แท็บเดิม
+
+### เฟส 2 (ยังไม่ทำ — ต้อง migration = R0)
+- เลขที่บิล (ระบบไม่มีเลขรัน), % เทียบเมื่อวาน, กราฟกำไรรายวันในแท็บบิล, ใบเสร็จ/พิมพ์
+- ถ้าช่วงยาวมากจนบิลหลักหมื่น ควรย้ายการรวมยอดช่องทาง/สินค้าขายดีเข้า view (มี `ponytail:` คอมเมนต์ไว้)
