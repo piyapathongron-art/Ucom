@@ -76,8 +76,12 @@ export function useSfDue(onSuccess: () => Promise<void>) {
       payload: { order_no: input.order_no, ordered_at: input.ordered_at || null, note: input.note || null, devices: input.devices },
     }), "รับบิล SF แล้ว");
 
-  const saveOrder = (input: SfOrderPayload) =>
-    write(supabase.rpc("rpc_update_sf_order", { payload: input }), "แก้ไขบิล SF แล้ว");
+  // The cached device list is stale after an edit (rows changed or removed) — drop it so the next edit reloads.
+  const saveOrder = async (input: SfOrderPayload) => {
+    const ok = await write(supabase.rpc("rpc_update_sf_order", { payload: input }), "แก้ไขบิล SF แล้ว");
+    if (ok) setDevicesByOrder((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => id !== input.id)));
+    return ok;
+  };
 
   const deleteOrder = (id: string) =>
     write(supabase.rpc("rpc_delete_sf_order", { p_id: id }), "ลบบิล SF แล้ว");
