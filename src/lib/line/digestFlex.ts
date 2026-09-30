@@ -11,6 +11,7 @@ export type DigestData = {
   sims: { carrier: string; sold: number; free: number; stockLeft: number; amount: number }[];
   topups: { carrier: string; sold: number; walletBalance: number | null; entered: number; amount: number }[];
   receipts: { cash: number; transfer: number; thaiChuaiThai: number };
+  cashIncome?: number; // off-bill cash in; optional so a card built before the RPC update still sends
   cashOutLines: { label: string; amount: number }[];
   repairsClosed: number;
   sfReleased: number;
@@ -86,6 +87,7 @@ export function digestFlex(data: DigestData, appUrl: string, isResend = false) {
   const url = new URL("/close-day", appUrl);
   url.searchParams.set("date", data.date);
   const { cash, transfer, thaiChuaiThai } = data.receipts;
+  const cashIncome = data.cashIncome ?? 0;
 
   const body = [
     { type: "box", layout: "horizontal", spacing: "sm", contents: [
@@ -107,15 +109,16 @@ export function digestFlex(data: DigestData, appUrl: string, isResend = false) {
     })), { hasTotal: data.devices.length > 1 }),
     ...section("ซิม", "ขาย · แถม · เหลือ", data.sims.map((item) => ({
       label: [{ text: item.carrier }], value: `${item.sold} · ${item.free} · ${item.stockLeft}`, amount: item.amount,
-    }))),
+    })), { hasTotal: sum(data.sims) > 0 }),
     ...section("เติมเงิน", "ขาย · วอลเล็ตเหลือ", data.topups.map((item) => ({
       label: [{ text: item.carrier }, ...(item.entered ? [hint(`เติมเข้า +${money(item.entered)}`, "#15803D")] : [])],
       value: `${money(item.amount)} · ${item.walletBalance === null ? "—" : money(item.walletBalance)}`, amount: item.amount,
     }))),
-    ...section("รับเงินทาง", "", cash || transfer || thaiChuaiThai ? [
+    ...section("รับเงินทาง", "", cash || transfer || thaiChuaiThai || cashIncome ? [
       { label: [{ text: "เงินสด" }], value: money(cash), amount: cash },
       { label: [{ text: "โอน" }], value: money(transfer), amount: transfer },
       { label: [{ text: "ไทยช่วยไทย" }], value: money(thaiChuaiThai), amount: thaiChuaiThai },
+      ...(cashIncome ? [{ label: [{ text: "รายรับนอกบิล (เงินสด)" }], value: money(cashIncome), amount: cashIncome }] : []),
     ] : [], { hasTotal: false, isSorted: false, labelColor: MUTED }),
     ...section("เงินออกจากลิ้นชัก", "", data.cashOutLines.map((item) => ({ label: [{ text: item.label }], value: money(item.amount), amount: item.amount }))),
     { type: "separator", margin: "lg" },
