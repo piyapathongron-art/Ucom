@@ -47,4 +47,25 @@ const longList = Array.from({ length: 12 }, (_, index) => ({ name: `รายก
 const overflow = JSON.stringify(digestFlex({ ...sheet, salesLines: longList, devices: [], sims: [] }, "https://pos.example.com").contents);
 assert.match(overflow, /\+ อีก 2 รายการ ฿3/);
 assert.doesNotMatch(overflow, /รายการ 10|รายการ 11|"text":"เครื่อง"|"text":"ซิม/);
+
+// Full-coverage day: free SIM, consignment payout, off-bill income, null wallet — the card must let a
+// reader reproduce cash-to-send from what it shows: cash + off-bill income - cash out.
+const full: DigestData = {
+  ...sheet, toSend: 5180 + 200 - 1730, countedCash: 3650, cashIncome: 200,
+  sims: [{ carrier: "AIS", sold: 3, free: 2, stockLeft: 14, amount: 150 }],
+  topups: [{ carrier: "Dtac", sold: 100, walletBalance: null, entered: 0, amount: 100 }],
+  cashOutLines: [...sheet.cashOutLines, { label: "จ่ายเจ้าของเครื่องฝากเข้า", amount: 300 }],
+};
+assert.equal(full.receipts.cash + (full.cashIncome ?? 0) - full.cashOutLines.reduce((total, item) => total + item.amount, 0), full.toSend);
+const fullBody = JSON.stringify(digestFlex(full, "https://pos.example.com").contents);
+assert.match(fullBody, /"text":"3 · 2 · 14"/);
+assert.match(fullBody, /"text":"100 · —"/);
+assert.match(fullBody, /รายรับนอกบิล \(เงินสด\)/);
+assert.match(fullBody, /จ่ายเจ้าของเครื่องฝากเข้า/);
+assert.doesNotMatch(JSON.stringify(digestFlex({ ...sheet, cashIncome: 0 }, "https://pos.example.com").contents), /รายรับนอกบิล/);
+assert.doesNotMatch(JSON.stringify(digestFlex({ ...sheet, receipts: { cash: 0, transfer: 0, thaiChuaiThai: 0 } }, "https://pos.example.com").contents), /"text":"รับเงินทาง"/);
+// stock-only SIM rows (nothing sold) show no "รวม 0" line
+const stockOnly = JSON.stringify(digestFlex({ ...sheet, sims: [{ carrier: "AIS", sold: 0, free: 0, stockLeft: 2, amount: 0 }], devices: [], topups: [], salesLines: [], cashOutLines: [] }, "https://pos.example.com").contents);
+assert.match(stockOnly, /"text":"0 · 0 · 2"/);
+assert.equal((stockOnly.match(/"text":"รวม"/g) ?? []).length, 0);
 console.log("digestFlex.check ok");
