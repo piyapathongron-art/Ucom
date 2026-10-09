@@ -4,6 +4,7 @@ import { REPAIR_STATUS_BADGE, REPAIR_STATUS_LABEL, type PartPaidFrom, type Repai
 import type { CloseJobPayload } from "./CloseJobDialog";
 import { RepairDialogs } from "./RepairDialogs";
 import { useRepairRowActions } from "./useRepairRowActions";
+import Link from "next/link";
 
 export function RepairRowCard({
   row,
@@ -13,10 +14,11 @@ export function RepairRowCard({
 }: {
   row: RepairRow;
   onSetStatus: (id: string, status: string) => Promise<void>;
-  onSetPartCost: (id: string, cost: number, paidFrom: PartPaidFrom) => Promise<boolean>;
+  onSetPartCost: (id: string, cost: string, paidFrom: PartPaidFrom) => Promise<boolean>;
   onCloseJob: (id: string, payload: CloseJobPayload) => Promise<boolean>;
 }) {
   const {
+    cash,
     partCostDraft,
     setPartCostDraft,
     partPaidFrom,
@@ -103,13 +105,13 @@ export function RepairRowCard({
                 <div className="text-xs text-ink-muted">
                   ({new Date(row.part_paid_at).toLocaleDateString("th-TH", { dateStyle: "short" })})
                 </div>
-                <button
+                {cash.isActive ? <Link href="/cash" className="text-xs underline">ให้เจ้าของแก้ไขพร้อมเหตุผล</Link> : <button
                   type="button"
                   onClick={() => setIsEditingPartCost(true)}
                   className="ucom-secondary !rounded-full px-2 py-1 text-xs"
                 >
                   แก้ไข
-                </button>
+                </button>}
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
@@ -125,7 +127,7 @@ export function RepairRowCard({
                 />
                 <select aria-label="จ่ายค่าอะไหล่จาก" value={partPaidFrom} onChange={(e) => setPartPaidFrom(e.target.value as PartPaidFrom | "")} data-testid={`repair-part-paid-from-${row.id}`} className="ucom-field px-2 py-1.5 text-sm">
                   <option value="">วิธีจ่าย</option>
-                  <option value="cash">เงินสด</option>
+                  {cash.isActive ? <><option value="drawer">เงินทอนหน้าร้าน</option><option value="pending">เงินรอนำฝาก</option></> : <option value="cash">เงินสด</option>}
                   <option value="transfer">โอน</option>
                 </select>
                 <button

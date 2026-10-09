@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Modal } from "@/app/_components/Modal";
 import type { RepairRow } from "./types";
+import { parseMoney } from "@/lib/cash/money";
 
 export type CloseJobPayload = {
   client_uuid: string;
@@ -13,7 +14,7 @@ export type CloseJobPayload = {
     {
       kind: "service";
       name: string;
-      unit_price: number;
+      unit_price: string;
       qty: 1;
     }
   ];
@@ -35,6 +36,7 @@ export function CloseJobDialog({
   const [receivingAccount, setReceivingAccount] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const clientUuidRef = useRef<string>("");
   useEffect(() => {
@@ -42,6 +44,9 @@ export function CloseJobDialog({
   }, []);
 
   async function submit() {
+    let price: string;
+    try { price = parseMoney(unitPrice); } catch { setError("กรอกราคาตั้งแต่ 0 บาท ทศนิยมไม่เกิน 2 ตำแหน่ง"); return; }
+    setError(null);
     setSubmitting(true);
     const ok = await onSubmit({
       client_uuid: clientUuidRef.current,
@@ -52,7 +57,7 @@ export function CloseJobDialog({
         {
           kind: "service",
           name: `ค่าซ่อม ${row.device_desc}`,
-          unit_price: Number(unitPrice) || 0,
+          unit_price: price,
           qty: 1,
         },
       ],
@@ -75,6 +80,7 @@ export function CloseJobDialog({
       </>}
     >
       <div data-testid="close-dialog" className="space-y-3">
+        {error && <p role="alert" className="ucom-error">{error}</p>}
         <div>
           <p className="text-sm font-bold text-ink">{row.customer_name}</p>
           <p className="text-xs text-ink-muted">{row.device_desc}</p>

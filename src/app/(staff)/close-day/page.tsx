@@ -9,9 +9,12 @@ import LedgerSection from "./LedgerSection";
 import ClosingSummary from "./ClosingSummary";
 import ClosingForm from "./ClosingForm";
 import { useCloseDayData } from "./useCloseDayData";
+import CashClosing from "./CashClosing";
 
 export default function CloseDayPage() {
   const d = useCloseDayData();
+  const openedDate = d.cash.status?.openedAt ? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(d.cash.status.openedAt)) : null;
+  const shouldUseCash = d.cash.isActive && (d.isToday || !openedDate || d.date >= openedDate);
 
   return (
     <PageFrame
@@ -54,7 +57,7 @@ export default function CloseDayPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* ซ้าย: กล่องปิดร้าน — ยอดระบบ, รายรับนอกบิล, รายจ่ายประจำวัน, นับเงินสด, ยืนยัน */}
           <div className="space-y-8">
-            <ClosingSummary
+            {shouldUseCash ? <CashClosing key={d.date} date={d.date} isToday={d.isToday} queuedCount={d.queuedCount} /> : d.cash.isReady ? <ClosingSummary
               cashTotal={d.cashTotal}
               transferTotal={d.transferTotal}
               cashIncomeTotal={d.cashIncomeTotal}
@@ -65,7 +68,7 @@ export default function CloseDayPage() {
               toSend={d.toSend}
               sfCount={d.sfCount}
               fmt={d.fmt}
-            />
+            /> : <p role="alert" className="ucom-error">{d.cash.error ?? "กำลังตรวจระบบเงินสด..."}</p>}
 
             <LedgerSection
               kind="income"
@@ -103,7 +106,7 @@ export default function CloseDayPage() {
               onPageSizeChange={d.setExpensePageSize}
             />
 
-            <ClosingForm
+            {!shouldUseCash && d.cash.isReady && <ClosingForm
               isToday={d.isToday}
               closing={d.closing}
               toSend={d.toSend}
@@ -116,7 +119,7 @@ export default function CloseDayPage() {
               onResend={d.handleResend}
               isSending={d.isSending}
               fmt={d.fmt}
-            />
+            />}
           </div>
 
           {/* ขวา: บิลวันนี้ (ขึ้นก่อน) ตามด้วยสรุปสินค้าของวันนั้น */}

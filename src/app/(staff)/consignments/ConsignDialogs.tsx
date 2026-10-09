@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { Modal } from "@/app/_components/Modal";
 import { actionLabel, fmt, money, type Action, type ActionValues, type CaseRow, type Direction, type OpenValues } from "./consignTypes";
+import { useCashStatus } from "@/lib/cash/useCashStatus";
+import { FundSelect } from "@/lib/cash/FundSelect";
+import { parseMoney } from "@/lib/cash/money";
+import type { CashPaymentFund } from "@/lib/cash/types";
 
 const field = "ucom-field w-full px-4 py-2.5 text-sm";
 const lbl = "block space-y-1 text-xs font-semibold text-ink-muted";
@@ -68,6 +72,9 @@ export function ConsignActionDialog({ row, action, onClose, onSubmit }: {
   const [salePrice, setSalePrice] = useState(row.listed_price?.toString() ?? "");
   const [partnerShare, setPartnerShare] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer">("cash");
+  const [fund, setFund] = useState<CashPaymentFund>("drawer");
+  const [operationId] = useState(() => crypto.randomUUID());
+  const cash = useCashStatus();
   const [receivingAccount, setReceivingAccount] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -88,7 +95,7 @@ export function ConsignActionDialog({ row, action, onClose, onSubmit }: {
     }
     setFormError(null);
     setSaving(true);
-    const ok = await onSubmit({ salePrice: price, partnerShare: share, paymentMethod, receivingAccount: receivingAccount.trim() });
+    const ok = await onSubmit({ salePrice: price, partnerShare: share, amountText: needsPrice ? parseMoney(salePrice) : "0.00", shareText: needsPrice ? parseMoney(partnerShare) : "0.00", fund: cash.isActive ? fund : paymentMethod === "cash" ? "drawer" : "transfer", operationId, paymentMethod: action === "pay" && cash.isActive ? fund === "transfer" ? "transfer" : "cash" : paymentMethod, receivingAccount: receivingAccount.trim() });
     setSaving(false);
     if (ok) onClose();
   }
@@ -100,7 +107,7 @@ export function ConsignActionDialog({ row, action, onClose, onSubmit }: {
       title={`${actionLabel[action]} · ${row.model_name ?? ""}`}
       footer={<>
         <button type="button" onClick={onClose} disabled={saving} className="ucom-secondary px-5 py-2.5">ยกเลิก</button>
-        <button type="submit" form="consign-action-form" disabled={saving} className={`${action === "return" ? "rounded-full bg-warning text-[13.5px] font-bold text-on-accent" : "ucom-primary"} px-5 py-2.5 disabled:opacity-50`}>
+        <button type="submit" form="consign-action-form" disabled={saving || (needsMethod && !cash.isReady)} className={`${action === "return" ? "rounded-full bg-warning text-[13.5px] font-bold text-on-accent" : "ucom-primary"} px-5 py-2.5 disabled:opacity-50`}>
           {saving ? "กำลังบันทึก..." : actionLabel[action]}
         </button>
       </>}
@@ -118,12 +125,13 @@ export function ConsignActionDialog({ row, action, onClose, onSubmit }: {
         {needsMethod && (
           <div className="grid gap-3 sm:grid-cols-2">
             <label className={lbl}><span>ช่องทาง{action === "pay" ? "จ่าย" : "รับ"}เงิน</span>
-              <select className={field} value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as "cash" | "transfer")}><option value="cash">เงินสด</option><option value="transfer">โอน</option></select>
+              {action === "pay" && cash.isActive ? <FundSelect value={fund} onChange={setFund} /> : <select className={field} value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as "cash" | "transfer")}><option value="cash">เงินสด</option><option value="transfer">โอน</option></select>}
             </label>
             {action !== "pay" && paymentMethod === "transfer" && <label className={lbl}><span>บัญชีที่รับเงิน</span><input className={field} value={receivingAccount} onChange={(e) => setReceivingAccount(e.target.value)} /></label>}
           </div>
         )}
         {formError && <p role="alert" className="text-sm text-warning">{formError}</p>}
+        {needsMethod && cash.error && <p role="alert" className="text-sm text-warning">{cash.error}</p>}
       </form>
     </Modal>
   );

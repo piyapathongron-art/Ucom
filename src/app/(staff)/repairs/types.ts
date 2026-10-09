@@ -23,7 +23,7 @@ export type RepairStatus =
   | "collected"
   | "abandoned";
 
-export type PartPaidFrom = "cash" | "transfer";
+export type PartPaidFrom = "cash" | "drawer" | "pending" | "transfer";
 
 // the walkable part of the status list, in order. `collected` is not here: collecting
 // means issuing a bill, which only rpc_close_repair_job does.

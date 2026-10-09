@@ -1,11 +1,12 @@
 import { login } from "./actions";
+import { safeReturnPath } from "@/lib/safe-return";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
 
   return (
     <main className="ucom-login-glow flex min-h-full flex-1 items-center justify-center p-6">
@@ -13,6 +14,7 @@ export default async function LoginPage({
         action={login}
         className="ucom-surface flex w-full max-w-sm flex-col gap-5 p-8"
       >
+        <input type="hidden" name="next" value={safeReturnPath(next)} />
         <div className="flex flex-col items-center gap-2.5 text-center">
           <div className="ucom-badge-glow flex h-11 w-11 items-center justify-center rounded-[0.7rem] font-mono text-lg font-bold">
             U

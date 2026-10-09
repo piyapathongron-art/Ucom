@@ -1,5 +1,4 @@
 import { test, expect, type Page } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
 
 test.use({ baseURL: "http://localhost:3002" });
 
@@ -23,29 +22,7 @@ async function createTestProduct(page: Page): Promise<string> {
   return name;
 }
 
-async function ringUpProduct(page: Page, name: string) {
-  await page.locator('[data-testid="catalog-search"]').fill(name);
-  const item = page.locator('[data-testid^="catalog-item-product-"]');
-  await expect(item).toHaveCount(1);
-  await item.click();
-  await page.locator('[data-testid="pay-cash"]').click();
-  await page.locator('[data-testid="checkout-submit"]').click();
-}
-
-async function expectPersistedSale(clientUuid: string) {
-  process.loadEnvFile(".env.local");
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Missing Supabase test credentials");
-  const admin = createClient(url, key);
-  await expect.poll(async () => {
-    const { data, error } = await admin.from("sales").select("id").eq("client_uuid", clientUuid);
-    if (error) throw error;
-    return data?.length;
-  }).toBe(1);
-}
-
-test("a sale rung up offline reaches the database once the network returns", async ({
+test("offline checkout preserves the cart without creating a bill", async ({
   page,
   context,
 }) => {
@@ -59,53 +36,28 @@ test("a sale rung up offline reaches the database once the network returns", asy
   // no queue banner while everything is healthy
   await expect(page.locator('[data-testid="queue-banner"]')).toHaveCount(0);
 
+  await page.locator('[data-testid^="catalog-item-product-"]').click();
   await context.setOffline(true);
-
-  await ringUpProduct(page, name);
-  await expect(page.locator('[data-testid="queue-count"]')).toHaveText(
-    "บิลค้าง 1 ใบ",
-  );
-  const clientUuid = await page.evaluate(() => JSON.parse(localStorage.getItem("ucom-pos-queue-v1") ?? "[]")[0]?.clientUuid as string);
-  expect(clientUuid).toBeTruthy();
-
-  // nothing was rejected, so the banner must not be in its red state
-  await expect(page.locator('[data-testid="queue-rejected"]')).toHaveCount(0);
-
-  // the browser's own "online" event starts the drain, so there is nothing to press —
-  // the sync button exists for the case where that event never fires
+  await page.getByTestId("checkout-submit").click();
+  await expect(page.getByTestId("checkout-error")).toContainText("ปิดการออกบิล offline");
+  await expect(page.getByTestId("cart-lines")).toHaveAttribute("data-count", "1");
+  await expect(page.getByTestId("queue-banner")).toHaveCount(0);
+  expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith("ucom-cash-sale-v1:")).length)).toBe(0);
   await context.setOffline(false);
-
-  // the banner disappears only when every queued bill has been accepted
-  await expect(page.locator('[data-testid="queue-banner"]')).toHaveCount(0, {
-    timeout: 15000,
-  });
-  await expectPersistedSale(clientUuid);
 });
 
-test("the queue survives a reload while offline", async ({ page, context }) => {
+test("a pre-existing rejected bill survives reload and offline mode", async ({ page, context }) => {
   await loginAsStaff(page);
-  const name = await createTestProduct(page);
   await page.goto("/pos");
   await expect(page.locator('[data-testid="catalog-search"]')).toBeVisible();
-  await page.locator('[data-testid="catalog-search"]').fill(name);
-  await expect(page.locator('[data-testid^="catalog-item-product-"]')).toHaveCount(1);
-
-  await context.setOffline(true);
-  await ringUpProduct(page, name);
-  await expect(page.locator('[data-testid="queue-count"]')).toHaveText(
-    "บิลค้าง 1 ใบ",
-  );
-  const clientUuid = await page.evaluate(() => JSON.parse(localStorage.getItem("ucom-pos-queue-v1") ?? "[]")[0]?.clientUuid as string);
-  expect(clientUuid).toBeTruthy();
-
-  await context.setOffline(false);
+  const original = JSON.stringify([{ clientUuid: "legacy-rejected-bill", payload: { items: [] }, queuedAt: "2026-10-08T00:00:00Z", lastError: "ต้องตรวจสอบบิลเดิม" }]);
+  await page.evaluate(value => localStorage.setItem("ucom-pos-queue-v1", value), original);
   await page.reload();
-
-  // a fresh load drains the queue on its own — no button press needed
-  await expect(page.locator('[data-testid="queue-banner"]')).toHaveCount(0, {
-    timeout: 15000,
-  });
-  await expectPersistedSale(clientUuid);
+  await expect(page.getByTestId("queue-banner")).toBeVisible();
+  await context.setOffline(true);
+  expect(await page.evaluate(() => localStorage.getItem("ucom-pos-queue-v1"))).toBe(original);
+  await expect(page.getByTestId("queue-count")).toHaveText("บิลค้าง 1 ใบ");
+  await context.setOffline(false);
 });
 
 test("discarding a rejected offline sale clears the queue and banner", async ({ page }) => {

@@ -5,6 +5,7 @@ import type { CloseJobPayload } from "./CloseJobDialog";
 import { RepairDialogs } from "./RepairDialogs";
 import { useRepairRowActions } from "./useRepairRowActions";
 import { RepairRowCard } from "./RepairRowCard";
+import Link from "next/link";
 
 function Row({
   row,
@@ -14,10 +15,11 @@ function Row({
 }: {
   row: RepairRow;
   onSetStatus: (id: string, status: string) => Promise<void>;
-  onSetPartCost: (id: string, cost: number, paidFrom: PartPaidFrom) => Promise<boolean>;
+  onSetPartCost: (id: string, cost: string, paidFrom: PartPaidFrom) => Promise<boolean>;
   onCloseJob: (id: string, payload: CloseJobPayload) => Promise<boolean>;
 }) {
   const {
+    cash,
     partCostDraft,
     setPartCostDraft,
     partPaidFrom,
@@ -102,14 +104,14 @@ function Row({
                   <div className="text-xs text-ink-muted">
                     {new Date(row.part_paid_at).toLocaleDateString("th-TH", { dateStyle: "short" })}
                   </div>
-                  <button
+                  {cash.isActive ? <Link href="/cash" className="text-xs underline">ให้เจ้าของแก้ไขพร้อมเหตุผล</Link> : <button
                     type="button"
                     onClick={() => setIsEditingPartCost(true)}
                     data-testid={`repair-part-cost-edit-${row.id}`}
                     className="text-xs text-ink-muted underline"
                   >
                     แก้ไข
-                  </button>
+                  </button>}
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center gap-1">
@@ -126,7 +128,7 @@ function Row({
                   />
                   <select aria-label="จ่ายค่าอะไหล่จาก" value={partPaidFrom} onChange={(e) => setPartPaidFrom(e.target.value as PartPaidFrom | "")} data-testid={`repair-part-paid-from-${row.id}`} className="ucom-field px-2 py-1.5 text-sm">
                     <option value="">วิธีจ่าย</option>
-                    <option value="cash">เงินสด</option>
+                    {cash.isActive ? <><option value="drawer">เงินทอนหน้าร้าน</option><option value="pending">เงินรอนำฝาก</option></> : <option value="cash">เงินสด</option>}
                     <option value="transfer">โอน</option>
                   </select>
                   <button
@@ -216,7 +218,7 @@ export function RepairTable({
 }: {
   rows: RepairRow[];
   onSetStatus: (id: string, status: string) => Promise<void>;
-  onSetPartCost: (id: string, cost: number, paidFrom: PartPaidFrom) => Promise<boolean>;
+  onSetPartCost: (id: string, cost: string, paidFrom: PartPaidFrom) => Promise<boolean>;
   onCloseJob: (id: string, payload: CloseJobPayload) => Promise<boolean>;
 }) {
   return (

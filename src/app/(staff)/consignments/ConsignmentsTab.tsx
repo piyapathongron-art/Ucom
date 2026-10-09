@@ -8,6 +8,7 @@ import { SkeletonRows } from "@/app/_components/Skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { ConsignActionDialog, ConsignOpenDialog } from "./ConsignDialogs";
 import { fmt, statusLabel, type Action, type ActionValues, type CaseRow, type Direction, type OpenValues } from "./consignTypes";
+import { cashStatus, cashWrite, getReceivingDevice, getReceivingDeviceToken, receiptDevice } from "@/lib/cash/client";
 
 const PAGE_SIZE = 25;
 
@@ -97,15 +98,17 @@ export function ConsignmentsTab({ direction, isOpenDialog, onOpenDialogClose }: 
     const { salePrice, partnerShare, paymentMethod } = values;
     const account = values.receivingAccount || null;
     try {
+      const cash = action === "return" || action === "report" ? null : await cashStatus();
+      const device = cash && action !== "pay" ? receiptDevice(cash) : getReceivingDevice();
       const result = action === "return"
         ? await supabase.rpc("rpc_consignment_return", { p_id: caseId })
         : action === "report"
           ? await supabase.rpc("rpc_consignment_report_out", { p_id: caseId, p_sale_price: salePrice, p_partner_share: partnerShare })
           : action === "settle"
-            ? await supabase.rpc("rpc_consignment_settle_out", { p_id: caseId, p_payment_method: paymentMethod, p_receiving_account: account })
+            ? await cashWrite(`consign_settle:${caseId}`, "consign_settle", { id: caseId, method: paymentMethod, account, device, deviceToken: getReceivingDeviceToken() }, () => supabase.rpc("rpc_consignment_settle_out", { p_id: caseId, p_payment_method: paymentMethod, p_receiving_account: account }), values.operationId)
             : action === "sell"
-              ? await supabase.rpc("rpc_consignment_sell_in", { p_id: caseId, p_sale_price: salePrice, p_partner_share: partnerShare, p_payment_method: paymentMethod, p_receiving_account: account })
-              : await supabase.rpc("rpc_consignment_pay_in", { p_id: caseId, p_payment_method: paymentMethod });
+              ? await cashWrite(`consign_sell:${caseId}`, "consign_sell", { id: caseId, amount: values.amountText, share: values.shareText, method: paymentMethod, account, device, deviceToken: getReceivingDeviceToken() }, () => supabase.rpc("rpc_consignment_sell_in", { p_id: caseId, p_sale_price: salePrice, p_partner_share: partnerShare, p_payment_method: paymentMethod, p_receiving_account: account }), values.operationId)
+              : await cashWrite(`consign_pay:${caseId}`, "consign_pay", { id: caseId, fund: values.fund }, () => supabase.rpc("rpc_consignment_pay_in", { p_id: caseId, p_payment_method: paymentMethod }), values.operationId);
       if (result.error) throw result.error;
     } catch {
       toast.error("ยังยืนยันผลไม่ได้ กรุณารีเฟรชสถานะก่อนลองอีกครั้ง", { duration: Infinity });

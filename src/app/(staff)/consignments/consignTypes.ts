@@ -1,4 +1,5 @@
 import type { Tables } from "@/lib/types/database";
+import type { CashPaymentFund } from "@/lib/cash/types";
 
 export type CaseRow = Tables<"v_pos_consignments">;
 export type Direction = "out" | "in";
@@ -27,4 +28,4 @@ export const fmt = (value: number | null | undefined) =>
   `฿${Number(value ?? 0).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export type OpenValues = { imei: string; modelName: string; counterparty: string; listedPrice: number };
-export type ActionValues = { salePrice: number; partnerShare: number; paymentMethod: PayMethod; receivingAccount: string };
+export type ActionValues = { salePrice: number; partnerShare: number; amountText: string; shareText: string; fund: CashPaymentFund; operationId: string; paymentMethod: PayMethod; receivingAccount: string };

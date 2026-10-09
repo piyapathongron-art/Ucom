@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeReturnPath } from "@/lib/safe-return";
 
 // ADR 0006: staff type a bare username; we alias it to a fake @ucom.local
 // email so Supabase Auth can issue a real session without staff ever
@@ -13,9 +14,10 @@ function usernameToEmail(username: string) {
 export async function login(formData: FormData) {
   const username = String(formData.get("username") ?? "");
   const password = String(formData.get("password") ?? "");
+  const next = safeReturnPath(formData.get("next"));
 
   if (!username || !password) {
-    redirect("/login?error=missing");
+    redirect(`/login?error=missing&next=${encodeURIComponent(next)}`);
   }
 
   const supabase = await createClient();
@@ -25,10 +27,10 @@ export async function login(formData: FormData) {
   });
 
   if (error) {
-    redirect("/login?error=invalid");
+    redirect(`/login?error=invalid&next=${encodeURIComponent(next)}`);
   }
 
-  redirect("/");
+  redirect(next);
 }
 
 export async function logout() {
