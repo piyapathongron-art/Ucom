@@ -1,12 +1,12 @@
 # LINE deposit command and day selection — implementation plan
 
-Date: 2026-10-09. Status: **Owner accepted the consolidated plan and its recommended opening/cancellation rules by instructing execution. Online-only new billing is implemented locally. ADR 0028 and the detailed API contract passed independent design scrutiny after frozen-date and durable-recovery revisions. Command/day-allocation implementation and runtime verification remain outstanding. This design revision makes no production change.**
+Date: 2026-10-09. Status: **Command/day allocations implemented; local integration scrutiny PASS. SQL/HTTP, mobile deposit/recovery and close-day regression passed. Wave A online-only billing was deployed separately; this Wave B remains local and uncommitted. Hosted Auth/Storage and actual LINE delivery remain pending.** See [release evidence and rollout gates](release-line-daily-deposits-2026-10-09.md).
 
 ## Requested behavior
 
 Staff sends `/ฝากเงิน` in the configured shop group. The bot returns an entry to a complete mobile deposit form. Staff selects still-pending cash dates, sees the aggregate amount, enters any remainder going to the drawer, reports the actual deposit and uploads its receipt. Confirmation posts an owner-readable summary to the same configured group. Owner bank/evidence review remains separate from staff reporting.
 
-## Verified current implementation
+## Original implementation baseline before this change
 
 - `src/app/api/line/webhook/route.ts` verifies signatures and handles group joins only; it has no message command handler.
 - Cash status tracks pooled pending cash, reservations and source provenance, without daily outstanding allocation. Displaying daily sales as daily undeposited money would be incorrect after expenses, partial deposits and corrections.

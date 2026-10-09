@@ -5,6 +5,8 @@ import { CASH_REQUEST_KEY, cashExecute, isDefiniteCashError } from "./client";
 import { CASH_RECEIPT_KEY, CASH_RECEIPT_ROUTE_KEY, sendReceipt, sendRepairReceipt } from "./receipt";
 import type { Json } from "@/lib/types/database";
 import { toThaiError } from "@/lib/errors";
+import CashRecovery from "@/app/(staff)/cash/cash-recovery";
+import { CASH_OPERATION_EVENT, withCashOperationLock } from "./operations";
 
 type Pending = { key: string; id: string; epoch: string | null; action: string; payload: Json; jobId?: string; isReceipt: boolean };
 const labels: Record<string, string> = { sale: "บิลขาย", repair_close: "บิลค่าซ่อม", part: "จ่ายอะไหล่", expense: "รายจ่าย", income: "รายรับนอกบิล", consign_sell: "ขายเครื่องฝากเข้า", consign_settle: "รับเงินฝากออก", consign_pay: "จ่ายเจ้าของเครื่อง" };
@@ -40,7 +42,8 @@ export function PendingCashRequests({ queuedIds, onResolved, onBusyChange }: { q
     const refresh = () => setRequests(readPending(queueSignature ? queueSignature.split(",") : []));
     Promise.resolve().then(refresh);
     const timer = window.setInterval(refresh, 5000);
-    return () => window.clearInterval(timer);
+    window.addEventListener("storage", refresh); window.addEventListener(CASH_OPERATION_EVENT, refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener("storage", refresh); window.removeEventListener(CASH_OPERATION_EVENT, refresh); };
   }, [queueSignature]);
 
   async function retry(request: Pending) {
@@ -51,7 +54,7 @@ export function PendingCashRequests({ queuedIds, onResolved, onBusyChange }: { q
         ? request.action === "repair_close" && request.jobId && payload && typeof payload === "object" && !Array.isArray(payload)
           ? await sendRepairReceipt(request.jobId, payload)
           : await sendReceipt(payload)
-        : await cashExecute(request.id, request.epoch, request.action, payload);
+        : await withCashOperationLock(request.id, () => cashExecute(request.id, request.epoch, request.action, payload));
       if (!request.isReceipt && (!result.error || isDefiniteCashError(result.error))) localStorage.removeItem(request.key);
       if (result.error) setError(toThaiError(result.error));
       else onResolved(request.action, request.id);
@@ -59,13 +62,12 @@ export function PendingCashRequests({ queuedIds, onResolved, onBusyChange }: { q
     } finally { setBusyId(null); onBusyChange(false); }
   }
 
-  if (requests.length === 0) return null;
-  return <section className="border-b border-border bg-warning-bg px-5 py-3 text-sm" data-testid="cash-pending-requests">
+  return <><CashRecovery />{requests.length > 0 && <section className="border-b border-border bg-warning-bg px-5 py-3 text-sm" data-testid="cash-pending-requests">
     <p className="font-semibold">มีรายการเดิมที่ยังไม่ยืนยันผล เครื่อง POS จะยืนยันคิวหลังตรวจสอบครบ</p>
     <ul className="mt-2 space-y-2">{requests.map(request => <li key={request.key} className="flex flex-wrap items-center gap-3">
       <span>{labels[request.action] ?? "รายการเงินสด"} · {request.id}</span>
       <button type="button" disabled={Boolean(busyId)} onClick={() => void retry(request)} className="ucom-secondary px-3 py-1 disabled:opacity-50">{busyId === request.id ? "กำลังยืนยัน..." : "ลองยืนยันข้อมูลเดิม"}</button>
     </li>)}</ul>
     {error && <p role="alert" className="ucom-error mt-2">{error}</p>}
-  </section>;
+  </section>}</>;
 }

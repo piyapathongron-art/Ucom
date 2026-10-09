@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { Json } from "@/lib/types/database";
 import { getReceivingDevice, getReceivingDeviceToken } from "@/lib/cash/client";
 import { parseMoney } from "@/lib/cash/money";
-import { executeCash, prepareCashEvidence } from "./actions";
+import { cashActor, executeCash, prepareCashEvidence } from "./actions";
+import { CASH_OPERATION_EVENT, assertStoredCashIntent, clearCashIntent, refreshCashOperations, saveCashIntent, withCashOperationLock, type CashIntent } from "@/lib/cash/operations";
 import { createClient } from "@/lib/supabase/client";
 import { readQueue } from "../pos/queue";
 import type { CashSource } from "@/lib/cash/types";
 
-type Job = { id: string; epoch: string | null; payload: Record<string, Json> };
-const moneyKeys = new Set(["amount", "bank", "drawer", "pending", "returned", "minimum"]);
+const moneyKeys = new Set(["amount", "bank", "drawer", "pending", "returned", "minimum", "drawerBeforeDeparture"]);
 const numberKeys = new Set(["version", "weekday", "overdueHours"]);
-const boolKeys = new Set(["confirmed", "physicallyReturned", "queueDrained", "physicallyPaused", "enabled"]);
+const boolKeys = new Set(["confirmed", "physicallyReturned", "queueDrained", "physicallyPaused", "enabled", "drawerPhysicallySeparated"]);
 
 export function Field({ name, label, type = "text", value, required = true }: { name: string; label: string; type?: string; value?: string; required?: boolean }) {
   return <label className="flex flex-col gap-1 text-sm">{label}<input className="ucom-field px-3 py-2" type={type} name={name} defaultValue={value} required={required} step={type === "number" ? "0.01" : undefined} /></label>;
@@ -26,21 +26,32 @@ export default function CashForm({ action, epoch, fields = {}, children, label, 
   action: string; epoch: string | null; fields?: Record<string, Json>; children: ReactNode; label: string; uploadHandOver?: string; isDisabled?: boolean; sources?: CashSource[];
 }) {
   const router = useRouter();
-  const storageKey = `ucom.cash.operation.v1.${action}.${String(fields.handoverId ?? fields.id ?? fields.kind ?? "new")}`;
-  const [job, setJob] = useState<Job | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const scope = String(fields.handoverId ?? fields.id ?? fields.kind ?? "new");
+  const [job, setJob] = useState<CashIntent | null>(null);
+  const [hasBlockedIntent, setHasBlockedIntent] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState("");
   useEffect(() => {
-    Promise.resolve().then(() => {
-      try { const saved = sessionStorage.getItem(storageKey); if (saved) setJob(JSON.parse(saved) as Job); } catch { /* storage may be unavailable */ }
-    });
-  }, [storageKey]);
+    const refresh = () => {
+      const entries = refreshCashOperations();
+      const matched = entries.find(item => item.intent?.action === action && item.intent.payload && typeof item.intent.payload === "object" && !Array.isArray(item.intent.payload) && String(item.intent.payload.handoverId ?? item.intent.payload.id ?? item.intent.payload.kind ?? "new") === scope);
+      setJob(matched?.intent ?? null); setHasBlockedIntent(entries.length > 0);
+    };
+    Promise.resolve().then(refresh);
+    window.addEventListener("storage", refresh); window.addEventListener(CASH_OPERATION_EVENT, refresh);
+    return () => { window.removeEventListener("storage", refresh); window.removeEventListener(CASH_OPERATION_EVENT, refresh); };
+  }, [action, scope]);
   async function submit(form: FormData) {
     if (isBusy || (isDisabled && !job)) return;
     setIsBusy(true);
     try {
+      await withCashOperationLock(job?.id ?? null, async () => {
       let pending = job;
       if (!pending) {
+        if (refreshCashOperations().length) throw new Error("มีรายการเดิมรอยืนยันผล กรุณาตรวจรายการเดิมก่อนทำรายการใหม่");
+        const actorId = await cashActor();
+        if (!actorId) throw new Error("กรุณาเข้าสู่ระบบด้วยบัญชีร้าน");
         const payload: Record<string, Json> = { ...fields };
         for (const [key, value] of form.entries()) {
           if (value instanceof File || key.startsWith("$ACTION") || key === "confirmedInput") continue;
@@ -75,20 +86,29 @@ export default function CashForm({ action, epoch, fields = {}, children, label, 
           payload.evidencePath = result.path;
           if (action === "settle") payload.depositedAt = new Date(`${String(payload.depositedAt)}+07:00`).toISOString();
         }
-        pending = { id: crypto.randomUUID(), epoch, payload };
-        sessionStorage.setItem(storageKey, JSON.stringify(pending)); setJob(pending);
+        pending = { storageVersion: 2, id: crypto.randomUUID(), actorId, epoch, action, payload, status: "unresolved" };
+        saveCashIntent(pending); setJob(pending);
       }
-      const result = await executeCash(pending.id, pending.epoch, action, pending.payload);
+      if (!pending.actorId || await cashActor() !== pending.actorId) throw new Error("ต้องใช้บัญชีผู้ทำรายการเดิมเพื่อยืนยันผล รายการเก่าต้องตรวจเจ้าของคำขอก่อน");
+      assertStoredCashIntent(pending);
+      const result = await executeCash(pending.id, pending.epoch, pending.action, pending.payload, pending.actorId);
       setMessage(result.message);
-      if (result.ok || !result.ambiguous) { sessionStorage.removeItem(storageKey); setJob(null); }
+      if ((result.ok || ("rejected" in result && result.rejected)) && "actorId" in result && result.actorId === pending.actorId && "id" in result && result.id === pending.id) {
+        if (result.ok && "notificationSent" in result && result.notificationSent === false) localStorage.setItem(`ucom-cash-notification-v1:${pending.id}`, pending.actorId);
+        clearCashIntent(pending); setJob(null);
+        formRef.current?.reset();
+        router.refresh();
+      }
       if (result.ok) router.refresh();
+      });
     } catch (error) { setMessage(error instanceof Error ? error.message : "ยังไม่ทราบผล กดลองอีกครั้งด้วยรายการเดิม"); }
     finally { setIsBusy(false); }
   }
-  return <form action={submit} className="flex flex-col gap-3">
-    <fieldset disabled={isBusy || Boolean(job) || isDisabled} className="flex flex-col gap-3">{children}</fieldset>
-    {job && <div className="text-sm text-warning"><p>มีรายการรอผล ลองซ้ำด้วยข้อมูลเดิมก่อนทำรายการอื่น</p><dl>{Object.entries(job.payload).filter(([key]) => ["amount", "bank", "drawer", "pending", "returned", "custodian", "reason"].includes(key)).map(([key, value]) => <div key={key}>{({ amount: "ยอด", bank: "ฝากธนาคาร", drawer: "เก๊ะ", pending: "รอฝาก", returned: "คืนรอฝาก", custodian: "ผู้ถือเงิน", reason: "เหตุผล" } as Record<string, string>)[key]}: {String(value)}</div>)}</dl></div>}
-    <button className="ucom-primary justify-center px-4 py-2" disabled={isBusy || (isDisabled && !job)}>{isBusy ? "กำลังบันทึก…" : job ? "ลองรายการเดิมซ้ำ" : label}</button>
+  return <form ref={formRef} action={submit} className="flex flex-col gap-3">
+    <fieldset disabled={isBusy || Boolean(job) || isDisabled || hasBlockedIntent} className="flex flex-col gap-3">{children}</fieldset>
+    {hasBlockedIntent && <p className="text-sm text-warning">มีรายการเงินเดิมรอยืนยัน ต้องใช้บัญชีผู้ทำรายการเดิมตรวจผลก่อนทำรายการใหม่</p>}
+    {job && <div className="text-sm text-warning"><p>ลองซ้ำด้วยข้อมูลเดิมก่อนทำรายการอื่น</p></div>}
+    <button className="ucom-primary justify-center px-4 py-2" disabled={isBusy || (!job && (isDisabled || hasBlockedIntent))}>{isBusy ? "กำลังบันทึก…" : job ? "ลองรายการเดิมซ้ำ" : label}</button>
     {message && <p role="status" className="text-sm">{message}</p>}
   </form>;
 }

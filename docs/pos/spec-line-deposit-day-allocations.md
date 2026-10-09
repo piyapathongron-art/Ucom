@@ -1,6 +1,6 @@
 # LINE deposit day-allocation contract
 
-Date: 2026-10-09. Status: **Design scrutiny PASS; not implemented.** [ADR 0028](../adr/0028-line-deposit-day-allocations.md) extends [the base API](spec-two-fund-cash-api.md). Amounts are validated exact decimal strings; no floating-point money arithmetic.
+Date: 2026-10-09. Status: **Implemented; local integration scrutiny PASS. Hosted verification pending.** [ADR 0028](../adr/0028-line-deposit-day-allocations.md) extends [the base API](spec-two-fund-cash-api.md). Amounts are validated exact decimal strings; no floating-point money arithmetic. See [release evidence](release-line-daily-deposits-2026-10-09.md).
 
 ## Accounting boundary and storage
 
@@ -21,6 +21,8 @@ Extend `rpc_cash_status()` with `dayAllocationsEnabled` and original selected-da
 Each line is `{key, receiptDay: YYYY-MM-DD|null, kind: date|opening|reconciliation, available, reserved}`. Known origins on the same day share key `date:YYYY-MM-DD`; unknown origins have stable UUID-based keys and do not merge unrelated reasons. Include outstanding reserved-only lines with available 0 and disable selection. Cursor is opaque, contains the ordered key and version, and is validated against the same epoch/version; a changed version returns refresh-required instead of mixing pages. No recent-100 truncation or silent date omission. The server re-resolves selected lines to origin slices under lock; it never trusts a client day/key to identify arbitrary records. UI may render all pages before selecting; selected-total calculation uses exact amounts.
 
 ## Departure command
+
+Member lookup `rpc_cash_operation_snapshot(p_operation_id uuid)` returns the committed result merged with `{operationId,actorId,epoch,action,payload,result}`. `operationId` identifies the command; `id` retains the financial entity ID, which differs for settlement and correction. The original actor can inspect its exact payload; another member can inspect an authorized event snapshot but receives null payload and cannot replay that actor's command. Recovery validates command ID, actor, epoch, action, canonical payload and canonical stored result.
 
 Keep RPC signature `rpc_cash_execute(p_operation_id uuid, p_epoch uuid, p_action text, p_payload jsonb)` and add action `handover_days`:
 

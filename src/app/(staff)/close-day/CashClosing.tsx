@@ -10,6 +10,7 @@ import type { CashStatus, CashSnapshot } from "@/lib/cash/types";
 import { createClient } from "@/lib/supabase/client";
 import { toThaiError } from "@/lib/errors";
 import { sendCashClosing } from "./actions";
+import { refreshCashOperations, withCashOperationLock } from "@/lib/cash/operations";
 
 type CloseRequest = { id: string; epoch: string; submitted?: boolean; payload: { version: number; drawerCount: string; pendingCount: string; note: string } };
 
@@ -56,9 +57,11 @@ export default function CashClosing({ date, isToday, queuedCount }: { date: stri
   }
 
   async function review() {
-    if (request) { setIsConfirmOpen(true); return; }
     setIsBusy(true); setError(null);
     try {
+      await withCashOperationLock(request?.id ?? null, async () => {
+      if (refreshCashOperations().length) throw new Error("มีรายการเงินสดเดิมรอยืนยันผล กรุณาตรวจรายการเดิมก่อนปิดร้าน");
+      if (request) { setIsConfirmOpen(true); return; }
       const next = await cashStatus();
       setStatus(next);
       if (!next.epoch) throw new Error("ระบบเงินสดยังไม่เปิดใช้งาน กรุณาโหลดหน้าใหม่");
@@ -70,6 +73,7 @@ export default function CashClosing({ date, isToday, queuedCount }: { date: stri
       const pending = { id: crypto.randomUUID(), epoch: next.epoch, payload: { version: next.version, drawerCount: parseMoney(drawerCount), pendingCount: parseMoney(pendingCount), note: note.trim() } };
       localStorage.setItem(key, JSON.stringify(pending));
       setRequest(pending); setIsConfirmOpen(true);
+      });
     } catch (failure) { setError(failure instanceof Error ? failure.message : "ตรวจยอดไม่สำเร็จ"); }
     finally { setIsBusy(false); }
   }
@@ -78,6 +82,8 @@ export default function CashClosing({ date, isToday, queuedCount }: { date: stri
     if (!request) return;
     setIsBusy(true); setError(null);
     try {
+      await withCashOperationLock(request.id, async () => {
+      if (refreshCashOperations().length) throw new Error("มีรายการเงินสดเดิมรอยืนยันผล กรุณาตรวจรายการเดิมก่อนปิดร้าน");
       const submitted = { ...request, submitted: true };
       localStorage.setItem(key, JSON.stringify(submitted)); setRequest(submitted);
       const result = await cashExecute(request.id, request.epoch, "close", request.payload);
@@ -96,7 +102,9 @@ export default function CashClosing({ date, isToday, queuedCount }: { date: stri
       await refresh();
       const sent = result.data?.snapshot ? await sendCashClosing(result.data.snapshot.id, request.id, result.data.snapshot.date ?? date) : false;
       if (!sent) toast.error("ปิดร้านแล้ว แต่ส่ง LINE ไม่สำเร็จ กดส่งสรุปอีกครั้งได้", { duration: Infinity });
-    } finally { setIsBusy(false); }
+      });
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "ยังตรวจผลรายการเดิมไม่ได้"); }
+    finally { setIsBusy(false); }
   }
 
   function cancelReview() {

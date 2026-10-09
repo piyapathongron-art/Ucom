@@ -5,6 +5,7 @@ import type { Json } from "@/lib/types/database";
 import type { CashExecuteResult, CashStatus } from "./types";
 import { parseMoney } from "./money";
 import { isDefiniteCashError } from "./errors";
+import { refreshCashOperations } from "./operations";
 export { isDefiniteCashError } from "./errors";
 
 const DEVICE_KEY = "ucom-receiving-device-v1";
@@ -35,6 +36,7 @@ export function getReceivingDeviceToken(): string {
 }
 
 export function hasPendingCashRequests(): boolean {
+  if (refreshCashOperations().length) return true;
   if (!isCashQueueReadable()) return true;
   return Object.keys(localStorage).some(key => key.startsWith(CASH_REQUEST_KEY) || key.startsWith("ucom-cash-sale-v1:"));
 }
@@ -84,6 +86,7 @@ export function isReceivingLocallyPaused(status: CashStatus): boolean {
 }
 
 export function assertReceivingIntake(status: CashStatus): void {
+  if (refreshCashOperations().length) throw new Error("มีรายการเงินสดเดิมรอยืนยันผล กรุณาตรวจรายการเดิมก่อนรับเงินใหม่");
   if (!navigator.onLine) throw new Error(RECEIPT_OFFLINE_MESSAGE);
   if (isReceivingLocallyPaused(status)) throw new Error("หยุดรับเงินอยู่ กรุณาให้เครื่อง POS หลักกดกลับมารับเงินหลังปิดยอดหรือส่งมอบเสร็จ");
 }
@@ -119,6 +122,7 @@ export async function cashWrite(scope: string, action: string, payload: Json, le
       if (!status.epoch) return await legacy();
       const key = CASH_REQUEST_KEY + scope;
       const saved = localStorage.getItem(key);
+      if (!saved && refreshCashOperations().length) throw new Error("มีรายการเงินสดเดิมรอยืนยันผล กรุณาตรวจรายการเดิมก่อนสร้างรายการใหม่");
       let request: Request;
       const devicePayload = () => {
         if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("ข้อมูลรับเงินไม่ถูกต้อง");
@@ -145,7 +149,9 @@ export async function cashWrite(scope: string, action: string, payload: Json, le
       if (!result.error || isDefiniteCashError(result.error)) localStorage.removeItem(key);
       return result;
     };
-    return isReceipt ? await withReceivingIntake(execute) : await execute(await cashStatus());
+    if (isReceipt) return await withReceivingIntake(execute);
+    if (!navigator.locks?.request) throw new Error("เบราว์เซอร์นี้ล็อกรายการเงินไม่ได้ กรุณาใช้เบราว์เซอร์ที่รองรับ");
+    return await navigator.locks.request(RECEIVING_LOCK, async () => execute(await cashStatus()));
   } catch (error) {
     return { error: { message: error instanceof Error ? error.message : "ตรวจสถานะเงินสดไม่สำเร็จ", code: "P0001" } };
   }
@@ -176,6 +182,7 @@ export async function resumeReceivingPos(): Promise<CashStatus> {
     if (!navigator.onLine) throw new Error("ต้องเชื่อมต่อเพื่อยืนยันกลับมารับเงินกับระบบก่อน");
     const status = await cashStatus();
     if (!status.epoch) throw new Error("ระบบเงินสดยังไม่เปิดใช้งาน");
+    if (hasPendingCashRequests()) throw new Error("มีรายการเงินสดเดิมรอยืนยันผล กรุณาตรวจให้ครบก่อนกลับมารับเงิน");
     receiptDevice(status);
     try {
       const { error } = await createClient().rpc("rpc_cash_pos_resume", { p_epoch: status.epoch, p_device: getReceivingDevice(), p_device_token: getReceivingDeviceToken() });

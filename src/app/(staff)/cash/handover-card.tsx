@@ -19,16 +19,18 @@ export default function HandoverCard({ item, status }: { item: CashHandover; sta
   }
   async function resend() {
     setIsBusy(true);
-    try { setMessage(await resendCashSnapshot(item.id) ? "ส่ง LINE ซ้ำแล้ว" : "ส่งไม่สำเร็จ รายการเงินยังอยู่ตามเดิม"); } catch { setMessage("ส่งไม่สำเร็จ"); }
+    try { setMessage(await resendCashSnapshot(item.snapshot?.eventOperationId ?? item.id) ? "ส่ง LINE ซ้ำแล้ว" : "ส่งไม่สำเร็จ รายการเงินยังอยู่ตามเดิม"); } catch { setMessage("ส่งไม่สำเร็จ"); }
     finally { setIsBusy(false); }
   }
   return <article className="ucom-surface space-y-3 p-4">
     <div><h3 className="font-bold">{item.custodian} · ฿{formatMoney(item.amount)}</h3><p className="text-sm text-ink-muted">{states[item.state]} · {new Date(item.createdAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}</p></div>
+    {item.selectedTotal && <p className="text-sm">เงินที่เลือกจากวันที่ ฿{formatMoney(item.selectedTotal)} · เข้าเก๊ะก่อนออก ฿{formatMoney(item.drawerBeforeDeparture ?? "0")} · นำออกไปฝาก ฿{formatMoney(item.bankBound ?? item.amount)}</p>}
+    {item.selectedLines?.map(line => <p key={line.key} className="text-xs text-ink-muted">{line.receiptDay ?? "ยอดไม่ทราบวัน"} · ฿{formatMoney(line.amount)}</p>)}
     {item.state === "handed_over" && <>
       <details><summary className="cursor-pointer text-sm font-semibold">แจ้งฝากและแนบสลิป</summary><div className="mt-3">
         <CashForm action="settle" epoch={status.epoch} fields={{ handoverId: item.id }} uploadHandOver={item.id} label="ยืนยันแจ้งฝาก">
-          <p className="text-sm">ยอดฝาก + เศษเข้าเก๊ะ + คืนกองรอฝาก ต้องเท่ากับ ฿{formatMoney(item.amount)}</p>
-          <Field name="bank" type="number" label="ฝากธนาคารจริง (บาท)" /><Field name="drawer" type="number" label="เศษที่คืนเข้าเก๊ะ (บาท)" value="0" /><Field name="returned" type="number" label="คืนกองรอฝาก (บาท)" value="0" />
+          <p className="text-sm">ยอดฝาก + เงินคืนเข้าเก๊ะเพิ่ม + คืนกองรอฝาก ต้องเท่ากับ ฿{formatMoney(item.amount)} เศษก่อนออกเข้าร้านแล้ว ไม่ต้องนับซ้ำ</p>
+          <Field name="bank" type="number" label="ฝากธนาคารจริง (บาท)" /><Field name="drawer" type="number" label="เงินคืนเข้าเก๊ะเพิ่มหลังนำออก (บาท)" value="0" /><Field name="returned" type="number" label="คืนกองรอฝาก (บาท)" value="0" />
           <Field name="depositedAt" type="datetime-local" label="วันและเวลาที่ฝากจริง (เวลาไทย)" />
           <label className="text-sm">หลักฐานฝากเงิน<input className="mt-1 block w-full text-sm" name="file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required /></label>
           <Check name="physicallyReturned" label="นำเศษเข้าเก๊ะและยอดคืนกองรอฝากกลับเข้าร้านแล้ว เงินที่นำออกได้รับการจัดการครบ" />

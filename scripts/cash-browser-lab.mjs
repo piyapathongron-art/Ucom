@@ -7,6 +7,10 @@ import { fileURLToPath } from 'node:url';
 export const LOCAL_JWT_SECRET = 'ucom-local-cash-fixture-jwt-secret-20261007-32chars';
 const OWNER = '00000000-0000-4000-8000-000000000001';
 const STAFF = '00000000-0000-4000-8000-000000000002';
+const isDailyFixture = process.argv.includes('--daily');
+const database = isDailyFixture ? process.env.UCOM_DAILY_BROWSER_DATABASE ?? 'ucom_cash_daily_browser_20261009' : 'ucom_cash_http_20261008';
+if (isDailyFixture && !/^ucom_cash_daily_browser_[a-z0-9_]+$/.test(database)) throw new Error('Local fixture database name required');
+const restOrigin = isDailyFixture ? 'http://127.0.0.1:55442' : 'http://127.0.0.1:55440';
 const sqlQuote = value => "'" + String(value).replaceAll("'", "''") + "'";
 export function localJwt(role, sub) {
   const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -36,7 +40,7 @@ async function body(request) {
 }
 function sql(actor, statement) {
   const source = `begin; set local role authenticated; set local request.jwt.claims=${sqlQuote(JSON.stringify({ sub: actor, role: 'authenticated' }))}; set local request.jwt.claim.sub=${sqlQuote(actor)}; set local request.jwt.claim.role='authenticated'; ${statement}; commit;`;
-  const result = spawnSync('docker', ['exec', '-i', 'ucom-cash-review-20261007', 'psql', '-X', '-At', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', 'ucom_cash_http_20261008'], { input: source, encoding: 'utf8' });
+  const result = spawnSync('docker', ['exec', '-i', 'ucom-cash-review-20261007', 'psql', '-X', '-At', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', database], { input: source, encoding: 'utf8' });
   if (result.status !== 0) throw new Error('Local Storage RLS fixture rejected operation');
   return result.stdout;
 }
@@ -65,7 +69,7 @@ export function startFixtureAdapter() {
       if (url.pathname.startsWith('/rest/v1/')) {
         const headers = { ...request.headers }; delete headers.host; delete headers['content-length'];
         const raw = ['GET', 'HEAD'].includes(request.method) ? undefined : await body(request);
-        const upstream = await fetch(`http://127.0.0.1:55440/${url.pathname.slice('/rest/v1/'.length)}${url.search}`, { method: request.method, headers, body: raw });
+        const upstream = await fetch(`${restOrigin}/${url.pathname.slice('/rest/v1/'.length)}${url.search}`, { method: request.method, headers, body: raw });
         response.writeHead(upstream.status, Object.fromEntries([...upstream.headers].filter(([name]) => !['content-encoding', 'content-length', 'transfer-encoding'].includes(name))));
         response.end(Buffer.from(await upstream.arrayBuffer())); return;
       }
@@ -105,7 +109,7 @@ export function startFixtureAdapter() {
       json(response, 404, { message: 'Local fixture endpoint not implemented' });
     } catch { json(response, 503, { message: 'Local fixture adapter unavailable' }); }
   });
-  server.listen(55441, '127.0.0.1', () => console.log('LOCAL FIXTURE Auth/Storage adapter: http://localhost:55441 (real REST -> localhost:55440)'));
+  server.listen(55441, '127.0.0.1', () => console.log(`LOCAL FIXTURE Auth/Storage adapter: http://localhost:55441 (real REST -> ${restOrigin})`));
   return server;
 }
 

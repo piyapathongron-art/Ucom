@@ -1,6 +1,6 @@
 # ADR 0028: LINE deposit entry with conserved daily cash allocations
 
-Date: 2026-10-09. Status: **Accepted design; independent scrutiny PASS after frozen source-day and durable request-recovery fixes. Implementation pending.** This does not authorize migration application, deployment, activation or LINE sends.
+Date: 2026-10-09. Status: **Accepted; implemented and independently scrutinized PASS for local integration.** SQL/HTTP, assertion checks, build and authorized mobile browser checks passed. Hosted Auth/Storage and actual LINE delivery remain unverified. This does not authorize migration application, deployment, activation or LINE sends. See [release evidence](../pos/release-line-daily-deposits-2026-10-09.md).
 
 ## Context and decisions
 
