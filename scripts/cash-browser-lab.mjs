@@ -57,6 +57,17 @@ export function startFixtureAdapter() {
     if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
     try {
       const url = new URL(request.url, 'http://localhost:55441');
+      if (url.pathname === '/liff-sdk.js') {
+        response.writeHead(200, { 'Content-Type': 'application/javascript' });
+        response.end(`window.liff = { init(config) {
+          window.__liffFixture = { config, initialSearch: window.location.search };
+          const mode = new URLSearchParams(window.location.search).get('mockLiff');
+          if (mode === 'pending') return new Promise(() => {});
+          if (mode === 'fail') return Promise.reject(new Error('Fixture LIFF init failure'));
+          return Promise.resolve();
+        } };`);
+        return;
+      }
       const actor = claims((request.headers.authorization ?? '').replace(/^Bearer /i, ''));
       if (url.pathname === '/auth/v1/token') {
         const payload = JSON.parse((await body(request)).toString() || '{}');
@@ -116,7 +127,7 @@ export function startFixtureAdapter() {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const adapter = startFixtureAdapter();
   const app = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--hostname', '127.0.0.1', '--port', '3007'], {
-    stdio: 'inherit', env: { ...process.env, UCOM_LOCAL_CASH_LAB: '1', NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:55441', NEXT_PUBLIC_SUPABASE_ANON_KEY: localJwt('anon'), SUPABASE_SERVICE_ROLE_KEY: '', LINE_CHANNEL_ACCESS_TOKEN: '', LINE_GROUP_ID: '', LINE_APP_URL: '', VERCEL_PROJECT_PRODUCTION_URL: '', CRON_SECRET: '' },
+    stdio: 'inherit', env: { ...process.env, UCOM_LOCAL_CASH_LAB: '1', LINE_LIFF_ID: '1234567890-LocalFixture', NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:55441', NEXT_PUBLIC_SUPABASE_ANON_KEY: localJwt('anon'), SUPABASE_SERVICE_ROLE_KEY: '', LINE_CHANNEL_ACCESS_TOKEN: '', LINE_GROUP_ID: '', LINE_APP_URL: '', VERCEL_PROJECT_PRODUCTION_URL: '', CRON_SECRET: '' },
   });
   const stop = () => { app.kill('SIGTERM'); adapter.close(); };
   process.on('SIGINT', stop); process.on('SIGTERM', stop);

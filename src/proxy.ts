@@ -39,8 +39,9 @@ export async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isLoginPage = path === "/login";
+  const isLiffDepositPage = path === "/liff/deposit";
 
-  if (!user && !isLoginPage) {
+  if (!user && !isLoginPage && !isLiffDepositPage) {
     const destination = new URL("/login", request.url);
     destination.searchParams.set("next", safeReturnPath(`${request.nextUrl.pathname}${request.nextUrl.search}`));
     return NextResponse.redirect(destination);

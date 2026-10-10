@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { lineAppUrl } from "../../../../lib/line/app-url.ts";
+import { depositEntryUrl } from "../../../../lib/line/liff.ts";
 
 type JoinEvent = {
   type?: string;
@@ -37,9 +38,9 @@ export async function POST(request: Request) {
     if (event.type === "join") messages = [{ type: "text", text: `LINE_GROUP_ID=${event.source.groupId}` }];
     else {
       if (event.type !== "message" || event.message?.type !== "text" || typeof event.message.text !== "string" || event.message.text.trim() !== "/ฝากเงิน" || !process.env.LINE_GROUP_ID || event.source.groupId !== process.env.LINE_GROUP_ID) continue;
-      const origin = lineAppUrl();
-      if (!origin) return new Response(null, { status: 503 });
-      messages = [{ type: "flex", altText: "ฝากเงินร้าน · เปิดฟอร์ม", contents: { type: "bubble", body: { type: "box", layout: "vertical", contents: [{ type: "text", text: "ฝากเงินร้าน", weight: "bold" }, { type: "text", text: "เปิดฟอร์มและเข้าสู่ระบบด้วยบัญชีร้าน เพื่อเลือกวันและแจ้งผลฝากพร้อมสลิป", wrap: true }] }, footer: { type: "box", layout: "vertical", contents: [{ type: "button", action: { type: "uri", label: "เปิดฟอร์มฝากเงิน", uri: new URL("/cash?intent=deposit", origin).toString() } }] } } }];
+      const uri = depositEntryUrl(process.env.LINE_LIFF_ID, lineAppUrl());
+      if (!uri) return new Response(null, { status: 503 });
+      messages = [{ type: "flex", altText: "ฝากเงินร้าน · เปิดฟอร์ม", contents: { type: "bubble", body: { type: "box", layout: "vertical", contents: [{ type: "text", text: "ฝากเงินร้าน", weight: "bold" }, { type: "text", text: "เปิดฟอร์มและเข้าสู่ระบบด้วยบัญชีร้าน เพื่อเลือกวันและแจ้งผลฝากพร้อมสลิป", wrap: true }] }, footer: { type: "box", layout: "vertical", contents: [{ type: "button", action: { type: "uri", label: "เปิดฟอร์มฝากเงิน", uri } }] } } }];
     }
     try {
       const response = await fetch("https://api.line.me/v2/bot/message/reply", {
