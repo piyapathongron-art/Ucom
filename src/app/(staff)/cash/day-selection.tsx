@@ -7,7 +7,7 @@ import { formatMoney, moneyCents } from "@/lib/cash/money";
 import { selectionAmounts } from "@/lib/cash/day-selection";
 import CashForm, { Check, Field } from "./cash-form";
 
-export default function DaySelection({ status }: { status: CashStatus }) {
+export default function DaySelection({ status, isCompact = false }: { status: CashStatus; isCompact?: boolean }) {
   const [lines, setLines] = useState<CashDayLine[]>([]);
   const [keys, setKeys] = useState<string[]>([]);
   const [drawer, setDrawer] = useState("0");
@@ -44,12 +44,15 @@ export default function DaySelection({ status }: { status: CashStatus }) {
   const canSubmit = isLoaded && Boolean(summary) && status.isReceivingPaused && status.ackVersion === status.version && status.dayAllocationsEnabled === true;
   return <div className="space-y-3" data-testid="cash-day-selection">
     {error ? <p role="alert">{error}</p> : !isLoaded && <p role="status">กำลังโหลดเงินค้างฝากทุกวัน…</p>}
-    {isLoaded && lines.map(line => <label key={line.key} className="flex items-start gap-2 rounded border border-line p-3 text-sm">
-      <input type="checkbox" data-testid={`cash-day-${line.key}`} checked={keys.includes(line.key)} disabled={moneyCents(line.available) <= BigInt(0)} onChange={event => setKeys(event.target.checked ? [...keys, line.key] : keys.filter(key => key !== line.key))} />
-      <span>{line.receiptDay ?? (line.kind === "opening" ? "ยอดตั้งต้นไม่ทราบวัน" : "ยอดปรับจากการนับไม่ทราบวัน")} · พร้อมนำฝาก ฿{formatMoney(line.available)} · อยู่กับผู้นำฝาก ฿{formatMoney(line.reserved)}</span>
+    {isCompact && isLoaded && lines.length === 0 && <p role="status" className="text-sm text-ink-muted">ยังไม่มีเงินค้างฝากให้เลือก กรุณาตรวจยอดกับเจ้าของร้าน</p>}
+    {isLoaded && lines.map(line => <label key={line.key} className={isCompact ? `flex items-center gap-3 rounded-lg border p-4 text-sm ${keys.includes(line.key) ? "border-accent bg-accent/5" : "border-border"}` : "flex items-start gap-2 rounded border border-line p-3 text-sm"}>
+      <input type="checkbox" className={isCompact ? "h-5 w-5 shrink-0" : undefined} data-testid={`cash-day-${line.key}`} checked={keys.includes(line.key)} disabled={moneyCents(line.available) <= BigInt(0)} onChange={event => setKeys(event.target.checked ? [...keys, line.key] : keys.filter(key => key !== line.key))} />
+      {isCompact ? <span className="flex-1"><span className="block font-semibold">{line.receiptDay ?? (line.kind === "opening" ? "ยอดตั้งต้นไม่ทราบวัน" : "ยอดปรับจากการนับไม่ทราบวัน")}</span><span className="mt-1 block text-lg font-bold">฿{formatMoney(line.available)}</span>{moneyCents(line.reserved) > BigInt(0) && <span className="block text-xs text-ink-muted">อยู่กับผู้นำฝาก ฿{formatMoney(line.reserved)}</span>}</span>
+        : <span>{line.receiptDay ?? (line.kind === "opening" ? "ยอดตั้งต้นไม่ทราบวัน" : "ยอดปรับจากการนับไม่ทราบวัน")} · พร้อมนำฝาก ฿{formatMoney(line.available)} · อยู่กับผู้นำฝาก ฿{formatMoney(line.reserved)}</span>}
     </label>)}
-    <label className="flex flex-col gap-1 text-sm">เศษเข้าเก๊ะก่อนออกจากร้าน (บาท)<input className="ucom-field p-2" inputMode="decimal" value={drawer} onChange={event => setDrawer(event.target.value)} /></label>
-    {summary && <p data-testid="cash-bank-bound" className="text-sm font-semibold">เงินที่เลือก ฿{formatMoney(summary.selectedTotal)} · เข้าเก๊ะก่อนออก ฿{formatMoney(drawer)} · นำออกไปฝาก ฿{formatMoney(summary.bankBound)}</p>}
+    <label className="flex flex-col gap-1 text-sm">{isCompact ? "แยกเข้าเก๊ะ (บาท)" : "เศษเข้าเก๊ะก่อนออกจากร้าน (บาท)"}<input className="ucom-field p-2" inputMode="decimal" value={drawer} onChange={event => setDrawer(event.target.value)} /></label>
+    {summary && (isCompact ? <div className="space-y-1 border-y border-border py-3" data-testid="cash-bank-bound"><p className="text-sm text-ink-muted">เงินที่เลือก ฿{formatMoney(summary.selectedTotal)} · แยกเข้าเก๊ะ ฿{formatMoney(drawer)}</p><p className="text-sm font-semibold">นำออกไปฝาก</p><p className="text-3xl font-bold">฿{formatMoney(summary.bankBound)}</p></div>
+      : <p data-testid="cash-bank-bound" className="text-sm font-semibold">เงินที่เลือก ฿{formatMoney(summary.selectedTotal)} · เข้าเก๊ะก่อนออก ฿{formatMoney(drawer)} · นำออกไปฝาก ฿{formatMoney(summary.bankBound)}</p>)}
     <CashForm key={`${keys.join(",")}:${drawer}`} action="handover_days" epoch={status.epoch} fields={{ version: status.version, lines: summary?.lines ?? [], drawerBeforeDeparture: drawer }} isDisabled={!canSubmit} label="ยืนยันนำเงินออกไปฝาก">
       <Field name="custodian" label="ผู้ถือเงินไปฝาก" />
       <Check name="drawerPhysicallySeparated" label="แยกเศษเข้าเก๊ะแล้ว และตรวจเงินที่จะนำออกไปฝากตามยอดข้างต้นแล้ว" />

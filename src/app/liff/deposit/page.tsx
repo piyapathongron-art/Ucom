@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { validLiffId } from "@/lib/line/liff";
 import LoginForm from "@/app/login/login-form";
-import CashPage from "@/app/(staff)/cash/page";
+import CashContent from "@/app/(staff)/cash/cash-content";
 import LiffShell from "./liff-shell";
 
 export default async function LiffDepositPage({ searchParams }: {
@@ -15,7 +15,7 @@ export default async function LiffDepositPage({ searchParams }: {
     <LiffShell liffId={validLiffId(process.env.LINE_LIFF_ID)} sdkUrl={isLocalLab
       ? "http://localhost:55441/liff-sdk.js"
       : "https://static.line-scdn.net/liff/edge/2/sdk.js"}>
-      {user ? <CashPage searchParams={Promise.resolve({})} />
+      {user ? <CashContent isCompact searchParams={Promise.resolve({})} />
         : <LoginForm appearance="phone" searchParams={Promise.resolve({ error, next: "/liff/deposit" })} />}
     </LiffShell>
   );
