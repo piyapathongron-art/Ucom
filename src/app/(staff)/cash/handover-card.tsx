@@ -57,10 +57,6 @@ export default function HandoverCard({ item, status, isCompact = false }: { item
     {item.reviewNote && <p className="text-sm">หมายเหตุตรวจ: {item.reviewNote}</p>}
     {item.evidencePath && <div className="flex flex-wrap gap-3"><button className="text-sm underline" disabled={isBusy} onClick={viewEvidence}>เปิดหลักฐานส่วนตัว</button>{url && <a className="text-sm underline" href={url} target="_blank" rel="noopener noreferrer">ดูหลักฐาน (ลิงก์อายุ 1 นาที)</a>}</div>}
     {item.snapshot && <button className="text-sm underline" disabled={isBusy} onClick={resend}>ส่งสรุปเดิมเข้า LINE อีกครั้ง</button>}
-    {!isCompact && status.isOwner && ["reported", "disputed"].includes(item.state) && <details><summary className="cursor-pointer text-sm font-semibold">เจ้าของตรวจหลักฐาน</summary><div className="mt-3"><CashForm action="review" epoch={status.epoch} fields={{ handoverId: item.id }} label="บันทึกผลตรวจ">
-      <label className="text-sm">ผลตรวจ<select name="confirmed" className="ucom-field ml-2 p-2"><option value="true">ยืนยัน</option><option value="false">ขอแก้หลักฐาน</option></select></label>
-      <Field name="reason" label="บันทึกผลตรวจ" /><Check name="confirmedInput" label="ตรวจหลักฐานและรายการธนาคารแล้ว" />
-    </CashForm></div></details>}
     {item.state === "disputed" && <details open={isCompact || undefined}><summary className="cursor-pointer text-sm font-semibold">ส่งหลักฐานใหม่</summary><div className="mt-3"><CashForm action="evidence" epoch={status.epoch} fields={{ handoverId: item.id }} uploadHandOver={item.id} label={isCompact ? "ส่งสรุปเข้า LINE" : "ส่งหลักฐานแก้ไข"}>
       <Field name="reason" label="รายละเอียดที่แก้ไข" /><label className="text-sm">หลักฐานใหม่<input name="file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required className="mt-1 block w-full" /></label>
     </CashForm></div></details>}
