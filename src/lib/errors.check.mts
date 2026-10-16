@@ -5,6 +5,7 @@ assert.equal(toThaiError({ code: "P0001", message: "ยอดเงินใน�
 assert.equal(toThaiError({ code: "P0001", message: "insufficient wallet" }), GENERIC_ERROR);
 assert.equal(toThaiError({ code: "22023", message: "ตรวจยอดคืนเงิน วันฝาก และสลิปให้ครบก่อนบันทึก" }), "ตรวจยอดคืนเงิน วันฝาก และสลิปให้ครบก่อนบันทึก");
 assert.equal(toThaiError({ code: "22023", message: "invalid parameter value" }), GENERIC_ERROR);
+assert.equal(toThaiError({ code: "22023", message: 'invalid input: "ไทย"' }), GENERIC_ERROR);
 assert.equal(toThaiError({ code: "23505", message: "duplicate key ภาษาไทย" }), GENERIC_ERROR);
 assert.equal(toThaiError(null), GENERIC_ERROR);
 assert.equal(toThaiError("boom"), GENERIC_ERROR);

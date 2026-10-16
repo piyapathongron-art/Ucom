@@ -25,7 +25,7 @@ export default function CashHistory({ movements, handovers }: { movements: CashM
         {movements.length ? movements.slice(0, count).map(item => {
           // "posting" is the generic kind for sales/expenses; its reason is the meaningful name.
           const title = item.kind === "posting" && item.reason ? item.reason : movementNames[item.kind] ?? "ความเคลื่อนไหวเงินสด";
-          return <div key={item.id} className="border-b border-line pb-2 text-sm">
+          return <div key={item.id} className="border-b border-border pb-2 text-sm">
             <p className="flex justify-between gap-3"><span>{title} · {item.fund === "drawer" ? "เงินเก๊ะ" : "เงินรอฝาก"}</span><span className="font-semibold">{Number(item.amount) > 0 ? "+" : ""}{formatMoney(item.amount)}</span></p>
             <p className="text-xs text-ink-muted">{when(item.createdAt)}{item.reason && item.reason !== title ? ` · ${item.reason}` : ""}</p>
           </div>;
