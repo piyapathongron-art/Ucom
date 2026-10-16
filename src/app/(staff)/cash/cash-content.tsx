@@ -12,11 +12,12 @@ export default async function CashContent({ searchParams, isCompact = false }: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(isUuid ? `/cash?handover=${handover}` : "/cash")}`);
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("role, display_name").eq("id", user.id).single();
   if (!profile || !["owner", "staff"].includes(profile.role)) return <main className="p-6">บัญชีนี้ไม่มีสิทธิ์เข้าระบบร้าน</main>;
   const { data, error } = await supabase.rpc("rpc_cash_status");
   if (error || !data) return <main className="p-6"><h1 className="text-xl font-bold">เงินสดร้าน</h1><p role="alert" className="mt-4">ระบบสองกองเงินยังไม่พร้อมใช้งาน กรุณาติดต่อเจ้าของร้าน</p></main>;
-  const specific = isUuid ? await supabase.rpc("rpc_cash_handover", { p_handover_id: handover! }) : null;
-  if (isCompact) return <CashDeposit status={data as unknown as CashStatus} />;
-  return <CashOverview status={data as unknown as CashStatus} focusedHandover={specific?.data as unknown as CashHandover | null} focusError={handover && (!isUuid || specific?.error || !specific?.data) ? "เปิดรายการนี้ไม่ได้ กรุณาตรวจลิงก์และสิทธิ์บัญชี" : undefined} />;
+  const isShortView = isCompact || profile.role === "staff";
+  const specific = isUuid && !isShortView ? await supabase.rpc("rpc_cash_handover", { p_handover_id: handover! }) : null;
+  if (isShortView) return <CashDeposit status={data as unknown as CashStatus} userName={profile.display_name} />;
+  return <CashOverview status={data as unknown as CashStatus} userName={profile.display_name} focusedHandover={specific?.data as unknown as CashHandover | null} focusError={handover && (!isUuid || specific?.error || !specific?.data) ? "เปิดรายการนี้ไม่ได้ กรุณาตรวจลิงก์และสิทธิ์บัญชี" : undefined} />;
 }

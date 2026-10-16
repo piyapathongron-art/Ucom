@@ -17,7 +17,7 @@ function settleMismatch(form: FormData, amount: string) {
     : `ยอดรวมเกินเงินที่นำออกไป ฿${shown} ตรวจยอดฝากอีกครั้ง`;
 }
 
-const states = { handed_over: "อยู่กับผู้นำฝาก", reported: "แจ้งฝากแล้ว รอตรวจ", confirmed: "เจ้าของยืนยันแล้ว", disputed: "หลักฐานต้องแก้ไข", returned: "คืนเงินเข้าร้านแล้ว" };
+const states = { handed_over: "กำลังไปฝาก", reported: "แจ้งฝากแล้ว รอตรวจ", confirmed: "เจ้าของยืนยันแล้ว", disputed: "หลักฐานต้องแก้ไข", returned: "คืนเงินเข้าร้านแล้ว" };
 
 export default function HandoverCard({ item, status, isCompact = false }: { item: CashHandover; status: CashStatus; isCompact?: boolean }) {
   const [message, setMessage] = useState("");
@@ -50,7 +50,7 @@ export default function HandoverCard({ item, status, isCompact = false }: { item
         </CashForm>
       </div></details>
       <details><summary className="cursor-pointer text-sm">ยกเลิกและคืนเงินทั้งหมด</summary><div className="mt-3"><CashForm action="return" epoch={status.epoch} fields={{ handoverId: item.id }} label="ยืนยันคืนเงินทั้งหมด">
-        <Field name="reason" label="เหตุผลที่ไม่นำฝาก" /><Check name="physicallyReturned" label="คืนเงินทั้งหมดเข้ากองรอฝากที่ร้านแล้ว ยังไม่มีการฝากธนาคาร" />
+        <Field name="reason" label="เหตุผลที่ไม่นำฝาก" /><Check name="physicallyReturned" label="คืนเงินทั้งหมดเข้ากองเงินรอฝากในร้านแล้ว ยังไม่มีการฝากธนาคาร" />
       </CashForm></div></details>
     </>}
     {item.bank !== null && <p className="text-sm">ฝาก ฿{formatMoney(item.bank)} · เข้าเก๊ะ ฿{formatMoney(item.drawer ?? "0")} · คืนรอฝาก ฿{formatMoney(item.returned ?? "0")}</p>}

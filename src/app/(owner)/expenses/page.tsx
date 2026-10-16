@@ -63,7 +63,7 @@ export default function LedgerPage() {
                 <tr key={row.id} data-testid={`expense-row-${row.id}`}>
                   <td className="text-[13px] text-ink-muted">{row.day}</td>
                   <td className="text-[13.5px] font-semibold">{row.name}</td>
-                  <td className="text-[13px] text-ink-muted">{l.cash.isActive && row.method === "cash" ? l.tab === "income" ? "เงินรอนำฝาก" : "เงินสด" : row.method ? LEDGER_METHOD_LABEL[l.tab][row.method] ?? row.method : "-"}</td>
+                  <td className="text-[13px] text-ink-muted">{l.cash.isActive && row.method === "cash" ? l.tab === "income" ? "เงินรอฝาก" : "เงินสด" : row.method ? LEDGER_METHOD_LABEL[l.tab][row.method] ?? row.method : "-"}</td>
                   <td className="text-right text-[13.5px] font-semibold tabular-nums">{money(row.amount)}</td>
                   <td>
                     <div className="flex items-center justify-end gap-2">

@@ -52,7 +52,7 @@ export default function LedgerSection({ kind, rows, isToday, isOwner, deleteConf
                 <tr key={row.id} data-testid={`${prefix}-row-${row.id}`}>
                   <td className="text-[13.5px] font-semibold">{row.name}</td>
                   <td className="text-right text-[13.5px] font-semibold tabular-nums">{fmt(row.amount)}</td>
-                  <td className="text-[13px] text-ink-muted">{cash.isActive && row.method === "cash" ? kind === "income" ? "เงินรอนำฝาก" : "เงินสด" : row.method ? LEDGER_METHOD_LABEL[kind][row.method] ?? row.method : "-"}</td>
+                  <td className="text-[13px] text-ink-muted">{cash.isActive && row.method === "cash" ? kind === "income" ? "เงินรอฝาก" : "เงินสด" : row.method ? LEDGER_METHOD_LABEL[kind][row.method] ?? row.method : "-"}</td>
                   {isToday && (
                     <td>
                       <div className="flex items-center justify-end gap-2">

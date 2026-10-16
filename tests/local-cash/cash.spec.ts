@@ -22,7 +22,7 @@ test("local mobile cash: handover, private proof, residual and owner review", as
   await page.getByLabel("ตรวจจำนวนเงินและผู้ถือเงินแล้ว").check();
   await page.getByRole("button", { name: "ยืนยันนำเงินออกไปฝาก", exact: true }).click();
   const handover = page.locator("article").filter({ hasText: "พนักงานทดสอบในเครื่อง" });
-  await expect(handover).toContainText("อยู่กับผู้นำฝาก");
+  await expect(handover).toContainText("กำลังไปฝาก");
   await handover.getByText("แจ้งฝากและแนบสลิป", { exact: true }).click();
   await handover.getByLabel("ฝากธนาคารจริง (บาท)").fill("16400");
   await handover.getByLabel("เศษที่คืนเข้าเก๊ะ (บาท)").fill("57");

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { Json } from "@/lib/types/database";
 import { getReceivingDevice, getReceivingDeviceToken } from "@/lib/cash/client";
 import { parseMoney } from "@/lib/cash/money";
@@ -104,7 +105,8 @@ export default function CashForm({ action, epoch, fields = {}, children, label, 
         if (result.ok && "notificationSent" in result && result.notificationSent === false) localStorage.setItem(`ucom-cash-notification-v1:${pending.id}`, pending.actorId);
         clearCashIntent(pending); setJob(null);
         // Keep what staff typed (and the attached slip) when the server rejects; they fix one field and resend.
-        if (result.ok) formRef.current?.reset();
+        // Toast too: a finished card (e.g. cancelled handover) leaves the list, taking its inline message with it.
+        if (result.ok) { formRef.current?.reset(); toast.success(result.message); }
         router.refresh();
       }
       if (result.ok) router.refresh();

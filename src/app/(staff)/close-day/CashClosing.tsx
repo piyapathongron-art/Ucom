@@ -117,30 +117,30 @@ export default function CashClosing({ date, isToday, queuedCount }: { date: stri
     <section className="ucom-surface space-y-4 p-6" data-testid="two-fund-closing">
       <h2 className="text-lg font-bold">เงินสดสองกอง</h2>
       {status && <dl className="grid grid-cols-2 gap-3 text-sm">
-        <div><dt className="text-ink-muted">เงินทอนหน้าร้าน</dt><dd className="font-semibold">฿{formatMoney(status.drawer)}</dd></div>
-        <div><dt className="text-ink-muted">เงินรอนำฝาก</dt><dd className="font-semibold">฿{formatMoney(status.pending)}</dd></div>
-        <div><dt className="text-ink-muted">อยู่กับผู้นำฝาก</dt><dd>฿{formatMoney(status.reserved)}</dd></div>
-        <div><dt className="text-ink-muted">รอนำฝากที่อยู่ในร้าน</dt><dd>฿{formatMoney(status.available)}</dd></div>
+        <div><dt className="text-ink-muted">เงินเก๊ะ</dt><dd className="font-semibold">฿{formatMoney(status.drawer)}</dd></div>
+        <div><dt className="text-ink-muted">เงินรอฝาก</dt><dd className="font-semibold">฿{formatMoney(status.pending)}</dd></div>
+        <div><dt className="text-ink-muted">กำลังไปฝาก</dt><dd>฿{formatMoney(status.reserved)}</dd></div>
+        <div><dt className="text-ink-muted">เงินรอฝากในร้าน</dt><dd>฿{formatMoney(status.available)}</dd></div>
       </dl>}
-      <p className="text-xs text-ink-muted">นับเฉพาะเงินที่อยู่ในร้าน ยอดที่ส่งให้ผู้นำฝากแล้วแสดงแยกต่างหาก</p>
+      <p className="text-xs text-ink-muted">นับเฉพาะเงินที่อยู่ในร้าน ยอดที่ออกไปฝากแล้ว (กำลังไปฝาก) แสดงแยกต่างหาก</p>
       {isToday && <>
         <p className="text-sm text-ink-muted">{status?.isReceivingPaused && status.ackVersion === status.version ? "เครื่อง POS หยุดรับเงินและยืนยันยอดล่าสุดแล้ว" : "รอเครื่อง POS หลักส่งบิลและกดหยุดรับเงินเพื่อยืนยันยอดล่าสุด"} · <Link href="/pos" className="underline">เปิด POS</Link></p>
-        <label className="block text-sm">เงินทอนที่นับได้จริง<input disabled={Boolean(request) || isBusy || !status} data-testid="close-drawer-count" type="number" min="0" step="0.01" value={drawerCount} onChange={event => { if (countVersion === null && status) setCountVersion(status.version); setDrawerCount(event.target.value); }} className="ucom-field mt-1 w-full px-4 py-2.5" /></label>
-        <label className="block text-sm">เงินรอนำฝากที่นับได้ในร้าน<input disabled={Boolean(request) || isBusy || !status} data-testid="close-pending-count" type="number" min="0" step="0.01" value={pendingCount} onChange={event => { if (countVersion === null && status) setCountVersion(status.version); setPendingCount(event.target.value); }} className="ucom-field mt-1 w-full px-4 py-2.5" /></label>
+        <label className="block text-sm">เงินเก๊ะที่นับได้จริง<input disabled={Boolean(request) || isBusy || !status} data-testid="close-drawer-count" type="number" min="0" step="0.01" value={drawerCount} onChange={event => { if (countVersion === null && status) setCountVersion(status.version); setDrawerCount(event.target.value); }} className="ucom-field mt-1 w-full px-4 py-2.5" /></label>
+        <label className="block text-sm">เงินรอฝากที่นับได้ในร้าน<input disabled={Boolean(request) || isBusy || !status} data-testid="close-pending-count" type="number" min="0" step="0.01" value={pendingCount} onChange={event => { if (countVersion === null && status) setCountVersion(status.version); setPendingCount(event.target.value); }} className="ucom-field mt-1 w-full px-4 py-2.5" /></label>
         <label className="block text-sm">หมายเหตุ<textarea disabled={Boolean(request) || isBusy} maxLength={1000} value={note} onChange={event => setNote(event.target.value)} className="ucom-field mt-1 w-full px-4 py-2.5" /></label>
         <button type="button" data-testid="cash-close-review" disabled={isBusy || !status || queuedCount > 0} onClick={() => void review()} className="ucom-primary w-full px-4 py-3 disabled:opacity-50">{request ? "ลองยืนยันรายการเดิม" : latest ? "บันทึกยอดนับฉบับใหม่" : "ตรวจยอดและปิดร้าน"}</button>
       </>}
       {latest && <div className="space-y-2 text-sm" data-testid="cash-closing-snapshot">
         <p>ปิดร้านฉบับ {latest.revision} · {new Date(latest.asOf).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}</p>
-        <p>นับเงินทอน ฿{formatMoney(latest.drawerCount ?? "0")} · ส่วนต่าง ฿{formatMoney(latest.drawerVariance ?? "0")}</p>
-        <p>นับเงินรอนำฝาก ฿{formatMoney(latest.pendingCount ?? "0")} · ส่วนต่าง ฿{formatMoney(latest.pendingVariance ?? "0")}</p>
+        <p>นับเงินเก๊ะ ฿{formatMoney(latest.drawerCount ?? "0")} · ส่วนต่าง ฿{formatMoney(latest.drawerVariance ?? "0")}</p>
+        <p>นับเงินรอฝาก ฿{formatMoney(latest.pendingCount ?? "0")} · ส่วนต่าง ฿{formatMoney(latest.pendingVariance ?? "0")}</p>
         <button type="button" disabled={isBusy} className="ucom-secondary px-4 py-2" onClick={() => { setIsBusy(true); sendCashClosing(latest.id, undefined, date).then(sent => sent ? toast.success("ส่งสรุปเข้า LINE แล้ว") : toast.error("ส่ง LINE ไม่สำเร็จ กรุณาลองใหม่")).finally(() => setIsBusy(false)); }}>ส่งสรุปเดิมเข้า LINE</button>
       </div>}
       {!isToday && !latest && <p className="text-sm text-ink-muted">ไม่มีบันทึกเงินสดสองกองของวันนี้</p>}
       <button type="button" disabled={isBusy} onClick={() => void refresh()} className="text-xs underline">ตรวจยอดล่าสุด</button>
       {error && <p role="alert" className="ucom-error">{error}</p>}
       <ConfirmDialog open={isConfirmOpen} title="ยืนยันยอดนับสองกอง" confirmLabel="บันทึกและส่ง LINE" confirmTestId="cash-close-confirm" isBusy={isBusy} onClose={cancelReview} onConfirm={() => void confirm()}>
-        {request && <p className="text-sm">เงินทอน ฿{formatMoney(request.payload.drawerCount)} · เงินรอนำฝาก ฿{formatMoney(request.payload.pendingCount)} · ยอดระบบรุ่น {request.payload.version}</p>}
+        {request && <p className="text-sm">เงินเก๊ะ ฿{formatMoney(request.payload.drawerCount)} · เงินรอฝาก ฿{formatMoney(request.payload.pendingCount)} · ยอดระบบรุ่น {request.payload.version}</p>}
         <p className="text-xs text-ink-muted">การบันทึกยอดนับไม่ปรับยอดเงินในระบบ หากมีส่วนต่างให้เจ้าของแก้ไขพร้อมเหตุผล</p>
       </ConfirmDialog>
     </section>

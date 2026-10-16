@@ -7,7 +7,7 @@ export type DepositSnapshot = CashSnapshot & {
   custodian?: string; reporter?: string; reporterName?: string;
   eventOperationId?: string; handoverId?: string; state?: string;
 };
-const reviewStates: Record<string, string> = { handed_over: "อยู่กับผู้นำฝาก", reported: "รอเจ้าของตรวจหลักฐาน", confirmed: "เจ้าของยืนยันแล้ว", disputed: "หลักฐานต้องแก้ไข", returned: "คืนเงินนำฝากแล้ว" };
+const reviewStates: Record<string, string> = { handed_over: "กำลังไปฝาก", reported: "รอเจ้าของตรวจหลักฐาน", confirmed: "เจ้าของยืนยันแล้ว", disputed: "หลักฐานต้องแก้ไข", returned: "คืนเงินนำฝากแล้ว" };
 function dayLabel(day: string | null, kind: string) {
   return day ? `${day.slice(8, 10)}/${day.slice(5, 7)}/${day.slice(0, 4)}` : kind === "opening" ? "ยอดตั้งต้นไม่ทราบวัน" : "ยอดปรับเงินไม่ทราบวัน";
 }
@@ -24,7 +24,7 @@ export function cashFlex(snapshot: DepositSnapshot, appUrl: string, title = "เ
   const originalSections = snapshot.daily ? digestFlex(snapshot.daily, appUrl, isResend).contents.body.contents.slice(3, -1) : [];
   const dailySections = JSON.parse(JSON.stringify(originalSections).replaceAll('"เงินออกจากลิ้นชัก"', '"รายจ่ายเงินสดวันนี้ (ทุกกอง)"')) as typeof originalSections;
   return {
-    altText: `${title} · เก๊ะ ${snapshot.drawer} · รอฝาก ${snapshot.pending}`,
+    altText: `${title} · เงินเก๊ะ ${snapshot.drawer} · เงินรอฝาก ${snapshot.pending}`,
     contents: {
       type: "bubble", body: { type: "box", layout: "vertical", spacing: "md", contents: [
         { type: "text", text: `${title}${isResend ? " (ส่งซ้ำ)" : ""}`, weight: "bold", size: "lg", wrap: true },
@@ -45,10 +45,10 @@ export function cashFlex(snapshot: DepositSnapshot, appUrl: string, title = "เ
           row("ฝากธนาคารจริง", snapshot.deposit.bank), row(snapshot.selectedLines ? "เศษคืนเข้าเก๊ะเพิ่มเติมหลังนำออก" : "เศษคืนเข้าเก๊ะ", snapshot.deposit.drawer), row("คืนกองรอฝาก", snapshot.deposit.returned),
           { type: "text", text: `ฝาก ณ ${new Date(snapshot.deposit.depositedAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}${snapshot.state ? "" : " · รอเจ้าของตรวจหลักฐาน"}`, size: "xs", wrap: true },
         ] : []),
-        row("เงินเก๊ะร้าน", snapshot.drawer), row("เงินยอดขายรอฝาก", snapshot.pending),
-        row("อยู่กับผู้นำฝาก", snapshot.reserved), row("รอฝากที่ร้าน", snapshot.available),
-        ...(snapshot.drawerVariance !== undefined ? [row("เก๊ะเกิน/ขาด", snapshot.drawerVariance)] : []),
-        ...(snapshot.pendingVariance !== undefined ? [row("รอฝากเกิน/ขาด", snapshot.pendingVariance)] : []),
+        row("เงินเก๊ะ", snapshot.drawer), row("เงินรอฝาก", snapshot.pending),
+        row("กำลังไปฝาก", snapshot.reserved), row("เงินรอฝากในร้าน", snapshot.available),
+        ...(snapshot.drawerVariance !== undefined ? [row("เงินเก๊ะเกิน/ขาด", snapshot.drawerVariance)] : []),
+        ...(snapshot.pendingVariance !== undefined ? [row("เงินรอฝากเกิน/ขาด", snapshot.pendingVariance)] : []),
         ...(snapshot.daily ? [row("ยอดขายรวม (ทุกบิล)", snapshot.daily.salesTotal.toLocaleString("th-TH", { maximumFractionDigits: 2 }))] : []),
         ...dailySections,
       ] },

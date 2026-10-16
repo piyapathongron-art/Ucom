@@ -7,8 +7,8 @@ export function FundSelect({ value, onChange, disabled, testId, allowDrawer = tr
   disabled?: boolean; testId?: string; allowDrawer?: boolean;
 }) {
   return <select aria-label="กองเงิน" className="ucom-field w-full px-4 py-2.5 text-sm" value={value} disabled={disabled} data-testid={testId} onChange={(event) => onChange(event.target.value as CashPaymentFund)}>
-    {allowDrawer && <option value="drawer">เงินทอนหน้าร้าน</option>}
-    <option value="pending">เงินรอนำฝาก</option>
+    {allowDrawer && <option value="drawer">เงินเก๊ะ</option>}
+    <option value="pending">เงินรอฝาก</option>
     <option value="transfer">เงินโอน/ส่วนตัว</option>
   </select>;
 }

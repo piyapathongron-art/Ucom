@@ -128,7 +128,7 @@ function Row({
                   />
                   <select aria-label="จ่ายค่าอะไหล่จาก" value={partPaidFrom} onChange={(e) => setPartPaidFrom(e.target.value as PartPaidFrom | "")} data-testid={`repair-part-paid-from-${row.id}`} className="ucom-field px-2 py-1.5 text-sm">
                     <option value="">วิธีจ่าย</option>
-                    {cash.isActive ? <><option value="drawer">เงินทอนหน้าร้าน</option><option value="pending">เงินรอนำฝาก</option></> : <option value="cash">เงินสด</option>}
+                    {cash.isActive ? <><option value="drawer">เงินเก๊ะ</option><option value="pending">เงินรอฝาก</option></> : <option value="cash">เงินสด</option>}
                     <option value="transfer">โอน</option>
                   </select>
                   <button

@@ -12,7 +12,7 @@ async function login(page: Page, username = "staff") {
   await page.getByLabel("ชื่อผู้ใช้", { exact: true }).fill(username);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill("fixture-password");
   await page.getByRole("button", { name: "เข้าสู่ระบบ", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "เงินสดร้าน", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^(เงินสดร้าน|ฝากเงินร้าน)$/ })).toBeVisible();
 }
 async function acknowledge(page: Page) {
   const statusResponse = await page.request.post("http://localhost:55441/rest/v1/rpc/rpc_cash_status", { headers: headers(), data: {} });
@@ -25,25 +25,26 @@ async function acknowledge(page: Page) {
 
 test("daily mobile deposit selects dates, moves pre-departure drawer and preserves partial return", async ({ page }, info) => {
   await login(page);
-  await expect(page.getByRole("region", { name: "ยอดเงินสองกอง" })).toContainText("1,557");
-  await page.getByTestId("cash-day-date:2026-09-30").check();
-  await page.getByTestId("cash-day-date:2026-10-01").check();
-  await page.getByLabel("เศษเข้าเก๊ะก่อนออกจากร้าน (บาท)").fill("57");
+  await expect(page.getByTestId("cash-deposit")).toContainText("1,557");
+  await page.getByRole("button", { name: "เลือกทุกวัน", exact: true }).click();
+  await expect(page.getByTestId("cash-day-date:2026-09-30")).toBeChecked();
+  await expect(page.getByTestId("cash-day-date:2026-10-01")).toBeChecked();
+  await page.getByLabel("แยกเข้าเก๊ะ (บาท)").fill("57");
   await page.getByLabel("ผู้ถือเงินไปฝาก").fill("ทดสอบรายวัน");
   await page.getByLabel("แยกเศษเข้าเก๊ะแล้ว และตรวจเงินที่จะนำออกไปฝากตามยอดข้างต้นแล้ว").check();
   await page.getByRole("button", { name: "ยืนยันนำเงินออกไปฝาก", exact: true }).click();
   const handover = page.locator("article").filter({ hasText: "ทดสอบรายวัน" });
-  await expect(handover).toContainText("อยู่กับผู้นำฝาก");
+  await expect(handover).toContainText("กำลังไปฝาก");
   await expect(handover).toContainText("1,443");
   await page.reload();
   await expect(handover).toContainText("1,443");
-  await handover.getByText("แจ้งฝากและแนบสลิป", { exact: true }).click();
   await handover.getByLabel("ฝากธนาคารจริง (บาท)").fill("1200");
+  await handover.getByText("เงินเหลือกลับร้าน", { exact: true }).click();
   await handover.getByLabel("คืนกองรอฝาก (บาท)").fill("243");
   await handover.getByLabel("วันและเวลาที่ฝากจริง (เวลาไทย)").fill(new Date(Date.now() + 60000).toLocaleString("sv-SE", { timeZone: "Asia/Bangkok" }).replace(" ", "T").slice(0, 16));
   await handover.locator('input[type="file"]').setInputFiles(proof);
-  await handover.getByLabel("นำเศษเข้าเก๊ะและยอดคืนกองรอฝากกลับเข้าร้านแล้ว เงินที่นำออกได้รับการจัดการครบ").check();
-  await handover.getByRole("button", { name: "ยืนยันแจ้งฝาก", exact: true }).click();
+  await handover.getByLabel("ยืนยันว่าเงินที่นำออกไปจัดการครบแล้ว (ฝากธนาคารแล้ว และเงินที่เหลือถ้ามีคืนเข้าร้านแล้ว)").check();
+  await handover.getByRole("button", { name: "ส่งสรุปเข้า LINE", exact: true }).click();
   await expect(handover).toContainText("แจ้งฝากแล้ว รอตรวจ");
   const settled = await acknowledge(page);
   expect(Number(settled.drawer)).toBe(1057);
@@ -70,7 +71,7 @@ test("lost committed response survives reload, replays once and cancellation kee
   await acknowledge(page);
   await login(page);
   await page.getByTestId("cash-day-date:2026-10-01").check();
-  await page.getByLabel("เศษเข้าเก๊ะก่อนออกจากร้าน (บาท)").fill("3");
+  await page.getByLabel("แยกเข้าเก๊ะ (บาท)").fill("3");
   await page.getByLabel("ผู้ถือเงินไปฝาก").fill("ทดสอบเน็ตหลุด");
   await page.getByLabel("แยกเศษเข้าเก๊ะแล้ว และตรวจเงินที่จะนำออกไปฝากตามยอดข้างต้นแล้ว").check();
   let hasDroppedResponse = false;
@@ -97,9 +98,9 @@ test("lost committed response survives reload, replays once and cancellation kee
   const handover = page.locator("article").filter({ hasText: "ทดสอบเน็ตหลุด" });
   await handover.getByText("ยกเลิกและคืนเงินทั้งหมด", { exact: true }).click();
   await handover.getByLabel("เหตุผลที่ไม่นำฝาก").fill("ทดสอบคืนเงินจริง");
-  await handover.getByLabel("คืนเงินทั้งหมดเข้ากองรอฝากที่ร้านแล้ว ยังไม่มีการฝากธนาคาร").check();
+  await handover.getByLabel("คืนเงินทั้งหมดเข้ากองเงินรอฝากในร้านแล้ว ยังไม่มีการฝากธนาคาร").check();
   await handover.getByRole("button", { name: "ยืนยันคืนเงินทั้งหมด", exact: true }).click();
-  await expect(handover).toContainText("คืนเงินเข้าร้านแล้ว");
+  await expect(handover).toHaveCount(0);
   const returned = await acknowledge(page);
   expect(Number(returned.drawer)).toBe(1060);
   expect(Number(returned.pending)).toBe(297);
