@@ -27,4 +27,6 @@ const daily = {
 const closeMessage = JSON.stringify(cashFlex({ ...snapshot, daily }, "https://ucom.example", "ปิดร้าน"));
 for (const label of ["รายการขาย", "เครื่องทดสอบ", "ซิม", "เติมเงิน", "รับเงินทาง", "รายจ่ายเงินสดวันนี้ (ทุกกอง)", "ค่าเดินทาง", "งานซ่อมเสร็จ"]) assert.ok(closeMessage.includes(label), label);
 for (const oldLabel of ["ยอดที่ต้องส่ง (เงินสด)", "นับได้จริง", "เงินออกจากลิ้นชัก"]) assert.ok(!closeMessage.includes(oldLabel), oldLabel);
+assert.ok(JSON.stringify(cashFlex({ ...snapshot, drawerVariance: "-20.00", note: "ทอนเกินให้ลูกค้า" }, "https://ucom.example", "ปิดร้าน")).includes("หมายเหตุ: ทอนเกินให้ลูกค้า"));
+assert.ok(!JSON.stringify(cashFlex(snapshot, "https://ucom.example", "ปิดร้าน")).includes("หมายเหตุ:"));
 console.log("cash LINE snapshot and safe login destination checks passed");

@@ -9,7 +9,7 @@ export type CashDayPage = { epoch: string; version: number; asOf: string; availa
 export type CashSnapshot = {
   id: string; date?: string; revision?: number; event?: string; asOf: string; version: number;
   drawer: string; pending: string; reserved: string; available: string;
-  drawerCount?: string; pendingCount?: string; drawerVariance?: string; pendingVariance?: string;
+  drawerCount?: string; pendingCount?: string; drawerVariance?: string; pendingVariance?: string; note?: string;
   daily?: DigestData | null;
   deposit?: { bank: string; drawer: string; returned: string; custodian: string; depositedAt: string };
   selectedLines?: CashSelectedLine[]; selectedTotal?: string; drawerBeforeDeparture?: string; bankBound?: string;

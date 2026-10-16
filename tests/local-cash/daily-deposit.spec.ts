@@ -125,3 +125,27 @@ test("an unresolved corrupt deposit blocks closing until the original request is
   expect(await page.evaluate(key => localStorage.getItem(key), key)).toBe("{corrupt-test-fixture");
   await page.evaluate(key => localStorage.removeItem(key), key);
 });
+
+test("staff count the closing blind, see the difference and must explain it", async ({ page }) => {
+  const status = await acknowledge(page);
+  await login(page);
+  await page.goto("/close-day");
+  const closing = page.getByTestId("two-fund-closing");
+  await expect(closing).toBeVisible();
+  await expect(closing).not.toContainText("ยอดในระบบ");
+  await expect(closing).not.toContainText(Number(status.drawer).toLocaleString("en-US", { minimumFractionDigits: 2 }));
+  const review = page.getByTestId("cash-close-review");
+  await expect(review).toBeDisabled();
+  await page.getByTestId("close-drawer-count").fill(String(Number(status.drawer) - 20));
+  await page.getByTestId("close-pending-count").fill(status.available);
+  await review.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("ขาด ฿20.00");
+  await expect(dialog).not.toContainText("ระบบ ฿");
+  await expect(page.getByTestId("cash-close-confirm")).toBeDisabled();
+  await dialog.getByLabel("ยอดไม่ตรง กรุณาบอกสาเหตุ (จำเป็น)").fill("ทอนเกินให้ลูกค้า 20 บาท");
+  await page.getByTestId("cash-close-confirm").click();
+  await expect(page.getByTestId("cash-closing-snapshot")).toContainText("ปิดร้านฉบับ 1");
+  await expect(page.getByTestId("cash-closing-snapshot")).toContainText("-20.00");
+  await expect(page.getByTestId("cash-closing-snapshot")).toContainText("หมายเหตุ: ทอนเกินให้ลูกค้า 20 บาท");
+});

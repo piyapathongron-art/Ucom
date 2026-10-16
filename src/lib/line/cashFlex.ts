@@ -49,6 +49,7 @@ export function cashFlex(snapshot: DepositSnapshot, appUrl: string, title = "เ
         row("กำลังไปฝาก", snapshot.reserved), row("เงินรอฝากในร้าน", snapshot.available),
         ...(snapshot.drawerVariance !== undefined ? [row("เงินเก๊ะเกิน/ขาด", snapshot.drawerVariance)] : []),
         ...(snapshot.pendingVariance !== undefined ? [row("เงินรอฝากเกิน/ขาด", snapshot.pendingVariance)] : []),
+        ...(snapshot.note ? [{ type: "text", text: `หมายเหตุ: ${snapshot.note}`, size: "sm", wrap: true }] : []),
         ...(snapshot.daily ? [row("ยอดขายรวม (ทุกบิล)", snapshot.daily.salesTotal.toLocaleString("th-TH", { maximumFractionDigits: 2 }))] : []),
         ...dailySections,
       ] },
