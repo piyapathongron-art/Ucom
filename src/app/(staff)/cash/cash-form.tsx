@@ -15,15 +15,20 @@ const moneyKeys = new Set(["amount", "bank", "drawer", "pending", "returned", "m
 const numberKeys = new Set(["version", "weekday", "overdueHours"]);
 const boolKeys = new Set(["confirmed", "physicallyReturned", "queueDrained", "physicallyPaused", "enabled", "drawerPhysicallySeparated"]);
 
-export function Field({ name, label, type = "text", value, required = true }: { name: string; label: string; type?: string; value?: string; required?: boolean }) {
-  return <label className="flex flex-col gap-1 text-sm">{label}<input className="ucom-field px-3 py-2" type={type} name={name} defaultValue={value} required={required} step={type === "number" ? "0.01" : undefined} /></label>;
+// Ref callback (client only) so the Bangkok "now" default cannot cause a hydration mismatch.
+function fillBangkokNow(input: HTMLInputElement | null) {
+  if (input && !input.value) input.value = new Date(Math.ceil((Date.now() + 7 * 3600_000) / 60_000) * 60_000).toISOString().slice(0, 16); // rounded up: never earlier than the handover, within the 5-minute future tolerance
+}
+export function Field({ name, label, type = "text", value, required = true, isNow = false }: { name: string; label: string; type?: string; value?: string; required?: boolean; isNow?: boolean }) {
+  return <label className="flex flex-col gap-1 text-sm">{label}<input className="ucom-field px-3 py-2" type={type} name={name} defaultValue={value} required={required} step={type === "number" ? "0.01" : undefined} ref={isNow ? fillBangkokNow : undefined} /></label>;
 }
 export function Check({ name, label }: { name: string; label: string }) {
   return <label className="flex items-start gap-2 text-sm"><input type="checkbox" name={name} value="true" required className="mt-1" />{label}</label>;
 }
 
-export default function CashForm({ action, epoch, fields = {}, children, label, uploadHandOver, isDisabled = false, sources }: {
-  action: string; epoch: string | null; fields?: Record<string, Json>; children: ReactNode; label: string; uploadHandOver?: string; isDisabled?: boolean; sources?: CashSource[];
+export default function CashForm({ action, epoch, fields = {}, children, label, uploadHandOver, isDisabled = false, disabledReason, check, sources }: {
+  action: string; epoch: string | null; fields?: Record<string, Json>; children: ReactNode; label: string; uploadHandOver?: string; isDisabled?: boolean;
+  disabledReason?: string; check?: (form: FormData) => string | null; sources?: CashSource[];
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -52,6 +57,8 @@ export default function CashForm({ action, epoch, fields = {}, children, label, 
         if (refreshCashOperations().length) throw new Error("มีรายการเดิมรอยืนยันผล กรุณาตรวจรายการเดิมก่อนทำรายการใหม่");
         const actorId = await cashActor();
         if (!actorId) throw new Error("กรุณาเข้าสู่ระบบด้วยบัญชีร้าน");
+        const problem = check?.(form);
+        if (problem) throw new Error(problem);
         const payload: Record<string, Json> = { ...fields };
         for (const [key, value] of form.entries()) {
           if (value instanceof File || key.startsWith("$ACTION") || key === "confirmedInput") continue;
@@ -96,7 +103,8 @@ export default function CashForm({ action, epoch, fields = {}, children, label, 
       if ((result.ok || ("rejected" in result && result.rejected)) && "actorId" in result && result.actorId === pending.actorId && "id" in result && result.id === pending.id) {
         if (result.ok && "notificationSent" in result && result.notificationSent === false) localStorage.setItem(`ucom-cash-notification-v1:${pending.id}`, pending.actorId);
         clearCashIntent(pending); setJob(null);
-        formRef.current?.reset();
+        // Keep what staff typed (and the attached slip) when the server rejects; they fix one field and resend.
+        if (result.ok) formRef.current?.reset();
         router.refresh();
       }
       if (result.ok) router.refresh();
@@ -104,11 +112,13 @@ export default function CashForm({ action, epoch, fields = {}, children, label, 
     } catch (error) { setMessage(error instanceof Error ? error.message : "ยังไม่ทราบผล กดลองอีกครั้งด้วยรายการเดิม"); }
     finally { setIsBusy(false); }
   }
-  return <form ref={formRef} action={submit} className="flex flex-col gap-3">
-    <fieldset disabled={isBusy || Boolean(job) || isDisabled || hasBlockedIntent} className="flex flex-col gap-3">{children}</fieldset>
+  // onSubmit, not action={}: React 19 resets uncontrolled fields after a form action, which wiped everything a rejected submit should keep.
+  return <form ref={formRef} onSubmit={event => { event.preventDefault(); void submit(new FormData(event.currentTarget)); }} className="flex flex-col gap-3">
+    <fieldset disabled={isBusy || Boolean(job) || hasBlockedIntent} className="flex flex-col gap-3">{children}</fieldset>
     {hasBlockedIntent && <p className="text-sm text-warning">มีรายการเงินเดิมรอยืนยัน ต้องใช้บัญชีผู้ทำรายการเดิมตรวจผลก่อนทำรายการใหม่</p>}
     {job && <div className="text-sm text-warning"><p>ลองซ้ำด้วยข้อมูลเดิมก่อนทำรายการอื่น</p></div>}
     <button className="ucom-primary justify-center px-4 py-2" disabled={isBusy || (!job && (isDisabled || hasBlockedIntent))}>{isBusy ? "กำลังบันทึก…" : job ? "ลองรายการเดิมซ้ำ" : label}</button>
+    {isDisabled && !job && !hasBlockedIntent && disabledReason && <p className="text-sm text-ink-muted">{disabledReason}</p>}
     {message && <p role="status" className="text-sm">{message}</p>}
   </form>;
 }

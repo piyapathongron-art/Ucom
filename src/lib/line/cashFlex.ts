@@ -29,7 +29,7 @@ export function cashFlex(snapshot: DepositSnapshot, appUrl: string, title = "เ
       type: "bubble", body: { type: "box", layout: "vertical", spacing: "md", contents: [
         { type: "text", text: `${title}${isResend ? " (ส่งซ้ำ)" : ""}`, weight: "bold", size: "lg", wrap: true },
         { type: "text", text: `ข้อมูล ณ ${asOf}`, size: "xs", wrap: true },
-        ...(snapshot.eventOperationId ? [{ type: "text", text: `รายการ ${snapshot.eventOperationId}${part ? ` · ส่วน ${part.index}/${part.total}` : ""}`, size: "xs", wrap: true }] : []),
+        ...(part && part.total > 1 ? [{ type: "text", text: `ส่วน ${part.index}/${part.total}`, size: "xs", wrap: true }] : []),
         ...(snapshot.state ? [{ type: "text", text: reviewStates[snapshot.state] ?? snapshot.state, size: "sm", wrap: true }] : []),
         ...(snapshot.selectedLines ? [
           { type: "text", text: `ผู้แจ้ง: ${snapshot.reporterName ?? snapshot.reporter ?? "—"} · ผู้นำฝาก: ${snapshot.custodian ?? "—"}`, size: "sm", wrap: true },

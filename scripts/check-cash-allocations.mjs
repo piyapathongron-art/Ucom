@@ -11,7 +11,7 @@ const sql = (text, database = db) => {
   return r.stdout.trim();
 };
 sql(`create database ${db} template ucom_cash_check;`, 'postgres');
-for (const f of ['20261007104254_two_fund_cash_book.sql','20261007104638_cash_source_guards.sql','20261007104639_cash_commands_and_evidence.sql','20261007104640_cash_reminders.sql','20261009090327_daily_cash_allocations.sql']) sql(readFileSync('supabase/migrations/' + f, 'utf8'));
+for (const f of ['20261007104254_two_fund_cash_book.sql','20261007104638_cash_source_guards.sql','20261007104639_cash_commands_and_evidence.sql','20261007104640_cash_reminders.sql','20261009090327_daily_cash_allocations.sql','20261017090000_handover_without_receiving_pause.sql']) sql(readFileSync('supabase/migrations/' + f, 'utf8'));
 const owner = '00000000-0000-4000-8000-000000000001';
 const staff = '00000000-0000-4000-8000-000000000002';
 sql(`create or replace function auth.uid() returns uuid language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claim.sub',true),''),nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub')::uuid $$;
@@ -56,7 +56,7 @@ const departure = () => ({version:status().version,lines:days().lines.filter(l =
 pause();
 fail(()=>command('handover',{version:status().version,amount:'1',custodian:'X'}), /เลือกวัน/);
 fail(()=>command('handover_days',{...departure(),drawerPhysicallySeparated:false}), /ยืนยัน/);
-fail(()=>command('handover_days',{...departure(),version:status().version-1}), /ยอดเปลี่ยน/);
+fail(()=>command('handover_days',{...departure(),lines:[{key:'date:2026-10-01',amount:'1'}]}), /ยอดรายวันเปลี่ยน/);
 const departId = randomUUID(); const depPayload = departure();
 const handed = command('handover_days',depPayload,staff,departId);
 assert.equal(handed.snapshot.selectedTotal,'1500'); assert.equal(handed.snapshot.bankBound,'1443');
@@ -78,11 +78,12 @@ assert.equal(review.snapshot.state,'confirmed');
 assert.deepEqual(read(`public.rpc_cash_operation_snapshot('${settled.snapshot.eventOperationId}')`,staff).snapshot,settled.snapshot);
 assert.equal(read(`public.rpc_cash_operation_snapshot('${settled.snapshot.eventOperationId}')`,staff).operationId,settled.snapshot.eventOperationId);
 assert.equal(read(`public.rpc_cash_handover('${departId}')`,staff).state,'confirmed');
-pause(); const cancelPayload={version:status().version,lines:[{key:'date:2026-10-02',amount:'243'}],drawerBeforeDeparture:'3',custodian:'LOCAL',drawerPhysicallySeparated:true};
+// ADR 0031: departure needs no receiving pause, and a receipt after loading the days does not block it.
+resume(); const cancelPayload={version:status().version,lines:[{key:'date:2026-10-02',amount:'243'}],drawerBeforeDeparture:'3',custodian:'LOCAL',drawerPhysicallySeparated:true};
+command('income',{name:'Concurrent bank income',amount:'1',fund:'transfer',...proof});
 const canceled = command('handover_days',cancelPayload);
 command('return',{handoverId:canceled.id,reason:'Canceled',physicallyReturned:true});
 assert.equal(days().lines.find(l=>l.receiptDay).available,'240'); assert.equal(status().drawer,'160');
-resume();
 const transfer = receipt('100','2026-10-03','transfer');
 fail(()=>sql(`update public.sales set sold_at='2026-10-04' where id='${transfer.id}';`),/วันที่รับเงิน/);
 command('correct',{table:'sales',id:transfer.id,amount:'100',fund:'pending',reason:'Cash reclassification'});
@@ -171,7 +172,8 @@ const httpId=randomUUID();
 const httpDeparture={p_operation_id:httpId,p_epoch:epoch,p_action:'handover_days',p_payload:{version:current.version,lines:[{key:availableDate.key,amount:availableDate.available}],drawerBeforeDeparture:'0',drawerPhysicallySeparated:true,custodian:'HTTP STAFF'}};
 const httpHanded=http('rpc_cash_execute',httpDeparture,staff); assert.equal(httpHanded.code,200);
 assert.deepEqual(http('rpc_cash_execute',httpDeparture,staff),httpHanded);
-assert.equal(http('rpc_cash_execute',{...httpDeparture,p_operation_id:randomUUID()},staff).code,400);
+// ADR 0031: without the pause gate, re-reserving the same lines fails on the exact per-line amount check.
+const reReserve=http('rpc_cash_execute',{...httpDeparture,p_operation_id:randomUUID()},staff); assert.equal(reReserve.code,500); assert.equal(reReserve.body.code,'40001');
 const evidencePath=`${staff}/${httpId}/${randomUUID()}.png`;
 sql(`insert into storage.objects(bucket_id,name,metadata) values('ucom-cash-evidence','${evidencePath}','{"mimetype":"image/png","size":10}');`);
 const httpSettle={p_operation_id:randomUUID(),p_epoch:epoch,p_action:'settle',p_payload:{handoverId:httpId,bank:httpHanded.body.snapshot.bankBound,drawer:'0',returned:'0',depositedAt:new Date().toISOString(),evidencePath,physicallyReturned:true}};
@@ -221,10 +223,14 @@ command('return',{handoverId:fullyReserved.id,reason:'Local full physical return
 sql('select public.ucom_cash_assert_allocations();');
 
 // Read installed bodies back instead of assuming the file was installed as intended.
+// Later migrations replace earlier bodies, so compare against the last definition of each function.
 const migrationText=readFileSync('supabase/migrations/20261009090327_daily_cash_allocations.sql','utf8');
-for(const match of migrationText.matchAll(/create (?:or replace )?function public\.(\w+)\([^]*?as \$\$([^]*?)\$\$;/g)) {
-  const actual=sql(`select prosrc from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='${match[1]}';`);
-  assert.equal(actual,match[2].trim(),match[1]+' body readback');
+const expectedBodies=new Map();
+for(const file of ['20261009090327_daily_cash_allocations.sql','20261017090000_handover_without_receiving_pause.sql'])
+  for(const match of readFileSync('supabase/migrations/'+file,'utf8').matchAll(/create (?:or replace )?function public\.(\w+)\([^]*?as \$\$([^]*?)\$\$;/g)) expectedBodies.set(match[1],match[2].trim());
+for(const [name,body] of expectedBodies) {
+  const actual=sql(`select prosrc from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='${name}';`);
+  assert.equal(actual,body,name+' body readback');
 }
 const installDb='ucom_cash_install_race_'+Date.now();
 sql(`create database ${installDb} template ucom_cash_check;`,'postgres');

@@ -21,6 +21,7 @@ for (const part of messages) {
   assert.ok(Buffer.byteLength(JSON.stringify(part.contents)) <= 30000);
   assert.ok(part.altText.length <= 400);
   assert.ok(text.includes(id)); assert.ok(text.includes("เจ้าของยืนยันแล้ว")); assert.ok(!text.includes("รอเจ้าของตรวจหลักฐาน"));
+  assert.ok(!part.contents.body.contents.some(row => "text" in row && String(row.text).includes(id)), "operation UUID is not shown to staff");
   assert.ok(text.includes("31/12/2025 – 01/01/2026 · รวมยอดไม่ทราบวัน"));
   assert.ok(text.includes("เศษคืนเข้าเก๊ะเพิ่มเติมหลังนำออก")); assert.ok(text.includes("handover="));
   assert.ok(!text.includes("evidencePath"));

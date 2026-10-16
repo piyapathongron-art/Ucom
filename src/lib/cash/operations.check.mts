@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { CASH_OPERATION_KEY, canonicalIntent, importLegacyOperations, parseCashIntent, scanCashOperations, retireLegacyCashIntent, validatesCashProof, withCashOperationLock, saveCashIntent } from "./operations.ts";
-import { selectionAmounts } from "./day-selection.ts";
+import { lineDayLabel, selectionAmounts } from "./day-selection.ts";
 class MemoryStorage implements Storage {
   values = new Map<string, string>();
   get length() { return this.values.size; }
@@ -55,4 +55,6 @@ assert.throws(() => { saveCashIntent(bound); isDispatched = true; }, /storage di
 assert.equal(isDispatched, false, "storage failure prevents financial dispatch");
 const unreadable = new MemoryStorage(); unreadable.setItem("x", "x"); unreadable.key = () => { throw new Error("blocked"); };
 assert.equal(scanCashOperations(unreadable)[0].key, "storage-unreadable");
+assert.equal(lineDayLabel({ receiptDay: "2026-09-30", kind: "date" }), "30 ก.ย. 2569");
+assert.equal(lineDayLabel({ receiptDay: null, kind: "opening" }), "ยอดตั้งต้นไม่ทราบวัน");
 console.log("cash durable intent and exact day selection checks passed");

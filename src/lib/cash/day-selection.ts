@@ -1,5 +1,9 @@
 import { moneyCents, parseMoney } from "./money.ts";
 import type { CashDayLine } from "./types";
+export function lineDayLabel(line: Pick<CashDayLine, "receiptDay" | "kind">) {
+  if (line.receiptDay) return new Date(`${line.receiptDay}T12:00:00+07:00`).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Bangkok" });
+  return line.kind === "opening" ? "ยอดตั้งต้นไม่ทราบวัน" : "ยอดปรับจากการนับไม่ทราบวัน";
+}
 export function selectionAmounts(lines: CashDayLine[], keys: string[], drawer: string) {
   if (new Set(keys).size !== keys.length) throw new Error("เลือกวันซ้ำ");
   const chosen = keys.map(key => { const line = lines.find(item => item.key === key); if (!line || moneyCents(line.available) <= BigInt(0)) throw new Error("วันนั้นไม่มีเงินที่ร้านพร้อมนำฝาก"); return line; });

@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { cashActor, executeCash, inspectCashOperation, resendCashSnapshot } from "./actions";
 import { CASH_OPERATION_EVENT, assertStoredCashIntent, validatesCashProof, clearCashIntent, refreshCashOperations, saveCashIntent, withCashOperationLock, type CashInvestigation } from "@/lib/cash/operations";
 
+const actionNames: Record<string, string> = { handover_days: "นำเงินออกไปฝาก", settle: "แจ้งฝากเงิน", return: "คืนเงินเข้าร้าน", evidence: "ส่งหลักฐานใหม่", review: "ตรวจหลักฐาน" };
+
 export default function CashRecovery() {
   const [entries, setEntries] = useState<CashInvestigation[]>([]);
   const [message, setMessage] = useState("");
@@ -44,21 +46,26 @@ export default function CashRecovery() {
     } catch (failure) { setMessage(failure instanceof Error ? failure.message : "ยังไม่ทราบผลรายการเดิม"); }
     finally { setIsBusy(false); }
   }
-  async function resend(id: string) {
+  async function resendAll() {
     setIsBusy(true);
     try {
       const actor = await cashActor();
-      if (!actor || localStorage.getItem(`ucom-cash-notification-v1:${id}`) !== actor) throw new Error("ใช้บัญชีผู้ทำรายการเดิมเพื่อส่งการแจ้งเตือนซ้ำ");
-      if (await resendCashSnapshot(id)) { localStorage.removeItem(`ucom-cash-notification-v1:${id}`); setNotifications(items => items.filter(item => item !== id)); setMessage("ส่ง LINE แล้ว"); }
-      else setMessage("ยังส่ง LINE ไม่สำเร็จ ยอดเงินบันทึกแล้ว");
+      let sent = 0; let skipped = 0;
+      for (const id of notifications) {
+        const key = `ucom-cash-notification-v1:${id}`;
+        if (!actor || localStorage.getItem(key) !== actor) { skipped++; continue; }
+        if (await resendCashSnapshot(id)) { localStorage.removeItem(key); sent++; }
+      }
+      setNotifications(items => items.filter(id => localStorage.getItem(`ucom-cash-notification-v1:${id}`) !== null));
+      setMessage(sent === notifications.length ? "ส่งแจ้ง LINE แล้ว" : skipped && !sent ? "ใช้บัญชีผู้ทำรายการเดิมเพื่อส่งการแจ้งเตือนซ้ำ" : `ส่งแล้ว ${sent} จาก ${notifications.length} รายการ ที่เหลือลองอีกครั้ง ยอดเงินบันทึกแล้ว`);
     } catch (failure) { setMessage(failure instanceof Error ? failure.message : "ส่ง LINE ไม่สำเร็จ"); }
     finally { setIsBusy(false); }
   }
   if (!entries.length && !notifications.length && !message) return null;
   return <section className="ucom-surface space-y-3 p-4" data-testid="cash-event-recovery">
-    <h2 className="font-bold">ตรวจผลรายการเดิม</h2>
-    {entries.map(entry => <div key={entry.key} className="text-sm"><p>{entry.reason} · {entry.intent?.action ?? "ต้องตรวจสอบข้อมูลในเครื่อง"}</p>{entry.intent && <button disabled={isBusy} className="ucom-secondary mt-2 px-3 py-2" onClick={() => void retry(entry)}>ยืนยันข้อมูลเดิม</button>}</div>)}
-    {notifications.map(id => <div key={id} className="text-sm"><p>ยอดเงินบันทึกแล้ว รอส่งเหตุการณ์เดิมเข้า LINE</p><button disabled={isBusy} className="underline" onClick={() => void resend(id)}>ส่งเหตุการณ์เดิมซ้ำ</button></div>)}
+    <h2 className="font-bold">มีรายการที่ต้องตรวจ</h2>
+    {entries.map(entry => <div key={entry.key} className="text-sm"><p>{entry.reason} · {(entry.intent && actionNames[entry.intent.action]) ?? "ต้องตรวจสอบข้อมูลในเครื่อง"}</p>{entry.intent && <button disabled={isBusy} className="ucom-secondary mt-2 px-3 py-2" onClick={() => void retry(entry)}>ยืนยันข้อมูลเดิม</button>}</div>)}
+    {notifications.length > 0 && <div className="text-sm"><p>บันทึกยอดเงินแล้ว แต่แจ้งเข้า LINE ไม่สำเร็จ {notifications.length} รายการ</p><button disabled={isBusy} className="underline" onClick={() => void resendAll()}>ส่งแจ้ง LINE อีกครั้ง</button></div>}
     {message && <p role="status" className="text-sm">{message}</p>}
   </section>;
 }
