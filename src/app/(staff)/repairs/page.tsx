@@ -14,6 +14,9 @@ import { IntakeForm, type RepairIntakeSave } from "./IntakeForm";
 import { RepairTable, RepairTableHead } from "./RepairTable";
 import type { CloseJobPayload } from "./CloseJobDialog";
 import type { PartPaidFrom, RepairRow } from "./types";
+import { cashWrite, withReceivingIntake } from "@/lib/cash/client";
+import { prepareReceipt, sendRepairReceipt } from "@/lib/cash/receipt";
+import { parseMoney } from "@/lib/cash/money";
 
 export default function RepairsPage() {
   const supabase = createClient();
@@ -93,11 +96,22 @@ export default function RepairsPage() {
     await run(supabase.rpc("rpc_set_repair_status", { p_job_id: id, p_status: status }), status === "abandoned" ? "ตัดงานทิ้งแล้ว" : undefined);
   };
 
-  const setPartCost = (id: string, cost: number, paidFrom: PartPaidFrom) =>
-    run(supabase.rpc("rpc_set_part_cost", { p_job_id: id, p_cost: cost, p_paid_from: paidFrom }), "บันทึกต้นทุนอะไหล่แล้ว");
+  const setPartCost = async (id: string, cost: string, paidFrom: PartPaidFrom) => {
+    try { return await run(cashWrite(`part:${id}`, "part", { id, amount: parseMoney(cost), fund: paidFrom === "cash" ? "drawer" : paidFrom }, () => supabase.rpc("rpc_set_part_cost", { p_job_id: id, p_cost: Number(cost), p_paid_from: paidFrom === "transfer" ? "transfer" : "cash" })), "บันทึกต้นทุนอะไหล่แล้ว"); }
+    catch { toast.error("กรอกจำนวนเงินให้ถูกต้อง ทศนิยมไม่เกิน 2 ตำแหน่ง"); return false; }
+  };
 
-  const closeJob = (id: string, payload: CloseJobPayload) =>
-    run(supabase.rpc("rpc_close_repair_job", { p_job_id: id, p_sale_payload: payload }), "ออกบิลและปิดงานแล้ว");
+  const closeJob = async (id: string, draft: CloseJobPayload) => {
+    try {
+      return await withReceivingIntake(async status => {
+        const payload = prepareReceipt(draft, status);
+        return run(sendRepairReceipt(id, payload), "ออกบิลและปิดงานแล้ว");
+      });
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : "ตรวจสถานะเงินสดไม่สำเร็จ");
+      return false;
+    }
+  };
 
   return (
     <PageFrame

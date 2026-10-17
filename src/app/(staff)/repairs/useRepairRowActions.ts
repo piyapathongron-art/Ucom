@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { REPAIR_STEPS, type PartPaidFrom, type RepairRow } from "./types";
+import { useCashStatus } from "@/lib/cash/useCashStatus";
 
 export function useRepairRowActions({
   row,
@@ -8,7 +9,7 @@ export function useRepairRowActions({
 }: {
   row: RepairRow;
   onSetStatus: (id: string, status: string) => Promise<void>;
-  onSetPartCost: (id: string, cost: number, paidFrom: PartPaidFrom) => Promise<boolean>;
+  onSetPartCost: (id: string, cost: string, paidFrom: PartPaidFrom) => Promise<boolean>;
 }) {
   const [partCostDraft, setPartCostDraft] = useState("");
   const [partPaidFrom, setPartPaidFrom] = useState<PartPaidFrom | "">("");
@@ -17,7 +18,8 @@ export function useRepairRowActions({
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [savingPartCost, setSavingPartCost] = useState(false);
   const [settingStatus, setSettingStatus] = useState(false);
-  const canSavePartCost = !!partPaidFrom && /^\d+(\.\d{1,2})?$/.test(partCostDraft) && Number.isFinite(Number(partCostDraft));
+  const cash = useCashStatus();
+  const canSavePartCost = cash.isReady && !(cash.isActive && row.part_paid_at) && !!partPaidFrom && /^\d+(\.\d{1,2})?$/.test(partCostDraft) && Number.isFinite(Number(partCostDraft));
 
   const receivedAtStr = new Date(row.received_at).toLocaleDateString("th-TH", {
     dateStyle: "short",
@@ -41,7 +43,7 @@ export function useRepairRowActions({
   async function handleSavePartCost() {
     if (!canSavePartCost || !partPaidFrom) return;
     setSavingPartCost(true);
-    if (await onSetPartCost(row.id, Number(partCostDraft), partPaidFrom)) {
+    if (await onSetPartCost(row.id, partCostDraft, partPaidFrom)) {
       setPartCostDraft("");
       setPartPaidFrom("");
       setIsEditingPartCost(false);
@@ -50,6 +52,7 @@ export function useRepairRowActions({
   }
 
   return {
+    cash,
     partCostDraft,
     setPartCostDraft,
     partPaidFrom,

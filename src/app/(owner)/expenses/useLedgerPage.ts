@@ -7,6 +7,8 @@ import { escapedSearchTerm, pageRange } from "@/lib/supabase/pagination";
 import { toThaiError } from "@/lib/errors";
 import type { LedgerValues } from "@/app/_components/LedgerAddDialog";
 import { todayInBangkok } from "../report/types";
+import { cashStatus, cashWrite } from "@/lib/cash/client";
+import { useCashStatus } from "@/lib/cash/useCashStatus";
 
 export type LedgerTab = "expense" | "income";
 export type LedgerRow = { id: string; name: string; amount: number; day: string; method: string | null };
@@ -17,6 +19,7 @@ const sum = (rows: { amount: number | string }[] | null) => (rows ?? []).reduce(
 // Off-bill ledger: shop expenses + shop income. Sales are never part of it (ADR 0024).
 export function useLedgerPage() {
   const supabase = createClient();
+  const cash = useCashStatus();
   const today = todayInBangkok();
   const [tab, setTab] = useState<LedgerTab>("expense");
   const [filterFrom, setFilterFrom] = useState(today.slice(0, 7) + "-01");
@@ -101,14 +104,19 @@ export function useLedgerPage() {
   }
 
   async function addEntry(values: LedgerValues) {
-    if (tab === "expense") {
+    return write(cashWrite(`ledger:${tab}`, tab, { name: values.name, amount: values.amountText, fund: values.fund, ...(tab === "expense" ? { date: values.date } : {}) }, async () => {
+      if (tab === "expense") {
       const { data: { user } } = await supabase.auth.getUser();
-      return write(supabase.from("expenses").insert({ name: values.name, amount: values.amount, spent_at: values.date, paid_from: values.method, created_by: user?.id }), "บันทึกรายจ่ายแล้ว");
-    }
-    return write(supabase.rpc("rpc_add_shop_income", { p_name: values.name, p_amount: values.amount, p_received_to: values.method }), "บันทึกรายรับแล้ว");
+        return supabase.from("expenses").insert({ name: values.name, amount: values.amount, spent_at: values.date, paid_from: values.method, created_by: user?.id });
+      }
+      return supabase.rpc("rpc_add_shop_income", { p_name: values.name, p_amount: values.amount, p_received_to: values.method });
+    }, values.operationId), tab === "expense" ? "บันทึกรายจ่ายแล้ว" : "บันทึกรายรับแล้ว");
   }
 
   async function deleteEntry(id: string) {
+    try {
+      if ((await cashStatus()).epoch) { toast.error("ระบบเงินสดเปิดแล้ว ให้เจ้าของแก้ไขพร้อมเหตุผลในหน้าจัดการเงินสด"); return; }
+    } catch { toast.error("ตรวจสถานะเงินสดไม่สำเร็จ ยังลบรายการไม่ได้"); return; }
     const ok = await write(
       tab === "expense" ? supabase.from("expenses").delete().eq("id", id) : supabase.rpc("rpc_delete_shop_income", { p_id: id }),
       "ลบรายการแล้ว",
@@ -121,6 +129,6 @@ export function useLedgerPage() {
     filterFrom, setFilterFrom, filterTo, setFilterTo, search, setSearch,
     page, setPage, pageSize, setPageSize,
     rows, totalCount, expenseTotal, incomeTotal, isLoading, error, reload,
-    deleteConfirmId, setDeleteConfirmId, addEntry, deleteEntry, today,
+    deleteConfirmId, setDeleteConfirmId, addEntry, deleteEntry, today, cash,
   };
 }

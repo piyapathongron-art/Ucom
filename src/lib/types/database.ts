@@ -1331,6 +1331,16 @@ export type Database = {
       }
     }
     Functions: {
+      rpc_cash_status: { Args: Record<PropertyKey, never>; Returns: Json }
+      rpc_cash_pending_days: { Args: { p_version: number | null; p_after: Json | null; p_limit: number }; Returns: Json }
+      rpc_cash_handover: { Args: { p_handover_id: string }; Returns: Json }
+      rpc_cash_operation_snapshot: { Args: { p_operation_id: string }; Returns: Json }
+      rpc_cash_closing: { Args: { p_date: string }; Returns: Json }
+      rpc_cash_execute: { Args: { p_operation_id: string; p_epoch: string | null; p_action: string; p_payload: Json }; Returns: Json }
+      rpc_cash_pos_ack: { Args: { p_epoch: string; p_device: string; p_device_token: string; p_version: number }; Returns: Json }
+      rpc_cash_pos_resume: { Args: { p_epoch: string; p_device: string; p_device_token: string }; Returns: Json }
+      rpc_cash_reminder_claim: { Args: { p_now: string }; Returns: Json }
+      rpc_cash_reminder_finish: { Args: { p_id: string; p_sent: boolean }; Returns: Json }
       pos_is_member: { Args: never; Returns: boolean }
       pos_is_owner: { Args: never; Returns: boolean }
       rpc_open_topup_wallet: { Args: { p_carrier_id: string; p_amount: number }; Returns: undefined }

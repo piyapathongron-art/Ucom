@@ -5,6 +5,7 @@ import { useState } from "react";
 import { EmptyState } from "@/app/_components/EmptyState";
 import { LEDGER_METHOD_LABEL, LedgerAddDialog, type LedgerKind, type LedgerValues } from "@/app/_components/LedgerAddDialog";
 import { PaginationControls } from "@/app/_components/PaginationControls";
+import { useCashStatus } from "@/lib/cash/useCashStatus";
 
 export type CloseDayLedgerRow = { id: string; name: string; amount: number; method: string | null };
 
@@ -28,6 +29,7 @@ export default function LedgerSection({ kind, rows, isToday, isOwner, deleteConf
   onPageSizeChange: (pageSize: number) => void;
 }) {
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const cash = useCashStatus();
   const isExpense = kind === "expense";
   const prefix = `close-day-${kind}`;
 
@@ -50,11 +52,11 @@ export default function LedgerSection({ kind, rows, isToday, isOwner, deleteConf
                 <tr key={row.id} data-testid={`${prefix}-row-${row.id}`}>
                   <td className="text-[13.5px] font-semibold">{row.name}</td>
                   <td className="text-right text-[13.5px] font-semibold tabular-nums">{fmt(row.amount)}</td>
-                  <td className="text-[13px] text-ink-muted">{row.method ? LEDGER_METHOD_LABEL[kind][row.method] ?? row.method : "-"}</td>
+                  <td className="text-[13px] text-ink-muted">{cash.isActive && row.method === "cash" ? kind === "income" ? "เงินรอฝาก" : "เงินสด" : row.method ? LEDGER_METHOD_LABEL[kind][row.method] ?? row.method : "-"}</td>
                   {isToday && (
                     <td>
                       <div className="flex items-center justify-end gap-2">
-                        {deleteConfirmId === row.id ? (
+                        {cash.isActive ? <Link href="/cash" className="text-xs text-accent underline">ให้เจ้าของแก้ไข</Link> : !cash.isReady ? <span className="text-xs text-ink-muted">ตรวจสถานะเงินสด</span> : deleteConfirmId === row.id ? (
                           <>
                             <button type="button" onClick={() => void onDelete(row.id)} data-testid={`${prefix}-delete-confirm-${row.id}`} className="rounded-full bg-danger px-3.5 py-1.5 text-xs font-bold text-on-accent">ยืนยันลบ</button>
                             <button type="button" onClick={() => onSetDeleteConfirmId(null)} className="ucom-secondary px-3.5 py-1.5 text-xs">ยกเลิก</button>

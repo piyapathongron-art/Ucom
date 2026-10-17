@@ -8,6 +8,8 @@ import { ErrorPanel } from "@/app/_components/ErrorPanel";
 import { WalletFundDialog } from "./WalletFundDialog";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/types/database";
+import { withReceivingIntake } from "@/lib/cash/client";
+import { prepareReceipt, sendReceipt } from "@/lib/cash/receipt";
 
 type Wallet = Tables<"v_pos_topup_wallet_balance">;
 type TopupSale = Tables<"v_pos_topup_history">;
@@ -86,19 +88,20 @@ export default function TopupPage() {
     setIsSubmitting(true);
     let saleError: { message: string } | null;
     try {
-      const result = await supabase.rpc("rpc_create_sale", {
-        payload: {
+      const result = await withReceivingIntake(async status => {
+        const payload = prepareReceipt({
           client_uuid: clientUuid,
           sold_at: new Date().toISOString(),
           payment_method: paymentMethod,
           receiving_account: paymentMethod === "transfer" ? receivingAccount || null : null,
           bill_discount: 0,
-          items: [{ kind: "topup", topup_carrier_id: selectedCarrier, unit_price: value }],
-        },
+          items: [{ kind: "topup", topup_carrier_id: selectedCarrier, unit_price: amount }],
+        }, status);
+        return sendReceipt(payload);
       });
       saleError = result.error;
-    } catch {
-      fail("ยังยืนยันผลการขายไม่ได้ กรุณาตรวจการเชื่อมต่อแล้วลองบิลเดิมอีกครั้ง");
+    } catch (error) {
+      fail(error instanceof Error ? error.message : "ยังยืนยันผลการขายไม่ได้ กรุณาตรวจการเชื่อมต่อแล้วลองบิลเดิมอีกครั้ง");
       setIsSubmitting(false);
       return;
     }

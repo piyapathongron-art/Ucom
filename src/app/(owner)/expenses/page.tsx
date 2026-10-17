@@ -63,11 +63,11 @@ export default function LedgerPage() {
                 <tr key={row.id} data-testid={`expense-row-${row.id}`}>
                   <td className="text-[13px] text-ink-muted">{row.day}</td>
                   <td className="text-[13.5px] font-semibold">{row.name}</td>
-                  <td className="text-[13px] text-ink-muted">{row.method ? LEDGER_METHOD_LABEL[l.tab][row.method] ?? row.method : "-"}</td>
+                  <td className="text-[13px] text-ink-muted">{l.cash.isActive && row.method === "cash" ? l.tab === "income" ? "เงินรอฝาก" : "เงินสด" : row.method ? LEDGER_METHOD_LABEL[l.tab][row.method] ?? row.method : "-"}</td>
                   <td className="text-right text-[13.5px] font-semibold tabular-nums">{money(row.amount)}</td>
                   <td>
                     <div className="flex items-center justify-end gap-2">
-                      {l.deleteConfirmId === row.id ? (
+                      {l.cash.isActive ? <Link href="/cash" className="text-xs text-accent underline">แก้ไขพร้อมเหตุผล</Link> : !l.cash.isReady ? <span className="text-xs text-ink-muted">กำลังตรวจสถานะเงินสด</span> : l.deleteConfirmId === row.id ? (
                         <>
                           <button type="button" onClick={() => void l.deleteEntry(row.id)} data-testid={`expense-delete-confirm-${row.id}`} className="rounded-full bg-danger px-3.5 py-1.5 text-xs font-bold text-on-accent">ยืนยันลบ</button>
                           <button type="button" onClick={() => l.setDeleteConfirmId(null)} className="ucom-secondary px-3.5 py-1.5 text-xs">ยกเลิก</button>

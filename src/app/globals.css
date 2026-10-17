@@ -122,6 +122,11 @@ body {
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
+.ucom-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .ucom-primary:hover:not(:disabled) {
   opacity: 0.86;
 }

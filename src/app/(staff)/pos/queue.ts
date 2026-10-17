@@ -18,8 +18,8 @@ function read<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch (err) {
-    console.error("queue: cannot read " + key, err);
+  } catch {
+    console.error("queue: cannot read " + key);
     return fallback;
   }
 }

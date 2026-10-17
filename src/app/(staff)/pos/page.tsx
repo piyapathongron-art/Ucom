@@ -10,8 +10,6 @@ import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 import { QueueBanner } from "./QueueBanner";
 import {
   applyQueueToCatalog,
-  enqueue,
-  isDatabaseRejection,
   markFailed,
   readCachedCatalog,
   readQueue,
@@ -23,6 +21,12 @@ import type { CartLine, CatalogRow, Carrier } from "./types";
 import type { CatalogTab, CatalogTabInfo } from "./Catalog";
 import { iconForCategory } from "./CategoryIcon";
 import { useBarcodeScanner } from "./useBarcodeScanner";
+import type { Json } from "@/lib/types/database";
+import type { CashStatus } from "@/lib/cash/types";
+import { CASH_PAUSE_KEY, RECEIPT_OFFLINE_MESSAGE, cashStatus, getReceivingDevice, isCashQueueReadable, isDefiniteCashError, isReceivingLocallyPaused, pauseReceivingPos, resumeReceivingPos, withReceivingIntake } from "@/lib/cash/client";
+import { clearReceipt, prepareReceipt, sendReceipt } from "@/lib/cash/receipt";
+import { PendingCashRequests } from "@/lib/cash/PendingCashRequests";
+import { OpeningCoveredQueue } from "./OpeningCoveredQueue";
 
 type CachedCatalogPage = {
   page?: number;
@@ -65,6 +69,44 @@ export default function PosPage() {
   const [scanFeedback, setScanFeedback] = useState<string | null>(null);
   const catalogRequestRef = useRef(0);
   const scanBusyRef = useRef(false);
+  const moneyBusyRef = useRef(false);
+  const syncBusyRef = useRef(false);
+  const ackBusyRef = useRef(false);
+  const [cashBook, setCashBook] = useState<CashStatus | null>(null);
+  const [deviceId, setDeviceId] = useState("");
+  const [cashError, setCashError] = useState<string | null>(null);
+  const [isChangingReceiving, setIsChangingReceiving] = useState(false);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const refresh = () => {
+      if (moneyBusyRef.current || syncBusyRef.current || ackBusyRef.current) return;
+      cashStatus({ cached: true }).then((status) => {
+        if (!isCancelled) { setCashBook(status); setDeviceId(getReceivingDevice()); setCashError(null); }
+      }).catch(() => { if (!isCancelled) setCashError("ตรวจสถานะเงินสดไม่ได้ กรุณาเชื่อมต่อก่อนรับเงิน"); });
+    };
+    const storageChanged = (event: StorageEvent) => {
+      if (event.key?.startsWith(CASH_PAUSE_KEY)) {
+        setCashBook(previous => previous ? { ...previous } : previous);
+        refresh();
+      }
+    };
+    Promise.resolve().then(() => { setDeviceId(getReceivingDevice()); refresh(); });
+    const timer = window.setInterval(refresh, 15000);
+    window.addEventListener("online", refresh);
+    window.addEventListener("storage", storageChanged);
+    return () => { isCancelled = true; window.clearInterval(timer); window.removeEventListener("online", refresh); window.removeEventListener("storage", storageChanged); };
+  }, []);
+
+  async function changeReceiving(shouldPause: boolean) {
+    if (ackBusyRef.current || syncBusyRef.current || moneyBusyRef.current) return;
+    ackBusyRef.current = true; setIsChangingReceiving(true); setCashError(null);
+    try { setCashBook(await (shouldPause ? pauseReceivingPos() : resumeReceivingPos())); }
+    catch (failure) {
+      setCashError(failure instanceof Error ? failure.message : "ยืนยันสถานะเครื่องรับเงินไม่ได้ กรุณาลองอีกครั้ง");
+      setCashBook(previous => previous ? { ...previous } : previous);
+    } finally { ackBusyRef.current = false; setIsChangingReceiving(false); }
+  }
 
   async function loadCatalog() {
     const requestId = ++catalogRequestRef.current;
@@ -342,58 +384,32 @@ export default function PosPage() {
     return null;
   }
 
-  // Devices leave the catalog and products lose a unit as soon as a bill is queued.
-  // Without this the same device can be sold twice in one offline stretch, and the
-  // second bill only fails hours later when the queue drains.
-  function applySoldLocally(soldLines: CartLine[]) {
-    const soldDeviceIds = new Set(
-      soldLines.filter((l) => l.kind === "device").map((l) => l.id),
-    );
-    const soldQtyByProduct = new Map<string, number>();
-    soldLines.forEach((l) => {
-      if (l.kind === "product") {
-        soldQtyByProduct.set(l.id, (soldQtyByProduct.get(l.id) ?? 0) + l.qty);
-      }
-    });
-
-    const apply = (rows: CatalogRow[]): CatalogRow[] =>
-      rows
-        .filter((row) => !(row.kind === "device" && soldDeviceIds.has(row.id ?? "")))
-        .map((row) =>
-          row.kind === "product" && soldQtyByProduct.has(row.id ?? "")
-            ? { ...row, qty: (row.qty ?? 0) - soldQtyByProduct.get(row.id ?? "")! }
-            : row,
-        );
-
-    setCatalog((prev) => apply(prev));
-    setTopProducts((prev) => apply(prev));
-  }
-
-  async function syncQueue() {
+  async function syncQueue(shouldRetryRejected = false) {
+    if (syncBusyRef.current || ackBusyRef.current || moneyBusyRef.current) return;
     // localStorage is only readable after mount, so this doubles as the queue's initial
     // read — it runs deferred from the mount effect
     const stored = readQueue();
     setQueue(stored);
 
-    const pending = stored.filter((s) => !s.lastError);
+    const pending = stored.filter((s) => shouldRetryRejected || !s.lastError);
     if (pending.length === 0) return;
 
+    syncBusyRef.current = true;
+    setCashBook(previous => previous ? { ...previous, ackVersion: null } : previous);
     setIsSyncing(true);
     let latest = readQueue();
 
     // one at a time, in the order the bills were rung up — stock decrements are not
     // commutative once a product runs low
     for (const sale of pending) {
-      const { error: rpcError } = await supabase.rpc("rpc_create_sale", {
-        payload: sale.payload as never,
-      });
+      const { error: rpcError } = await sendReceipt(sale.payload as Json);
 
       if (!rpcError) {
         latest = removeFromQueue(sale.clientUuid);
         continue;
       }
 
-      if (isDatabaseRejection(rpcError)) {
+      if (isDefiniteCashError(rpcError)) {
         latest = markFailed(sale.clientUuid, toThaiError(rpcError));
         break;
       }
@@ -404,19 +420,23 @@ export default function PosPage() {
 
     setQueue(latest);
     setIsSyncing(false);
+    syncBusyRef.current = false;
     loadCatalog();
   }
 
   async function submit(input: CheckoutInput) {
+    if (!isCashQueueReadable()) { setError("อ่านคิวบิลเดิมไม่ได้ กรุณาให้เจ้าของตรวจสอบก่อนรับเงินต่อ"); return; }
+    if (ackBusyRef.current || syncBusyRef.current || moneyBusyRef.current) { setError("กำลังยืนยันคิวรับเงิน กรุณารอสักครู่แล้วลองใหม่"); return; }
     const hasTopup = lines.some((line) => line.kind === "topup");
-    if (hasTopup && !navigator.onLine) {
-      setError("บิลที่มีเติมเงินต้องเชื่อมต่ออินเทอร์เน็ต เพื่อตรวจยอดวอลเล็ตก่อนขาย");
+    if (!navigator.onLine) {
+      setError(RECEIPT_OFFLINE_MESSAGE);
       return;
     }
     setSubmitting(true);
+    moneyBusyRef.current = true;
     setError(null);
 
-    const payload = {
+    const draft = {
       client_uuid: clientUuid,
       // the bill belongs to the moment it was rung up, not the moment it reached the
       // server — a queued bill that drains after midnight would otherwise land on the
@@ -453,45 +473,44 @@ export default function PosPage() {
       ),
     };
 
-    const { error } = await supabase.rpc("rpc_create_sale", { payload });
+    try {
+      await withReceivingIntake(async status => {
+        const payload = prepareReceipt(draft, status);
+        setCashBook({ ...status, ackVersion: null });
+        const { error: receiptError } = await sendReceipt(payload);
 
-    setSubmitting(false);
-
-    // The database answered and said no — the staff has to know now, while the customer
-    // is still standing there. Queueing this would only postpone the same refusal.
-    if (error && isDatabaseRejection(error)) {
-      setError(toThaiError(error));
-      return;
-    }
-
-    if (error) {
-      if (hasTopup) {
-        setError("ยังยืนยันยอดวอลเล็ตไม่ได้ กรุณาตรวจการเชื่อมต่อแล้วลองปิดบิลเดิมอีกครั้ง");
-        return;
-      }
-      setQueue(
-        enqueue({
-          clientUuid,
-          payload,
-          queuedAt: new Date().toISOString(),
-          lastError: null,
-        }),
-      );
-      applySoldLocally(lines);
-      setLines([]);
-      setClientUuid(crypto.randomUUID());
-      return;
-    }
-
-    setLines([]);
-    setClientUuid(crypto.randomUUID());
-    loadCatalog();
-    syncQueue();
+        if (receiptError && isDefiniteCashError(receiptError)) {
+          setError(toThaiError(receiptError));
+          return;
+        }
+        if (receiptError) {
+          if (hasTopup) {
+            setError("ยังยืนยันยอดวอลเล็ตไม่ได้ กรุณาตรวจการเชื่อมต่อแล้วลองปิดบิลเดิมอีกครั้ง");
+            return;
+          }
+          setError("ยังยืนยันผลบิลไม่ได้ กรุณาตรวจการเชื่อมต่อแล้วลองยืนยันบิลเดิมอีกครั้ง ไม่ต้องรับเงินซ้ำ");
+          return;
+        }
+        setLines([]); setClientUuid(crypto.randomUUID());
+        void loadCatalog();
+      });
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "ตรวจสถานะเงินสดไม่สำเร็จ");
+    } finally { setSubmitting(false); moneyBusyRef.current = false; }
+    if (navigator.onLine) void syncQueue();
   }
 
   // Removing a rejected queued bill loses it for good → confirm in a dialog (not window.confirm).
-  function confirmRemoveQueuedSale() {
+  async function confirmRemoveQueuedSale() {
     if (!pendingRemoveUuid) return;
+    if (!isCashQueueReadable()) { setError("อ่านคิวบิลเดิมไม่ได้ ยังลบบิลค้างไม่ได้"); return; }
+    let status: CashStatus;
+    try { status = await cashStatus(); } catch { setError("ตรวจสถานะเงินสดไม่ได้ ยังลบบิลค้างไม่ได้"); return; }
+    if (status.epoch) {
+      setError("ต้องให้เจ้าของตรวจสอบบิลค้าง ห้ามลบบิลเพื่อยืนยันคิวรับเงิน");
+      setPendingRemoveUuid(null);
+      return;
+    }
     const nextQueue = removeFromQueue(pendingRemoveUuid);
     setPendingRemoveUuid(null);
     setQueue(nextQueue);
@@ -500,11 +519,23 @@ export default function PosPage() {
 
   return (
     <main data-page="pos" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background lg:h-dvh">
+      <p className="border-b border-border px-5 py-2 text-xs text-ink-muted" data-testid="cash-pos-device">
+        เครื่องรับเงิน: {deviceId || "กำลังตรวจสอบ"} · คิวค้าง {queue.length} บิล · ออกบิลเมื่อเชื่อมต่อระบบเท่านั้น
+        {cashBook?.epoch && ` · ${isReceivingLocallyPaused(cashBook) ? cashBook.isReceivingPaused && cashBook.ackVersion === cashBook.version ? "หยุดรับเงินและยืนยันยอดล่าสุดแล้ว" : "หยุดรับเงินในเครื่อง รอยืนยันยอดล่าสุด" : "กำลังรับเงิน"}`}
+        {cashBook?.epoch && cashBook.receivingDevice !== deviceId && " · เครื่องนี้ไม่ใช่เครื่องรับเงินหลัก"}
+      </p>
+      {cashBook?.epoch && cashBook.receivingDevice === deviceId && <div className="hidden gap-2 border-b border-border px-5 py-2 lg:flex">
+        <button type="button" data-testid="cash-pos-pause" disabled={isChangingReceiving || submitting || isSyncing} onClick={() => void changeReceiving(true)} className="ucom-secondary px-4 py-2 text-sm disabled:opacity-50">{isReceivingLocallyPaused(cashBook) ? "ยืนยันหยุดและยอดล่าสุด" : "หยุดรับเงินเพื่อปิดยอด/ส่งมอบ"}</button>
+        {isReceivingLocallyPaused(cashBook) && <button type="button" data-testid="cash-pos-resume" disabled={isChangingReceiving || submitting || isSyncing} onClick={() => void changeReceiving(false)} className="ucom-primary px-4 py-2 text-sm disabled:opacity-50">กลับมารับเงิน</button>}
+      </div>}
+      {cashError && <p role="alert" className="ucom-error px-5 py-2">{cashError}</p>}
+      <PendingCashRequests queuedIds={queue.map(sale => sale.clientUuid)} onBusyChange={isBusy => { moneyBusyRef.current = isBusy; }} onResolved={(action, id) => { if (action === "sale" && id === clientUuid) { setLines([]); setClientUuid(crypto.randomUUID()); } if (action === "covered_sale") { setQueue(removeFromQueue(id)); clearReceipt(id); } loadCatalog(); }} />
+      <OpeningCoveredQueue queue={queue} status={cashBook} onBusyChange={isBusy => { moneyBusyRef.current = isBusy; }} onCovered={id => { setQueue(removeFromQueue(id)); clearReceipt(id); loadCatalog(); }} />
       <QueueBanner
         queue={queue}
         isSyncing={isSyncing}
-        onSync={() => syncQueue()}
-        onRemove={setPendingRemoveUuid}
+        onSync={() => syncQueue(true)}
+        onRemove={cashBook && !cashBook.epoch ? setPendingRemoveUuid : undefined}
       />
       <ConfirmDialog
         open={pendingRemoveUuid !== null}
@@ -512,7 +543,7 @@ export default function PosPage() {
         confirmLabel="ลบบิลทิ้ง"
         confirmTestId="queue-remove-confirm"
         onClose={() => setPendingRemoveUuid(null)}
-        onConfirm={confirmRemoveQueuedSale}
+        onConfirm={() => void confirmRemoveQueuedSale()}
       >
         <p className="text-sm text-ink">ต้องการลบบิลค้างที่มีปัญหานี้ออกจากคิวใช่หรือไม่?</p>
         <p className="text-sm text-ink-muted">บิลที่ลบจะไม่ถูกส่งเข้าระบบและกู้คืนไม่ได้</p>

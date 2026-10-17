@@ -9,6 +9,8 @@ import { readQueue } from "../pos/queue";
 import type { Tables } from "@/lib/types/database";
 import { closeDay, sendCloseDayDigest } from "./actions";
 import { cashToSend } from "./cashToSend";
+import { cashStatus, cashWrite } from "@/lib/cash/client";
+import { useCashStatus } from "@/lib/cash/useCashStatus";
 
 type BillRow = Tables<"v_close_day_bills">;
 type ItemRow = Tables<"v_close_day_items">;
@@ -20,6 +22,7 @@ type ClosingRow = Tables<"day_closings">;
 
 export function useCloseDayData() {
   const supabase = createClient();
+  const cash = useCashStatus();
 
   const [date, setDate] = useState(() => todayInBangkok());
   const [isOwner, setIsOwner] = useState(false);
@@ -256,16 +259,20 @@ export function useCloseDayData() {
   }
 
   const handleAddExpense = (v: LedgerValues) =>
-    write(supabase.rpc("rpc_add_shop_expense", { p_name: v.name, p_amount: v.amount, p_paid_from: v.method }), "บันทึกรายจ่ายแล้ว", fetchExpensesOnly);
+    write(cashWrite("close-day:expense", "expense", { name: v.name, amount: v.amountText, fund: v.fund }, () => supabase.rpc("rpc_add_shop_expense", { p_name: v.name, p_amount: v.amount, p_paid_from: v.method }), v.operationId), "บันทึกรายจ่ายแล้ว", fetchExpensesOnly);
 
   const handleAddIncome = (v: LedgerValues) =>
-    write(supabase.rpc("rpc_add_shop_income", { p_name: v.name, p_amount: v.amount, p_received_to: v.method }), "บันทึกรายรับแล้ว", fetchIncomeOnly);
+    write(cashWrite("close-day:income", "income", { name: v.name, amount: v.amountText, fund: v.fund }, () => supabase.rpc("rpc_add_shop_income", { p_name: v.name, p_amount: v.amount, p_received_to: v.method }), v.operationId), "บันทึกรายรับแล้ว", fetchIncomeOnly);
 
   const handleDeleteExpense = async (id: string) => {
+    try { if ((await cashStatus()).epoch) { toast.error("ให้เจ้าของแก้ไขพร้อมเหตุผลในหน้าจัดการเงินสด"); return; } }
+    catch { toast.error("ตรวจสถานะเงินสดไม่สำเร็จ ยังลบรายการไม่ได้"); return; }
     if (await write(supabase.rpc("rpc_delete_shop_expense", { p_id: id }), "ลบรายจ่ายแล้ว", fetchExpensesOnly)) setDeleteConfirmId(null);
   };
 
   const handleDeleteIncome = async (id: string) => {
+    try { if ((await cashStatus()).epoch) { toast.error("ให้เจ้าของแก้ไขพร้อมเหตุผลในหน้าจัดการเงินสด"); return; } }
+    catch { toast.error("ตรวจสถานะเงินสดไม่สำเร็จ ยังลบรายการไม่ได้"); return; }
     if (await write(supabase.rpc("rpc_delete_shop_income", { p_id: id }), "ลบรายรับแล้ว", fetchIncomeOnly)) setIncomeDeleteConfirmId(null);
   };
 
@@ -315,7 +322,7 @@ export function useCloseDayData() {
   const isToday = date === todayInBangkok();
 
   return {
-    date, applyDate, isOwner, roleResolved,
+    date, applyDate, isOwner, roleResolved, cash,
     bills, items, expenses, income, parts,
     sfCount, closing,
     billPage, billPageSize, billTotal, setBillPage,

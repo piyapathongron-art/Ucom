@@ -6,6 +6,7 @@ const mainLinks: NavLink[] = [
   { href: "/repairs", label: "งานซ่อม", icon: "repair" },
   { href: "/consignments", label: "ฝากขาย & SF+", icon: "consignment" },
   { href: "/topup", label: "เติมเงิน", icon: "topup" },
+  { href: "/cash", label: "เงินสด / นำฝาก", icon: "expense" },
 ];
 
 // Owner-only entries: report + ledger sit with the main list, settings sits in the footer group.

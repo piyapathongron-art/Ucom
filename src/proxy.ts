@@ -1,11 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeReturnPath } from "@/lib/safe-return";
 
 // Next.js 16 renamed middleware.ts -> proxy.ts (same mechanism).
 // This refreshes the Supabase session cookie on every request so Server
 // Components always see a valid session without each of them re-checking.
 export async function proxy(request: NextRequest) {
-  if (request.nextUrl.pathname === "/api/line/webhook") {
+  if (["/api/line/webhook", "/api/line/cash-reminder"].includes(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 
@@ -38,13 +39,16 @@ export async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isLoginPage = path === "/login";
+  const isLiffDepositPage = path === "/liff/deposit";
 
-  if (!user && !isLoginPage) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (!user && !isLoginPage && !isLiffDepositPage) {
+    const destination = new URL("/login", request.url);
+    destination.searchParams.set("next", safeReturnPath(`${request.nextUrl.pathname}${request.nextUrl.search}`));
+    return NextResponse.redirect(destination);
   }
 
   if (user && isLoginPage) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL(safeReturnPath(request.nextUrl.searchParams.get("next")), request.url));
   }
 
   // Owner-only pages live under an unprefixed route group, so we can't tell
