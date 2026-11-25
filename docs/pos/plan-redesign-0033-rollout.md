@@ -216,6 +216,149 @@ In this order:
     - A harness with stubbed auth, profile, carrier and export responses at 1440 and 375 wide: no overflow (also with the summary open), every control at least 40px (inputs and save buttons 44px, export 48px), linked labels, one form per carrier, no duplicate test IDs. A rate save showed the toast and disabled the button again.
     - Known, unchanged: the input has `max="99.99"`, so out-of-range values hit the browser's native validation tooltip before the red alert. The alert still covers the regex cases the native check misses.
   - **Not checked:** real writes and real data, and e2e (`export.spec.ts`, `redesign-write.spec.ts` W10, `redesign-readonly.spec.ts`). Test IDs, the form/input markup and the button names are unchanged.
+- **/expenses (2026-11-25, stacked on PR #11):**
+  - Built from the code, not the canvas, in two places:
+    - The fund stays a `<select>` (`FundSelect`), not the canvas's radio cards. It is shared with the consignment pay dialog, and e2e calls `selectOption` on it.
+    - The canvas hint "บันทึกแล้วจะลบเองไม่ได้ …" shows only while the cash book is on. When it is off, both /expenses and /close-day still let owners delete.
+  - Tabs are the segmented pills: 40px, active brand blue, still `role="tab"` with `aria-selected`. The date filters are labelled 40px fields, side by side on a phone. The search has a label and an icon.
+  - The table stays from md up, because e2e finds rows with `locator("tr", { hasText })`. Each method is a muted chip. Below md each entry is a white card. The cards carry no test IDs, so the shared `RowAction` takes `withTestIds`.
+  - Row actions are 40px. ลบ is the red outline, ยืนยันลบ is red-filled, and the edit-with-reason link points to `/cash`.
+  - Totals are a white card with large `tabular-nums` figures. The text the e2e `num()` parser reads is unchanged.
+  - `LedgerAddDialog` is shared with /close-day, so its dialog changes too:
+    - 48px fields with 14px semibold labels;
+    - a decimal input mode;
+    - a pending label on submit;
+    - the error in the danger pair.
+  - `FundSelect` is now 48px. It is only used inside dialogs.
+  - Shared: the `Modal` close button is 40×40, the same one-line change as in #15 to #17.
+  - **Checked:**
+    - ESLint (0 errors; text-size warnings went from 13 to 9), `tsc`, `next build`, and all 17 `*.check.mts`.
+    - A harness with stubbed PostgREST and cash-status responses at 1440 and 375 wide, with the cash book off and on, on both tabs. The delete confirm and the add dialog were opened, never submitted.
+    - No overflow, every control at least 40px, and no duplicate test IDs. The totals text matches the e2e parser. The cash-book hint shows only when the cash book is on.
+  - **Not checked:** real writes, real data and e2e (`expenses.spec.ts`, `redesign-*.spec.ts`, `close-day.spec.ts`). Test IDs and row markup are unchanged.
+- **/cash (2026-11-25, stacked on PR #11):**
+  - Visual only. The cash logic is untouched: `CashForm`'s submit, retry and lock flow, the payloads, `rpc_cash_*` and the intents. Every label text, `<summary>` text, button name, heading and test ID that `tests/local-cash` matches is unchanged.
+  - **ADR 0032 conflict, left for the owner:** the staff page, which /liff/deposit also uses, still shows "เงินเก๊ะ ฿X · เงินรอฝากในร้าน ฿Y". Those are the system balances that close-day hides from staff, so staff can read them here before counting. The owner chose to keep the line in this PR.
+    - Hiding the drawer balance would stop that leak.
+    - The pending balance would still show through the per-day list, which staff need for deposits.
+  - Shared classes live in `cash/cash-styles.ts`:
+    - card, summary, text link, select, field label and file input;
+    - a status chip per handover state: กำลังไปฝาก is warning, รอตรวจ is brand tint, ยืนยันแล้ว is success, ต้องแก้ไข is danger, and คืนแล้ว is muted.
+  - `CashForm`:
+    - 48px fields with semibold labels;
+    - 20px checkboxes with 40px rows;
+    - a 48px full-width submit;
+    - the blocked and retry messages as warning boxes.
+  - Owner page:
+    - It now uses `PageFrame`, with "ยอด ณ …" as the description and ปิดร้าน as a secondary button.
+    - Balance tiles are white cards with 2xl amounts, and กำลังไปฝาก is a warning tile. They stack below sm, so 375px does not overflow.
+    - Review cards have a brand ring and the status chip. ถูกต้อง is primary and ขอแก้หลักฐาน is the red outline, both 48px. The slip preview is on muted.
+    - History rows are green for money in and red for money out. The owner tools rows are 48px.
+  - Staff page and /liff/deposit:
+    - white cards and muted step circles;
+    - each day to choose is a 2px-bordered card that is brand tint when selected, as on the canvas;
+    - the selection summary is a muted box with "นำออกไปฝาก" in large brand blue;
+    - the slip upload has a 40px tinted file button;
+    - the leftover-money section is a muted panel;
+    - "ยกเลิกและคืนเงินทั้งหมด" is a red summary.
+  - The recovery panel is warning-tinted, and the error states use the danger pair.
+  - Not taken from the canvas:
+    - the 2×2 owner tool buttons, because the code's list rows keep their hints;
+    - the canvas's side-by-side layouts.
+  - Shared: the `Modal` close button is 40×40, the same one-line change as in #15 and #16.
+  - **Checked:**
+    - ESLint (0 errors; text-size warnings stay at 13), `tsc`, `next build`, and all 17 `*.check.mts`.
+    - A harness that renders `CashOverview` and `CashDeposit` with a stubbed status and a stubbed `rpc_cash_pending_days`, at 1440 and 375 wide. It covered owner, staff with money out, staff picking days, and both not-yet-opened views, with the details panels, history, the dispute modal and every owner tool open. No page overflow, every control at least 40px, and the texts the tests match are present.
+    - It found one problem. At 375 the correct, adjust and refund owner-tool modals overflowed sideways inside the dialog, because a `<fieldset>` defaults to `min-width: min-content` and the long select options pushed it wider. The fieldset now has `min-w-0` and the selects have `w-full min-w-0`. That fix was not re-measured.
+  - **Not checked:** the server component `cash-content.tsx` with real data, any real submit, `tests/local-cash`, which needs a local Supabase stack, and e2e.
+- **/topup (2026-11-25, stacked on PR #11):**
+  - Built from the code, not the canvas:
+    - no "ใกล้หมด" low-balance state, because there is no threshold in the code or the SQL;
+    - no quick-amount chips (50 / 100 / 300 / 500), because they would be a new feature;
+    - errors stay toasts, where the canvas shows them inline.
+  - Wallet cards:
+    - an initialized wallet is a white card with its balance in `tabular-nums`, plus the owner-only commission for today;
+    - a wallet that is not set yet is outlined with a dashed border, with the owner's opening field, a 40px ตั้งยอด button and the one-time hint;
+    - the opening input and its button keep the same parent, because e2e finds the button through the input.
+  - Sale form:
+    - a white card with 48px carrier select and a 52px amount field;
+    - the owner's estimate (wallet deduction and commission) shows as a tinted box;
+    - cash/transfer is a segmented `radiogroup`, as in /pos, and the account field has a label;
+    - the submit button is 56px and full width.
+  - The fund button is now secondary (outlined), as on the canvas, so the sale stays the main action.
+  - Fund dialog:
+    - 48px and 52px fields;
+    - the balance under the carrier, and "ยอดหลังเติม" in brand tint (current balance plus amount);
+    - the not-set warning and the form error as tinted boxes.
+  - History is split into `TopupHistory.tsx`, which keeps `page.tsx` under 300 lines:
+    - a table from md up and a list below md;
+    - Thai dates with time;
+    - the "นำเข้า" chip;
+    - commission only for the owner;
+    - 40px pagination.
+  - Shared: the `Modal` close button is 40×40. This is the same one-line change as on the /repairs PR, so the two merge cleanly.
+  - **Checked:**
+    - ESLint (0 errors; text-size warnings stay at 13), `tsc`, `next build`, and all 17 `*.check.mts`.
+    - A harness with stubbed auth and PostgREST responses at 1440 and 375 wide, for owner and staff, with set and unset wallets, the fund dialog and the set-balance confirm open. No overflow, every control at least 40px, and no console errors. Staff see no commission and no fund button.
+  - **Not checked:** real writes, real data and e2e (`topup-live-acceptance.spec.ts`, `features-readonly.spec.ts`, `expenses.spec.ts`, `redesign-readonly.spec.ts`). Test IDs, labels and button names are unchanged.
+- **/repairs (2026-11-25, stacked on PR #11):**
+  - Built from the code, not the canvas, in three places:
+    - no count tiles (รอซ่อม / กำลังซ่อม / รอรับเครื่อง), because they would need extra count queries;
+    - no separate part-cost panel, so each job keeps its own inline field;
+    - the abandon dialog has no line about part cost counting as a repair cost, because the SQL has not been checked for that.
+  - The abandon confirm stays amber, since it is irreversible and not a delete.
+  - The status filter uses the /stock segmented pills (40px, active brand blue, `aria-pressed`). The search has a label and a search icon, and keeps its placeholder.
+  - Status chips:
+    - รอซ่อม is neutral, กำลังซ่อม is brand tint, and รอรับเครื่อง is green;
+    - รับแล้ว is muted;
+    - ลูกค้าทิ้ง is the danger pair.
+  - The forward step is a brand-tint button. ปิดงาน/ออกบิล is the primary button, and ลูกค้าทิ้ง is a red text button. Every control is at least 40px.
+  - Prices show as ฿ with `tabular-nums`, right-aligned in the table. The part-cost input has an `aria-label`, and "กรอกแล้ว" is a green chip.
+  - The table stays at md and up, with all 7 columns and every test ID. Below md, each job is a white card. The cards carry no test IDs, so no ID appears twice.
+  - Intake dialog:
+    - 48px fields, with `*` and `required` on the name and device;
+    - `tel` and decimal input modes;
+    - a pending label on submit;
+    - the "data stays if saving fails" hint.
+  - Close dialog:
+    - a summary card with the status chip;
+    - a 52px price field with a hint;
+    - cash/transfer as a segmented `radiogroup`, as in /pos;
+    - a bill line with the total in brand blue (`formatMoney`).
+
+    The undefined `ucom-error` is replaced with the danger pair.
+  - Shared: the `Modal` close button is now 40×40 (it was 32px wide).
+  - **Checked:**
+    - ESLint (0 errors; text-size warnings stay at 13), `tsc`, `next build`, and all 17 `*.check.mts`.
+    - A harness with stubbed PostgREST and cash-status responses at 1440 and 375 wide, with the cash book off and on, and with the intake, close and abandon dialogs open. No overflow, no console errors.
+    - The harness found one control under 40px, the 30px-wide "แก้ไข" text button, which is now `min-w-10`. That fix was not re-measured.
+  - **Not checked:** real data and e2e (`repairs.spec.ts`, `redesign-*.spec.ts`, `pagination-filter.spec.ts`). Test IDs are unchanged, except that `close-payment-method` is now on the radiogroup instead of a `<select>`; no spec reads it.
+**/sf-commissions, the SF+ tab (done 2026-11-25 on branch `design/0033-sf-commissions`, stacked on PR #11):**
+- Sub-tabs are 40px pills. The active one is tinted brand and the others are outlined, so they read as second level under the page tabs. The canvas's side-by-side due/pending layout was not used; the code's sub-tabs stay.
+- Due bills:
+  - from md up a table (e2e finds rows by bill number), and cards below md;
+  - a "ใหม่" chip on the bill just saved;
+  - 40px edit and delete buttons. A bill with a released device shows a disabled "ลบไม่ได้" instead of a greyed "ลบ".
+- Pending commissions and confirmed commissions:
+  - labelled search fields;
+  - the inline record and correct forms now link each label to its field;
+  - 40px fields and buttons, and red errors.
+- Intake dialog:
+  - 48px header fields and 44px row cells;
+  - a "ยิงบาร์โค้ดเพื่อเพิ่มแถว" chip, a 44px remove button, and a dashed brand "+ เพิ่มแถวเครื่อง";
+  - the SF credit total in bold brand blue, and red row errors.
+- Dealer account (owner only): white stat cards, 44px action buttons, 40px due-date fields and buttons, 48px dialog fields, and a 20px checkbox in a 40px row.
+- Shared fix: `.ucom-table-wrap` is now `position: relative`. An sr-only header inside a scrolling table escaped the scroll box and widened the page to 608px on a phone.
+- **Checked:** a harness with stubbed views at 1440 and 375 wide, on all three sub-tabs, with the record form and intake dialog opened and the dealer account rendered. No page overflow; every control is at least 40px (the checkbox sits in a 40px row).
+- **Not checked:** real data, and e2e (`sf.spec.ts`, `redesign-write.spec.ts`). Test IDs are unchanged, except that the locked delete button now reads "ลบไม่ได้".
+**/consignments, ฝากออก and ฝากเข้า tabs (done 2026-11-25 on branch `design/0033-consignments`, stacked on PR #11):**
+- The tabs are 44px segmented pills and the call to action is a 48px primary button. The SF+ tab still renders `SfPlusTab` unchanged; it is the /sf-commissions step.
+- From md up the table keeps its rows (e2e finds rows by role). Below md each case is a card. Status is a chip (amber waiting on money, green money done, neutral open or returned) with the date of the current step from `reported_at`, `sold_at`, `settled_at`, `paid_at` or `returned_at`, not the created date. Fix 0.7's error mapping is unchanged.
+- Next-step buttons are 40px; คืนเครื่อง is amber because it cannot be undone. Pagination buttons are 40px. A dashed note under the list spells out each direction's flow.
+- In the dialogs, fields are 48px with the same label text e2e uses (ราคาตั้ง gains "(บาท)"). The action dialog shows the counterparty and list price, and the amount due as a blue total. Report and sell show a live "what the shop gets" preview (price − share). Errors are red, not amber.
+- Not built: the canvas's tab counts and its "found in stock" IMEI lookup (no data source), and the canvas artboards for consign-in, pay owner and return (the code's dialogs are used).
+- **Checked:** a harness with stubbed rows at 1440 and 375 wide, plus the report dialog's preview. No overflow; every control is at least 40px.
+- **Not checked:** real data, and e2e (`consignments.spec.ts`).
 
 ## Owner decisions, collected
 

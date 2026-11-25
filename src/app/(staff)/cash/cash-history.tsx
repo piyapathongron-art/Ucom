@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CashHandover, CashMovement } from "@/lib/cash/types";
 import { formatMoney } from "@/lib/cash/money";
+import { CARD, SUMMARY } from "./cash-styles";
 
 const PAGE = 20;
 const movementNames: Record<string, string> = { posting: "รับ/จ่ายเงิน", opening: "ยอดตั้งต้น", handover: "นำเงินออกไปฝาก", settle: "ฝากธนาคาร", return: "คืนเงินเข้าร้าน", reconciliation: "ปรับยอดจากการนับ", refund: "คืนเงินจริง", correction: "แก้รายการ" };
@@ -13,12 +14,12 @@ const when = (iso: string) => new Date(iso).toLocaleString("th-TH", { timeZone: 
 export default function CashHistory({ movements, handovers }: { movements: CashMovement[]; handovers: CashHandover[] }) {
   const [count, setCount] = useState(PAGE);
   const finished = handovers.filter(item => item.state in doneStates);
-  return <details className="ucom-surface p-4">
-    <summary className="cursor-pointer font-bold">ประวัติเงินสด</summary>
+  return <details className={CARD}>
+    <summary className={`${SUMMARY} text-lg font-bold`}>ประวัติเงินสด</summary>
     <div className="mt-3 space-y-4">
       {finished.length > 0 && <div className="space-y-1">
         <h3 className="text-sm font-semibold">นำฝากที่เสร็จแล้ว</h3>
-        {finished.map(item => <p key={item.id} className="text-sm text-ink-muted">{when(item.createdAt)} · {item.custodian} · ฿{formatMoney(item.amount)} · {doneStates[item.state]}</p>)}
+        {finished.map(item => <p key={item.id} className="text-sm text-muted-foreground tabular-nums">{when(item.createdAt)} · {item.custodian} · ฿{formatMoney(item.amount)} · {doneStates[item.state]}</p>)}
       </div>}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold">ความเคลื่อนไหว</h3>
@@ -26,11 +27,11 @@ export default function CashHistory({ movements, handovers }: { movements: CashM
           // "posting" is the generic kind for sales/expenses; its reason is the meaningful name.
           const title = item.kind === "posting" && item.reason ? item.reason : movementNames[item.kind] ?? "ความเคลื่อนไหวเงินสด";
           return <div key={item.id} className="border-b border-border pb-2 text-sm">
-            <p className="flex justify-between gap-3"><span>{title} · {item.fund === "drawer" ? "เงินเก๊ะ" : "เงินรอฝาก"}</span><span className="font-semibold">{Number(item.amount) > 0 ? "+" : ""}{formatMoney(item.amount)}</span></p>
-            <p className="text-xs text-ink-muted">{when(item.createdAt)}{item.reason && item.reason !== title ? ` · ${item.reason}` : ""}</p>
+            <p className="flex justify-between gap-3"><span>{title} · {item.fund === "drawer" ? "เงินเก๊ะ" : "เงินรอฝาก"}</span><span className={`shrink-0 font-semibold tabular-nums ${Number(item.amount) > 0 ? "text-success" : Number(item.amount) < 0 ? "text-danger" : ""}`}>{Number(item.amount) > 0 ? "+" : ""}{formatMoney(item.amount)}</span></p>
+            <p className="text-sm text-muted-foreground tabular-nums">{when(item.createdAt)}{item.reason && item.reason !== title ? ` · ${item.reason}` : ""}</p>
           </div>;
-        }) : <p className="text-sm text-ink-muted">ยังไม่มีความเคลื่อนไหว</p>}
-        {movements.length > count && <button type="button" className="ucom-secondary px-4 py-2 text-sm" onClick={() => setCount(count + PAGE)}>ดูเพิ่ม</button>}
+        }) : <p className="text-sm text-muted-foreground">ยังไม่มีความเคลื่อนไหว</p>}
+        {movements.length > count && <button type="button" className="ucom-secondary px-4" onClick={() => setCount(count + PAGE)}>ดูเพิ่ม</button>}
       </div>
     </div>
   </details>;

@@ -21,10 +21,10 @@ function fillBangkokNow(input: HTMLInputElement | null) {
   if (input && !input.value) input.value = new Date(Math.ceil((Date.now() + 7 * 3600_000) / 60_000) * 60_000).toISOString().slice(0, 16); // rounded up: never earlier than the handover, within the 5-minute future tolerance
 }
 export function Field({ name, label, type = "text", value, required = true, isNow = false }: { name: string; label: string; type?: string; value?: string; required?: boolean; isNow?: boolean }) {
-  return <label className="flex flex-col gap-1 text-sm">{label}<input className="ucom-field px-3 py-2" type={type} name={name} defaultValue={value} required={required} step={type === "number" ? "0.01" : undefined} ref={isNow ? fillBangkokNow : undefined} /></label>;
+  return <label className="flex flex-col gap-1.5 text-sm font-semibold">{label}<input className="ucom-field h-12 px-4 text-base font-normal tabular-nums" type={type} name={name} defaultValue={value} required={required} step={type === "number" ? "0.01" : undefined} ref={isNow ? fillBangkokNow : undefined} /></label>;
 }
 export function Check({ name, label }: { name: string; label: string }) {
-  return <label className="flex items-start gap-2 text-sm"><input type="checkbox" name={name} value="true" required className="mt-1" />{label}</label>;
+  return <label className="flex min-h-10 cursor-pointer items-start gap-3 text-sm leading-relaxed"><input type="checkbox" name={name} value="true" required className="mt-0.5 size-5 shrink-0 accent-primary" />{label}</label>;
 }
 
 export default function CashForm({ action, epoch, fields = {}, children, label, uploadHandOver, isDisabled = false, disabledReason, check, sources }: {
@@ -116,11 +116,11 @@ export default function CashForm({ action, epoch, fields = {}, children, label, 
   }
   // onSubmit, not action={}: React 19 resets uncontrolled fields after a form action, which wiped everything a rejected submit should keep.
   return <form ref={formRef} onSubmit={event => { event.preventDefault(); void submit(new FormData(event.currentTarget)); }} className="flex flex-col gap-3">
-    <fieldset disabled={isBusy || Boolean(job) || hasBlockedIntent} className="flex flex-col gap-3">{children}</fieldset>
-    {hasBlockedIntent && <p className="text-sm text-warning">มีรายการเงินเดิมรอยืนยัน ต้องใช้บัญชีผู้ทำรายการเดิมตรวจผลก่อนทำรายการใหม่</p>}
-    {job && <div className="text-sm text-warning"><p>ลองซ้ำด้วยข้อมูลเดิมก่อนทำรายการอื่น</p></div>}
-    <button className="ucom-primary justify-center px-4 py-2" disabled={isBusy || (!job && (isDisabled || hasBlockedIntent))}>{isBusy ? "กำลังบันทึก…" : job ? "ลองรายการเดิมซ้ำ" : label}</button>
-    {isDisabled && !job && !hasBlockedIntent && disabledReason && <p className="text-sm text-ink-muted">{disabledReason}</p>}
+    <fieldset disabled={isBusy || Boolean(job) || hasBlockedIntent} className="flex min-w-0 flex-col gap-4">{children}</fieldset>
+    {hasBlockedIntent && <p className="rounded-xl bg-warning-bg px-4 py-3 text-sm font-semibold text-warning">มีรายการเงินเดิมรอยืนยัน ต้องใช้บัญชีผู้ทำรายการเดิมตรวจผลก่อนทำรายการใหม่</p>}
+    {job && <p className="rounded-xl bg-warning-bg px-4 py-3 text-sm font-semibold text-warning">ลองซ้ำด้วยข้อมูลเดิมก่อนทำรายการอื่น</p>}
+    <button className="ucom-primary h-12 w-full px-5 text-base" disabled={isBusy || (!job && (isDisabled || hasBlockedIntent))}>{isBusy ? "กำลังบันทึก…" : job ? "ลองรายการเดิมซ้ำ" : label}</button>
+    {isDisabled && !job && !hasBlockedIntent && disabledReason && <p className="text-sm text-muted-foreground">{disabledReason}</p>}
     {message && <p role="status" className="text-sm">{message}</p>}
   </form>;
 }
