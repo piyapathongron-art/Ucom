@@ -725,6 +725,7 @@ export type Database = {
       sf_orders: {
         Row: {
           created_at: string
+          due_date: string | null
           id: string
           note: string | null
           order_no: string
@@ -732,6 +733,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          due_date?: string | null
           id?: string
           note?: string | null
           order_no: string
@@ -739,6 +741,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          due_date?: string | null
           id?: string
           note?: string | null
           order_no?: string
@@ -1235,10 +1238,54 @@ export type Database = {
         }
         Relationships: []
       }
+      v_sf_dealer_invoices: {
+        Row: {
+          applied: number | null
+          days_overdue: number | null
+          due_date: string | null
+          open_amount: number | null
+          order_no: string | null
+          ordered_at: string | null
+          sf_order_id: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      v_sf_dealer_ledger: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          debt_change: number | null
+          device_unit_id: string | null
+          doc_no: string | null
+          due_date: string | null
+          entry_date: string | null
+          id: string | null
+          kind: string | null
+          method: string | null
+          note: string | null
+          reference: string | null
+          void_reason: string | null
+          voided_at: string | null
+        }
+        Relationships: []
+      }
+      v_sf_dealer_summary: {
+        Row: {
+          balance: number | null
+          balance_open_invoices: number | null
+          max_days_overdue: number | null
+          open_invoices: number | null
+          overdue_amount: number | null
+        }
+        Relationships: []
+      }
       v_sf_due: {
         Row: {
           amount_due: number | null
+          days_overdue: number | null
           device_count: number | null
+          due_date: string | null
           financed_count: number | null
           note: string | null
           order_no: string | null
@@ -1412,6 +1459,25 @@ export type Database = {
       }
       rpc_set_part_cost: {
         Args: { p_cost: number; p_job_id: string; p_paid_from: string }
+        Returns: undefined
+      }
+      rpc_set_sf_order_due_date: {
+        Args: { p_due_date: string; p_order_id: string }
+        Returns: undefined
+      }
+      rpc_sf_dealer_record: {
+        Args: {
+          p_amount: number
+          p_doc_no?: string
+          p_entry_date: string
+          p_kind: string
+          p_note?: string
+          p_reference?: string
+        }
+        Returns: string
+      }
+      rpc_sf_dealer_void: {
+        Args: { p_id: string; p_reason: string }
         Returns: undefined
       }
       rpc_set_stock_cost: {

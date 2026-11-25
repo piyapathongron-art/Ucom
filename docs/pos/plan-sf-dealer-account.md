@@ -1,6 +1,6 @@
 # Plan: SF dealer account (ADR 0034)
 
-Status: draft, 2026-11-25. Waiting on the two open owner questions in ADR 0034. Steps 1–3 can start before those are answered; step 4 cannot.
+Status: steps 1–3 implemented on 2026-11-25 (migration `20261125150000_sf_dealer_account.sql`, pgTAP `04_sf_dealer_account`, owner sub-tab `SfDealerAccount.tsx`). Owner answers: the dealer is always paid by transfer, so there is no cash-book action; "ลดหนี้-อื่นๆ" is still unclear, so it only reduces the debt. Not yet applied to production.
 
 Goal: the owner can see what the shop owes the SF dealer, what is overdue, and whether it matches the dealer's statement. Recording a payment or a credit note takes one form.
 

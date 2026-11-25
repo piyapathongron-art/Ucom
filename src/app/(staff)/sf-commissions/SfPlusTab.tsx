@@ -13,12 +13,13 @@ import { useSfCommissions } from "./useSfCommissions";
 import { useSfDue } from "./useSfDue";
 import { SfDueList } from "./SfDueList";
 import { SfIntakeDialog, type SfDialogMode } from "./SfIntakeDialog";
+import { SfDealerAccount } from "./SfDealerAccount";
 import { todayInBangkok, fmtMoney, formatDate } from "./utils";
 
 type PendingRow = Tables<"v_sf_pending">;
 type ReceiptRow = Tables<"v_sf_receipts">;
 
-type SubTab = "due" | "pending" | "receipts";
+type SubTab = "due" | "pending" | "receipts" | "dealer";
 
 // SF+ tab of the merged consignment page. The CTA (รับบิล SF) lives in the page header, so the parent
 // passes `isCreateOpen`; after a save we jump to บิลค้าง and highlight the new bill.
@@ -172,7 +173,8 @@ export function SfPlusTab({ isCreateOpen, onCreateClose }: { isCreateOpen: boole
     return ok;
   }
 
-  const subTabs: [SubTab, string][] = [["due", `บิลค้าง (${nDue})`], ["pending", "รอค่าคอม"], ["receipts", "ยืนยันแล้ว"]];
+  // บัญชีร้านตัวแทน (ADR 0034) is the owner's view of what the shop owes the SF dealer.
+  const subTabs: [SubTab, string][] = [["due", `บิลค้าง (${nDue})`], ["pending", "รอค่าคอม"], ["receipts", "ยืนยันแล้ว"], ...(isOwner ? [["dealer", "บัญชีร้านตัวแทน"] as [SubTab, string]] : [])];
 
   return (
     <>
@@ -193,7 +195,7 @@ export function SfPlusTab({ isCreateOpen, onCreateClose }: { isCreateOpen: boole
 
       {error && <ErrorPanel message={error} onRetry={() => void fetchData()} />}
 
-      {(isLoading || dueIsLoading) && tab !== "due" && <SkeletonRows cols={5} />}
+      {(isLoading || dueIsLoading) && tab !== "due" && tab !== "dealer" && <SkeletonRows cols={5} />}
 
       {tab === "due" && (
         dueIsLoading && dueList.length === 0
@@ -272,6 +274,7 @@ export function SfPlusTab({ isCreateOpen, onCreateClose }: { isCreateOpen: boole
           todayInBangkok={todayInBangkok}
         />
       )}
+      {tab === "dealer" && isOwner && <SfDealerAccount />}
       {dialogMode && (
         <SfIntakeDialog
           key={dialogMode.type + (editId ?? "")}

@@ -131,3 +131,33 @@ Expected results:
 
 - Follow-up PR: the stock form sends `qty` only when it changed (undo PR #9's workaround).
 - Record the applied versions, the hashes above, the backup file and the preflight output in a release note, as for 2026-10-09.
+
+## 7. Migration 3: SF dealer account (ADR 0034, PR #12)
+
+| Order | File | SHA-256 (working copy, LF) |
+|---|---|---|
+| 3 | `supabase/migrations/20261125150000_sf_dealer_account.sql` | `aecf80b907235fd7c84e0cc1ecd82f4dca88f78314d0eb7a3893fc1d95d232f1` |
+
+- Apply only after migrations 1 and 2, using the same wrapper and with version `20261125150000` and name `sf_dealer_account`.
+- It has its own pgTAP file (`supabase/tests/database/04_sf_dealer_account.test.sql`).
+- Re-check the hash against `main` once PR #12 is merged.
+
+**What changes for the shop at once:**
+- Every phone that is already financed gets a credit for its tag price (backfill).
+- `v_sf_due` (บิลค้าง) now shows each bill's open amount from the ledger. A phone sold for cash stays owed until a payment is recorded. Until the opening adjustment below, the figure includes old bills the shop has already paid.
+
+**Read back:**
+
+```sql
+select version from supabase_migrations.schema_migrations where version = '20261125150000';
+select kind, count(*), sum(amount) from public.sf_dealer_entries group by kind;
+select * from public.v_sf_dealer_summary;
+```
+
+You should see one history row, `credit_financed` rows only (one per financed phone), and a summary row. As the owner, `balance` is the total tag price of every SF bill minus the financed credits.
+
+**Go-live: opening adjustment (owner, in the app).** The system has no record of past payments, so it starts high.
+1. Open ฝากขาย & SF+ → SF+ → **บัญชีร้านตัวแทน**.
+2. Under "เทียบกับ statement", enter the latest statement's date and its ยอดหนี้คงค้าง (20,707.00 on the statement of about 9 Nov 2569).
+3. Press **ปรับยอดส่วนต่าง**. It opens an adjustment for the exact difference with the reason pre-filled. Save it.
+4. From then on, record each transfer to the dealer and each "ลดหนี้-อื่นๆ" credit note, and compare against each new statement on the same page.

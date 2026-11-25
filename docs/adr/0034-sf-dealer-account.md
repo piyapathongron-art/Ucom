@@ -1,6 +1,6 @@
 # ADR 0034: SF devices come from a dealer account that is settled by statement, not at sale
 
-Status: Proposed 2026-11-25. Owner answers received; two points still open (see "Open questions"). No code or schema change yet.
+Status: Accepted 2026-11-25 (owner answers below). Implemented in migration `20261125150000_sf_dealer_account.sql`; not yet applied to production.
 
 Changes [ADR 0002](0002-sf-plus-is-not-revenue.md) and [ADR 0017](0017-sf-device-exits-by-instalment-or-cash-sale.md) as described under "What this replaces". ADR 0016 (commission recognised when received) stays.
 
@@ -59,7 +59,7 @@ Rules:
 - **No effect on sales or profit.** Payments are not Expenses (CONTEXT.md, unchanged). Financed credits are not income. Commission stays a separate receipt (ADR 0016).
 - **Down payment and fee** are passed through and not recorded (answer 5). If they ever stay in the drawer, that becomes a new decision.
 - **Who can do what:** the account page, payments, credit notes and adjustments are owner-only. Staff keep what they have today: receiving bills and choosing ผ่อน SF or ขายสด.
-- **Payment method, first release:** transfer only, recorded without touching the cash book. A cash payment from the drawer needs a cash-book action (it reduces the drawer or the pending fund), which is a later step (see Open questions).
+- **Payment method:** transfer only, recorded without touching the cash book. The owner confirmed the dealer is never paid in cash.
 
 ## What this replaces
 
@@ -69,11 +69,11 @@ Rules:
 - **ADR 0002:** "SF sends the phones against a credit line" is clarified: a dealer sends them on account, and SF settles financed phones with that dealer.
 - **CONTEXT.md:** add Dealer Account, Payment to dealer and Credit note. Note that a phone financed through SF reduces the dealer debt.
 
-## Open questions for the owner
+## Owner answers to the follow-up questions (2026-11-25)
 
-1. **What are the "ลดหนี้-อื่นๆ" (`DCN-JMB-…`) credit notes?** For example a promotion, price protection, or a commission paid as credit. If the shop earns them, they are income, like commission, and belong in the report. If they correct a price, they lower the phone's cost. Until this is answered, they reduce the debt only.
-2. **Is the dealer ever paid in cash from the drawer, or always by transfer?** If cash is used, the cash book needs a "pay dealer" action before the drawer can reconcile.
-3. Does one statement cover one dealer, or are there several dealers? The design allows several accounts, but the first release can assume one.
+1. **What are the "ลดหนี้-อื่นๆ" (`DCN-JMB-…`) credit notes?** The owner is not sure. **Decision for now:** they are recorded as "other credit notes" that only reduce the debt. They are not income and do not touch the report. If the dealer later confirms they are a promotion or a commission paid as credit, they can be reclassified as income in a later step. The entries already store the DCN number and a note, so nothing has to be re-entered.
+2. **Is the dealer ever paid in cash?** No, always by transfer. **Decision:** payments are transfer-only and never touch the cash book. There is no cash-book action.
+3. One dealer is assumed. The schema can add a `dealer_id` later.
 
 ## Alternatives not selected
 
