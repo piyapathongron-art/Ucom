@@ -126,7 +126,9 @@ export default function StockPage() {
         sku: input.sku,
         category_id: input.category_id || null,
         price: input.price,
+        // undefined keys are dropped from the JSON, so an untouched qty leaves stock as it is
         qty: input.qty,
+        expected_qty: input.expected_qty,
         is_active: input.is_active,
         cost: input.cost ?? null,
         ...(input.carrier_id !== undefined ? { carrier_id: input.carrier_id } : {}),
