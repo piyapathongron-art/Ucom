@@ -533,7 +533,7 @@ export default function PosPage() {
   }
 
   return (
-    <main data-page="pos" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background lg:h-dvh">
+    <main data-page="pos" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background lg:h-[calc(100dvh-2rem)]">
       <p className="border-b border-border px-5 py-2 text-xs text-ink-muted" data-testid="cash-pos-device">
         เครื่องรับเงิน: {deviceId || "กำลังตรวจสอบ"} · คิวค้าง {queue.length} บิล · ออกบิลเมื่อเชื่อมต่อระบบเท่านั้น
         {cashBook?.epoch && ` · ${isReceivingLocallyPaused(cashBook) ? cashBook.isReceivingPaused && cashBook.ackVersion === cashBook.version ? "หยุดรับเงินและยืนยันยอดล่าสุดแล้ว" : "หยุดรับเงินในเครื่อง รอยืนยันยอดล่าสุด" : "กำลังรับเงิน"}`}

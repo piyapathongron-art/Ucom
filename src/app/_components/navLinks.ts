@@ -12,7 +12,7 @@ const mainLinks: NavLink[] = [
 // Owner-only entries: report + ledger sit with the main list, settings sits in the footer group.
 export function buildNavLinks(isOwner: boolean) {
   const main = isOwner
-    ? [...mainLinks, { href: "/report", label: "รายงาน", icon: "report" }, { href: "/expenses", label: "รายรับ–รายจ่าย", icon: "expense" }]
+    ? [...mainLinks, { href: "/report", label: "รายงาน", icon: "report" }, { href: "/expenses", label: "รายรับ–รายจ่าย", icon: "ledger" }]
     : mainLinks;
   const footer: NavLink[] = [{ href: "/close-day", label: "ปิดร้าน", icon: "close" }];
   if (isOwner) footer.push({ href: "/settings", label: "ตั้งค่า", icon: "settings" });

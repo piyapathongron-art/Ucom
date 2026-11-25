@@ -24,7 +24,7 @@ export default async function StaffLayout({ children }: LayoutProps<"/">) {
   }
 
   return (
-    <div className="flex min-h-full flex-1 flex-col lg:flex-row">
+    <div className="flex min-h-full flex-1 flex-col lg:flex-row lg:items-start lg:gap-4 lg:p-4">
       <NavBar links={buildNavLinks(isOwner)} onLogout={logout} displayName={displayName} role={isOwner ? "เจ้าของร้าน" : "พนักงาน"} />
       <div className="min-w-0 flex-1">{children}</div>
     </div>
