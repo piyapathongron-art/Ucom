@@ -202,6 +202,26 @@ In this order:
 
 /consignments (with fix 0.7 and the Step 1 artboards), /sf-commissions, /repairs, /topup, /cash, /expenses, /settings and /liff/deposit. Do one PR each and follow the canvas page for each route. After that, remove the old `ucom-*` classes and token aliases from `globals.css`.
 
+- **/expenses (2026-11-25, stacked on PR #11):**
+  - Built from the code, not the canvas, in two places:
+    - The fund stays a `<select>` (`FundSelect`), not the canvas's radio cards. It is shared with the consignment pay dialog, and e2e calls `selectOption` on it.
+    - The canvas hint "บันทึกแล้วจะลบเองไม่ได้ …" shows only while the cash book is on. When it is off, both /expenses and /close-day still let owners delete.
+  - Tabs are the segmented pills: 40px, active brand blue, still `role="tab"` with `aria-selected`. The date filters are labelled 40px fields, side by side on a phone. The search has a label and an icon.
+  - The table stays from md up, because e2e finds rows with `locator("tr", { hasText })`. Each method is a muted chip. Below md each entry is a white card. The cards carry no test IDs, so the shared `RowAction` takes `withTestIds`.
+  - Row actions are 40px. ลบ is the red outline, ยืนยันลบ is red-filled, and the edit-with-reason link points to `/cash`.
+  - Totals are a white card with large `tabular-nums` figures. The text the e2e `num()` parser reads is unchanged.
+  - `LedgerAddDialog` is shared with /close-day, so its dialog changes too:
+    - 48px fields with 14px semibold labels;
+    - a decimal input mode;
+    - a pending label on submit;
+    - the error in the danger pair.
+  - `FundSelect` is now 48px. It is only used inside dialogs.
+  - Shared: the `Modal` close button is 40×40, the same one-line change as in #15 to #17.
+  - **Checked:**
+    - ESLint (0 errors; text-size warnings went from 13 to 9), `tsc`, `next build`, and all 17 `*.check.mts`.
+    - A harness with stubbed PostgREST and cash-status responses at 1440 and 375 wide, with the cash book off and on, on both tabs. The delete confirm and the add dialog were opened, never submitted.
+    - No overflow, every control at least 40px, and no duplicate test IDs. The totals text matches the e2e parser. The cash-book hint shows only when the cash book is on.
+  - **Not checked:** real writes, real data and e2e (`expenses.spec.ts`, `redesign-*.spec.ts`, `close-day.spec.ts`). Test IDs and row markup are unchanged.
 - **/cash (2026-11-25, stacked on PR #11):**
   - Visual only. The cash logic is untouched: `CashForm`'s submit, retry and lock flow, the payloads, `rpc_cash_*` and the intents. Every label text, `<summary>` text, button name, heading and test ID that `tests/local-cash` matches is unchanged.
   - **ADR 0032 conflict, left for the owner:** the staff page, which /liff/deposit also uses, still shows "เงินเก๊ะ ฿X · เงินรอฝากในร้าน ฿Y". Those are the system balances that close-day hides from staff, so staff can read them here before counting. The owner chose to keep the line in this PR.
