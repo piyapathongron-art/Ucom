@@ -220,6 +220,14 @@ In this order:
 - Shared fix: `.ucom-table-wrap` is now `position: relative`. An sr-only header inside a scrolling table escaped the scroll box and widened the page to 608px on a phone.
 - **Checked:** a harness with stubbed views at 1440 and 375 wide, on all three sub-tabs, with the record form and intake dialog opened and the dealer account rendered. No page overflow; every control is at least 40px (the checkbox sits in a 40px row).
 - **Not checked:** real data, and e2e (`sf.spec.ts`, `redesign-write.spec.ts`). Test IDs are unchanged, except that the locked delete button now reads "ลบไม่ได้".
+**/consignments, ฝากออก and ฝากเข้า tabs (done 2026-11-25 on branch `design/0033-consignments`, stacked on PR #11):**
+- The tabs are 44px segmented pills and the call to action is a 48px primary button. The SF+ tab still renders `SfPlusTab` unchanged; it is the /sf-commissions step.
+- From md up the table keeps its rows (e2e finds rows by role). Below md each case is a card. Status is a chip (amber waiting on money, green money done, neutral open or returned) with the date of the current step from `reported_at`, `sold_at`, `settled_at`, `paid_at` or `returned_at`, not the created date. Fix 0.7's error mapping is unchanged.
+- Next-step buttons are 40px; คืนเครื่อง is amber because it cannot be undone. Pagination buttons are 40px. A dashed note under the list spells out each direction's flow.
+- In the dialogs, fields are 48px with the same label text e2e uses (ราคาตั้ง gains "(บาท)"). The action dialog shows the counterparty and list price, and the amount due as a blue total. Report and sell show a live "what the shop gets" preview (price − share). Errors are red, not amber.
+- Not built: the canvas's tab counts and its "found in stock" IMEI lookup (no data source), and the canvas artboards for consign-in, pay owner and return (the code's dialogs are used).
+- **Checked:** a harness with stubbed rows at 1440 and 375 wide, plus the report dialog's preview. No overflow; every control is at least 40px.
+- **Not checked:** real data, and e2e (`consignments.spec.ts`).
 
 ## Owner decisions, collected
 
