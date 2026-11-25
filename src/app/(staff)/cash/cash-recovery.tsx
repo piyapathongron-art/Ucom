@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cashActor, executeCash, inspectCashOperation, resendCashSnapshot } from "./actions";
+import { TEXT_LINK } from "./cash-styles";
 import { CASH_OPERATION_EVENT, assertStoredCashIntent, validatesCashProof, clearCashIntent, refreshCashOperations, saveCashIntent, withCashOperationLock, type CashInvestigation } from "@/lib/cash/operations";
 
 const actionNames: Record<string, string> = { handover_days: "นำเงินออกไปฝาก", settle: "แจ้งฝากเงิน", return: "คืนเงินเข้าร้าน", evidence: "ส่งหลักฐานใหม่", review: "ตรวจหลักฐาน" };
@@ -62,10 +63,10 @@ export default function CashRecovery() {
     finally { setIsBusy(false); }
   }
   if (!entries.length && !notifications.length && !message) return null;
-  return <section className="ucom-surface space-y-3 p-4" data-testid="cash-event-recovery">
-    <h2 className="font-bold">มีรายการที่ต้องตรวจ</h2>
-    {entries.map(entry => <div key={entry.key} className="text-sm"><p>{entry.reason} · {(entry.intent && actionNames[entry.intent.action]) ?? "ต้องตรวจสอบข้อมูลในเครื่อง"}</p>{entry.intent && <button disabled={isBusy} className="ucom-secondary mt-2 px-3 py-2" onClick={() => void retry(entry)}>ยืนยันข้อมูลเดิม</button>}</div>)}
-    {notifications.length > 0 && <div className="text-sm"><p>บันทึกยอดเงินแล้ว แต่แจ้งเข้า LINE ไม่สำเร็จ {notifications.length} รายการ</p><button disabled={isBusy} className="underline" onClick={() => void resendAll()}>ส่งแจ้ง LINE อีกครั้ง</button></div>}
+  return <section className="space-y-3 rounded-xl bg-warning-bg p-5 text-warning" data-testid="cash-event-recovery">
+    <h2 className="text-lg font-bold">มีรายการที่ต้องตรวจ</h2>
+    {entries.map(entry => <div key={entry.key} className="text-sm"><p>{entry.reason} · {(entry.intent && actionNames[entry.intent.action]) ?? "ต้องตรวจสอบข้อมูลในเครื่อง"}</p>{entry.intent && <button disabled={isBusy} className="ucom-secondary mt-2 px-4" onClick={() => void retry(entry)}>ยืนยันข้อมูลเดิม</button>}</div>)}
+    {notifications.length > 0 && <div className="text-sm"><p>บันทึกยอดเงินแล้ว แต่แจ้งเข้า LINE ไม่สำเร็จ {notifications.length} รายการ</p><button disabled={isBusy} className={TEXT_LINK} onClick={() => void resendAll()}>ส่งแจ้ง LINE อีกครั้ง</button></div>}
     {message && <p role="status" className="text-sm">{message}</p>}
   </section>;
 }

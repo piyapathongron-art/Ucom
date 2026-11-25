@@ -202,6 +202,42 @@ In this order:
 
 /consignments (with fix 0.7 and the Step 1 artboards), /sf-commissions, /repairs, /topup, /cash, /expenses, /settings and /liff/deposit. Do one PR each and follow the canvas page for each route. After that, remove the old `ucom-*` classes and token aliases from `globals.css`.
 
+- **/cash (2026-11-25, stacked on PR #11):**
+  - Visual only. The cash logic is untouched: `CashForm`'s submit, retry and lock flow, the payloads, `rpc_cash_*` and the intents. Every label text, `<summary>` text, button name, heading and test ID that `tests/local-cash` matches is unchanged.
+  - **ADR 0032 conflict, left for the owner:** the staff page, which /liff/deposit also uses, still shows "เงินเก๊ะ ฿X · เงินรอฝากในร้าน ฿Y". Those are the system balances that close-day hides from staff, so staff can read them here before counting. The owner chose to keep the line in this PR.
+    - Hiding the drawer balance would stop that leak.
+    - The pending balance would still show through the per-day list, which staff need for deposits.
+  - Shared classes live in `cash/cash-styles.ts`:
+    - card, summary, text link, select, field label and file input;
+    - a status chip per handover state: กำลังไปฝาก is warning, รอตรวจ is brand tint, ยืนยันแล้ว is success, ต้องแก้ไข is danger, and คืนแล้ว is muted.
+  - `CashForm`:
+    - 48px fields with semibold labels;
+    - 20px checkboxes with 40px rows;
+    - a 48px full-width submit;
+    - the blocked and retry messages as warning boxes.
+  - Owner page:
+    - It now uses `PageFrame`, with "ยอด ณ …" as the description and ปิดร้าน as a secondary button.
+    - Balance tiles are white cards with 2xl amounts, and กำลังไปฝาก is a warning tile. They stack below sm, so 375px does not overflow.
+    - Review cards have a brand ring and the status chip. ถูกต้อง is primary and ขอแก้หลักฐาน is the red outline, both 48px. The slip preview is on muted.
+    - History rows are green for money in and red for money out. The owner tools rows are 48px.
+  - Staff page and /liff/deposit:
+    - white cards and muted step circles;
+    - each day to choose is a 2px-bordered card that is brand tint when selected, as on the canvas;
+    - the selection summary is a muted box with "นำออกไปฝาก" in large brand blue;
+    - the slip upload has a 40px tinted file button;
+    - the leftover-money section is a muted panel;
+    - "ยกเลิกและคืนเงินทั้งหมด" is a red summary.
+  - The recovery panel is warning-tinted, and the error states use the danger pair.
+  - Not taken from the canvas:
+    - the 2×2 owner tool buttons, because the code's list rows keep their hints;
+    - the canvas's side-by-side layouts.
+  - Shared: the `Modal` close button is 40×40, the same one-line change as in #15 and #16.
+  - **Checked:**
+    - ESLint (0 errors; text-size warnings stay at 13), `tsc`, `next build`, and all 17 `*.check.mts`.
+    - A harness that renders `CashOverview` and `CashDeposit` with a stubbed status and a stubbed `rpc_cash_pending_days`, at 1440 and 375 wide. It covered owner, staff with money out, staff picking days, and both not-yet-opened views, with the details panels, history, the dispute modal and every owner tool open. No page overflow, every control at least 40px, and the texts the tests match are present.
+    - It found one problem. At 375 the correct, adjust and refund owner-tool modals overflowed sideways inside the dialog, because a `<fieldset>` defaults to `min-width: min-content` and the long select options pushed it wider. The fieldset now has `min-w-0` and the selects have `w-full min-w-0`. That fix was not re-measured.
+  - **Not checked:** the server component `cash-content.tsx` with real data, any real submit, `tests/local-cash`, which needs a local Supabase stack, and e2e.
+
 ## Owner decisions, collected
 
 1. PosSuccess: drop it, show it without a bill number, or approve a backend step that returns the bill number.
