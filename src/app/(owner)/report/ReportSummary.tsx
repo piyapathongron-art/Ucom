@@ -40,7 +40,7 @@ function Panel({ title, aside, children, grow = false }: { title: string; aside?
 function Bar({ share, isLead }: { share: number; isLead: boolean }) {
   return (
     <div className="h-2 w-full rounded-full bg-sunken">
-      <div className={`h-full rounded-full ${isLead ? "bg-accent" : "bg-ink-faint"}`} style={{ width: `${Math.max(0, Math.min(100, share))}%` }} />
+      <div className={`h-full rounded-full ${isLead ? "bg-primary" : "bg-ink-faint"}`} style={{ width: `${Math.max(0, Math.min(100, share))}%` }} />
     </div>
   );
 }

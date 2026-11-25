@@ -24,7 +24,7 @@ export function DailyProfit({ rows }: { rows: ReportRow[] }) {
           <div key={r.day} className="flex items-center gap-3">
             <span className="w-24 shrink-0 text-xs text-ink-muted">{dayLabel(r.day)}</span>
             <div className="h-2 flex-1 rounded-full bg-sunken">
-              <div className={`h-full rounded-full ${r.net_profit < 0 ? "bg-danger" : "bg-accent"}`} style={{ width: `${(Math.abs(r.net_profit) / peak) * 100}%` }} />
+              <div className={`h-full rounded-full ${r.net_profit < 0 ? "bg-danger" : "bg-primary"}`} style={{ width: `${(Math.abs(r.net_profit) / peak) * 100}%` }} />
             </div>
             <span className={`w-24 shrink-0 text-right text-[13px] font-semibold tabular-nums ${r.net_profit < 0 ? "text-danger" : "text-ink"}`}>{baht(r.net_profit)}</span>
           </div>

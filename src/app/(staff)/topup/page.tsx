@@ -206,8 +206,8 @@ export default function TopupPage() {
               </div>
             )}
             <div className="flex gap-2">
-              <button type="button" className={`flex-1 rounded-full border p-2 text-sm ${paymentMethod === "cash" ? "border-accent bg-accent text-background" : "border-border text-ink-muted"}`} onClick={() => setPaymentMethod("cash")}>เงินสด</button>
-              <button type="button" className={`flex-1 rounded-full border p-2 text-sm ${paymentMethod === "transfer" ? "border-accent bg-accent text-background" : "border-border text-ink-muted"}`} onClick={() => setPaymentMethod("transfer")}>โอน</button>
+              <button type="button" className={`flex-1 rounded-full border p-2 text-sm ${paymentMethod === "cash" ? "border-primary bg-primary text-background" : "border-border text-ink-muted"}`} onClick={() => setPaymentMethod("cash")}>เงินสด</button>
+              <button type="button" className={`flex-1 rounded-full border p-2 text-sm ${paymentMethod === "transfer" ? "border-primary bg-primary text-background" : "border-border text-ink-muted"}`} onClick={() => setPaymentMethod("transfer")}>โอน</button>
             </div>
             {paymentMethod === "transfer" && <input className="ucom-field w-full px-3 py-2.5 text-sm" value={receivingAccount} onChange={(event) => setReceivingAccount(event.target.value)} placeholder="บัญชีที่รับเงิน" />}
             <button type="submit" className="ucom-primary w-full rounded-full px-4 py-3 text-sm font-semibold disabled:opacity-50" disabled={isLoading || isSubmitting || !currentWallet?.is_initialized}>{isSubmitting ? "กำลังบันทึก..." : `ยืนยันขายเติมเงิน${amount ? ` · ฿${Number(amount).toLocaleString()}` : ""}`}</button>

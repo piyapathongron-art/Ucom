@@ -177,7 +177,7 @@ export function Cart({
             onClick={() => { setPaymentMethod("cash"); setThaiAid(false); }}
             className={`rounded-full border p-2 text-sm ${
               paymentMethod === "cash" && !thaiAid
-                ? "border-accent bg-accent text-background"
+                ? "border-primary bg-primary text-background"
                 : "border-border bg-surface text-ink-muted"
             }`}
           >
@@ -189,13 +189,13 @@ export function Cart({
             onClick={() => { setPaymentMethod("transfer"); setThaiAid(false); }}
             className={`rounded-full border p-2 text-sm ${
               paymentMethod === "transfer" && !thaiAid
-                ? "border-accent bg-accent text-background"
+                ? "border-primary bg-primary text-background"
                 : "border-border bg-surface text-ink-muted"
             }`}
           >
             โอน
           </button>
-          <button type="button" onClick={() => { setPaymentMethod("transfer"); setReceivingAccount("ไทยช่วยไทย"); setThaiAid(true); }} className={`rounded-full border p-2 text-sm ${thaiAid ? "border-accent bg-accent text-background" : "border-border bg-surface text-ink-muted"}`}>ไทยช่วยไทย</button>
+          <button type="button" onClick={() => { setPaymentMethod("transfer"); setReceivingAccount("ไทยช่วยไทย"); setThaiAid(true); }} className={`rounded-full border p-2 text-sm ${thaiAid ? "border-primary bg-primary text-background" : "border-border bg-surface text-ink-muted"}`}>ไทยช่วยไทย</button>
         </div>
 
         {paymentMethod === "transfer" && (
@@ -240,7 +240,7 @@ export function Cart({
           </div>
           <div className="mt-1 flex items-center justify-between">
             <span className="text-lg font-semibold">ยอดสุทธิ</span>
-            <span className="font-mono text-2xl font-semibold tabular-nums text-accent">{total.toLocaleString()} บาท</span>
+            <span className="font-mono text-2xl font-semibold tabular-nums text-primary">{total.toLocaleString()} บาท</span>
           </div>
         </div>
 

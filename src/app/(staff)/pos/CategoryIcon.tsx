@@ -20,7 +20,7 @@ export type IconName = keyof typeof PATHS;
 export const ICON_TONE: Record<IconName, string> = {
   all: "bg-sunken text-ink-muted",
   phone: "bg-tone-sky/15 text-tone-sky",
-  topup: "bg-accent/15 text-accent",
+  topup: "bg-primary/15 text-primary",
   cable: "bg-tone-orange/15 text-tone-orange",
   plug: "bg-tone-amber/15 text-tone-amber",
   case: "bg-tone-violet/15 text-tone-violet",

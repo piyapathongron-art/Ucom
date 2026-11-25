@@ -1,57 +1,132 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
+/* Light only (ADR 0033): there is no .dark theme. The variant stays so
+   generated shadcn components that mention dark: still compile. */
+@custom-variant dark (&:is(.dark *));
+
+/* Design tokens (ADR 0033: light base, brand blue, soft cards, Anuphan).
+   shadcn names are the source of truth; the older ucom names further down
+   map onto them so pages not yet redesigned keep working on the light base. */
 :root {
-  --color-background: #15141b;
-  --color-surface: #1e1d27;
-  --color-sunken: #111016;
-  --color-border: #2b2937;
-  --color-border-strong: #3a3847;
-  --color-ink-muted: #a19dae;
-  --color-ink: #f2f1f8;
-  --color-warning: #fcd34d;
-  --color-danger: #fb7185;
-  --color-success: #4ade80;
-  --color-accent: #ddff8d;
-  --color-accent-strong: #ddff8d;
-  --color-accent-soft: #ddff8d;
-  --color-brand-ink: #2c2a38;
-  --color-ink-faint: #6b687a;
-  --color-warning-bg: #392a0c;
-  --color-success-bg: #0f3322;
-  --color-on-accent: #0c0b0e;
-  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 8px 24px rgb(0 0 0 / 0.28);
-  /* Catalog type tones: icon tiles on /pos, one hue per product type. */
-  --color-tone-sky: #7dd3fc;
-  --color-tone-amber: #fcd34d;
-  --color-tone-orange: #fdba74;
-  --color-tone-violet: #c4b5fd;
-  --color-tone-teal: #5eead4;
-  --color-tone-pink: #f9a8d4;
-  --color-tone-green: #86efac;
-  --color-tone-indigo: #a5b4fc;
-  --color-tone-rose: #fda4af;
+  --background: #f3f4f8;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --secondary: #eceef4;
+  --secondary-foreground: #111827;
+  --muted: #f3f4f8;
+  --muted-foreground: #4b5563;
+  /* shadcn "accent" is the quiet highlight for menu and list items, not the brand. */
+  --accent: #eff6ff;
+  --accent-foreground: #1d4ed8;
+  --destructive: #b91c1c;
+  --border: #e5e7eb;
+  --input: #d1d5db;
+  --ring: #1d4ed8;
+  --radius: 1rem;
+
+  /* Status: text colour on a tinted background, every pair >= 4.5:1. */
+  --success: #166534;
+  --success-bg: #dcfce7;
+  --warning: #92400e;
+  --warning-bg: #fef3c7;
+  --danger: #b91c1c;
+  --danger-bg: #fee2e2;
+
+  --chart-1: #1d4ed8;
+  --chart-2: #60a5fa;
+  --chart-3: #0f766e;
+  --chart-4: #d97706;
+  --chart-5: #9ca3af;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #1d4ed8;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eff6ff;
+  --sidebar-accent-foreground: #1d4ed8;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #1d4ed8;
+
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px rgb(16 24 40 / 0.06);
+
+  /* Older ucom names, kept until each page moves to the shadcn names. */
+  --color-surface: var(--card);
+  --color-sunken: #f3f4f8;
+  --color-border-strong: #d1d5db;
+  --color-ink: var(--foreground);
+  --color-ink-muted: var(--muted-foreground);
+  /* Was 3.1:1 on the dark base; now the muted text colour (ADR 0033). */
+  --color-ink-faint: var(--muted-foreground);
+  --color-brand-ink: #111827;
+  /* Text on a solid primary, danger or warning fill. */
+  --color-on-accent: #ffffff;
+
+  /* Catalog type tones on /pos: a tinted tile with dark text of the same hue. */
+  --color-tone-sky: #0369a1;
+  --color-tone-amber: #b45309;
+  --color-tone-orange: #c2410c;
+  --color-tone-violet: #6d28d9;
+  --color-tone-teal: #0f766e;
+  --color-tone-pink: #be185d;
+  --color-tone-green: #15803d;
+  --color-tone-indigo: #4338ca;
+  --color-tone-rose: #be123c;
 }
 
 @theme inline {
-  --color-background: var(--color-background);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
   --color-surface: var(--color-surface);
   --color-sunken: var(--color-sunken);
-  --color-border: var(--color-border);
   --color-border-strong: var(--color-border-strong);
-  --color-ink-muted: var(--color-ink-muted);
   --color-ink: var(--color-ink);
-  --color-warning: var(--color-warning);
-  --color-danger: var(--color-danger);
-  --color-success: var(--color-success);
-  --color-accent: var(--color-accent);
-  --color-accent-strong: var(--color-accent-strong);
-  --color-accent-soft: var(--color-accent-soft);
-  --color-brand-ink: var(--color-brand-ink);
+  --color-ink-muted: var(--color-ink-muted);
   --color-ink-faint: var(--color-ink-faint);
-  --color-warning-bg: var(--color-warning-bg);
-  --color-success-bg: var(--color-success-bg);
+  --color-brand-ink: var(--color-brand-ink);
   --color-on-accent: var(--color-on-accent);
-  --shadow-card: var(--shadow-card);
   --color-tone-sky: var(--color-tone-sky);
   --color-tone-amber: var(--color-tone-amber);
   --color-tone-orange: var(--color-tone-orange);
@@ -61,14 +136,21 @@
   --color-tone-green: var(--color-tone-green);
   --color-tone-indigo: var(--color-tone-indigo);
   --color-tone-rose: var(--color-tone-rose);
-  --font-sans: var(--font-inter), var(--font-noto-sans-thai), sans-serif;
-  --font-mono: var(--font-inter), monospace;
-}
+  --shadow-card: var(--shadow-card);
 
-body {
-  background: var(--color-background);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
+  --font-sans: var(--font-anuphan), sans-serif;
+  --font-heading: var(--font-anuphan), sans-serif;
+  /* "font-mono" marks money and counts: Anuphan with tabular figures, not a monospace face. */
+  --font-mono: var(--font-anuphan), sans-serif;
+
+  /* --radius 16px: lg 16px, xl ~22px (cards), 2xl ~29px. Buttons are pills. */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 .font-mono,
@@ -115,7 +197,7 @@ body {
 
 .ucom-primary {
   border-radius: 999px;
-  background: var(--color-accent);
+  background: var(--primary);
   color: var(--color-on-accent);
   font-size: 13.5px;
   font-weight: 700;
@@ -172,14 +254,14 @@ body {
 }
 
 .ucom-badge-glow {
-  background: var(--color-accent);
+  background: var(--primary);
   color: var(--color-on-accent);
 }
 
 .ucom-login-glow {
   background:
-    radial-gradient(60% 55% at 50% -10%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 70%),
-    var(--color-background);
+    radial-gradient(60% 55% at 50% -10%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 70%),
+    var(--background);
 }
 
 .ucom-table-wrap {
@@ -226,7 +308,7 @@ body {
 }
 
 .ucom-page[data-page="report"] [data-testid="card-net_profit"] p:nth-child(2) {
-  color: var(--color-accent);
+  color: var(--primary);
 }
 
 .ucom-table tbody tr:last-child td {
@@ -238,7 +320,7 @@ body {
 select.ucom-field {
   appearance: none;
   padding-right: 2.25rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23a19dae' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%234b5563' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.9rem center;
 }
@@ -272,5 +354,18 @@ select.ucom-field {
   }
   [data-print-area] * {
     color: #000 !important;
+  }
+}
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }

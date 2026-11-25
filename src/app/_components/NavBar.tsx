@@ -25,7 +25,7 @@ function NavIcon({ name }: { name: string }) {
 }
 
 function Brand() {
-  return <Link href="/pos" className="flex items-center gap-3 text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"><span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-ink text-base font-bold text-white">U</span><span><span className="block text-[15px] font-bold leading-tight">Ucom POS</span><span className="block text-[11.5px] text-ink-muted">POS ร้านมือถือ</span></span></Link>;
+  return <Link href="/pos" className="flex items-center gap-3 text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"><span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-ink text-base font-bold text-white">U</span><span><span className="block text-[15px] font-bold leading-tight">Ucom POS</span><span className="block text-[11.5px] text-ink-muted">POS ร้านมือถือ</span></span></Link>;
 }
 
 function initials(name: string) {
@@ -40,13 +40,13 @@ export default function NavBar({ links, onLogout, displayName, role }: NavBarPro
   const renderLinks = (items: NavLink[], mobile: boolean) => items.map((link) => {
     const active = isActive(link.href);
     const className = `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition-colors ${active ? "bg-brand-ink text-white" : "text-ink-muted hover:bg-surface hover:text-ink"}`;
-    const chipClass = `grid h-7 w-7 shrink-0 place-items-center rounded-lg ${active ? "bg-accent text-on-accent" : "text-current"}`;
+    const chipClass = `grid h-7 w-7 shrink-0 place-items-center rounded-lg ${active ? "bg-primary text-on-accent" : "text-current"}`;
     return <Link key={link.href} href={link.href} onClick={mobile ? close : undefined} aria-current={active ? "page" : undefined} className={className}><span className={chipClass}><NavIcon name={link.icon} /></span>{link.label}</Link>;
   });
   const bottom = (mobile: boolean) => <div className="mt-auto space-y-2 pt-3">
     <div className="flex flex-col gap-1 border-t border-dashed border-border-strong pt-3">{renderLinks(links.footer, mobile)}</div>
-    <div className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2.5"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-xs font-bold text-on-accent">{initials(displayName)}</span><span className="min-w-0"><span className="block truncate text-sm font-semibold text-ink">{displayName}</span><span className="block text-xs text-ink-muted">{role}</span></span></div>
-    <form action={onLogout}><button type="submit" className="w-full rounded-2xl px-3 py-2.5 text-left text-sm font-semibold text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">ออกจากระบบ</button></form>
+    <div className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2.5"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-on-accent">{initials(displayName)}</span><span className="min-w-0"><span className="block truncate text-sm font-semibold text-ink">{displayName}</span><span className="block text-xs text-ink-muted">{role}</span></span></div>
+    <form action={onLogout}><button type="submit" className="w-full rounded-2xl px-3 py-2.5 text-left text-sm font-semibold text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">ออกจากระบบ</button></form>
   </div>;
 
   return <>

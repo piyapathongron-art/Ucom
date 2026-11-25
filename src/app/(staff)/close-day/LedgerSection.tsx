@@ -38,7 +38,7 @@ export default function LedgerSection({ kind, rows, isToday, isOwner, deleteConf
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-bold">{isExpense ? "รายจ่ายร้าน" : "รายรับนอกบิล"}</h2>
         <div className="flex items-center gap-2">
-          {isOwner && <Link href="/expenses" data-testid={`${prefix}-ledger-link`} className="text-xs font-semibold text-accent underline">ดูทั้งหมดในหน้ารายรับ–รายจ่าย</Link>}
+          {isOwner && <Link href="/expenses" data-testid={`${prefix}-ledger-link`} className="text-xs font-semibold text-primary underline">ดูทั้งหมดในหน้ารายรับ–รายจ่าย</Link>}
           {isToday && <button type="button" onClick={() => setIsAddOpen(true)} data-testid={`open-${prefix}-add`} className="ucom-secondary px-4 py-2 text-sm">+ {isExpense ? "บันทึกรายจ่าย" : "บันทึกรายรับ"}</button>}
         </div>
       </div>
@@ -56,7 +56,7 @@ export default function LedgerSection({ kind, rows, isToday, isOwner, deleteConf
                   {isToday && (
                     <td>
                       <div className="flex items-center justify-end gap-2">
-                        {cash.isActive ? <Link href="/cash" className="text-xs text-accent underline">ให้เจ้าของแก้ไข</Link> : !cash.isReady ? <span className="text-xs text-ink-muted">ตรวจสถานะเงินสด</span> : deleteConfirmId === row.id ? (
+                        {cash.isActive ? <Link href="/cash" className="text-xs text-primary underline">ให้เจ้าของแก้ไข</Link> : !cash.isReady ? <span className="text-xs text-ink-muted">ตรวจสถานะเงินสด</span> : deleteConfirmId === row.id ? (
                           <>
                             <button type="button" onClick={() => void onDelete(row.id)} data-testid={`${prefix}-delete-confirm-${row.id}`} className="rounded-full bg-danger px-3.5 py-1.5 text-xs font-bold text-on-accent">ยืนยันลบ</button>
                             <button type="button" onClick={() => onSetDeleteConfirmId(null)} className="ucom-secondary px-3.5 py-1.5 text-xs">ยกเลิก</button>

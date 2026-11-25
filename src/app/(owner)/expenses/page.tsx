@@ -67,7 +67,7 @@ export default function LedgerPage() {
                   <td className="text-right text-[13.5px] font-semibold tabular-nums">{money(row.amount)}</td>
                   <td>
                     <div className="flex items-center justify-end gap-2">
-                      {l.cash.isActive ? <Link href="/cash" className="text-xs text-accent underline">แก้ไขพร้อมเหตุผล</Link> : !l.cash.isReady ? <span className="text-xs text-ink-muted">กำลังตรวจสถานะเงินสด</span> : l.deleteConfirmId === row.id ? (
+                      {l.cash.isActive ? <Link href="/cash" className="text-xs text-primary underline">แก้ไขพร้อมเหตุผล</Link> : !l.cash.isReady ? <span className="text-xs text-ink-muted">กำลังตรวจสถานะเงินสด</span> : l.deleteConfirmId === row.id ? (
                         <>
                           <button type="button" onClick={() => void l.deleteEntry(row.id)} data-testid={`expense-delete-confirm-${row.id}`} className="rounded-full bg-danger px-3.5 py-1.5 text-xs font-bold text-on-accent">ยืนยันลบ</button>
                           <button type="button" onClick={() => l.setDeleteConfirmId(null)} className="ucom-secondary px-3.5 py-1.5 text-xs">ยกเลิก</button>

@@ -124,7 +124,7 @@ export function Catalog({
                 onClick={() => onTabChange(t.value)}
                 data-testid={`catalog-tab-${t.value}`}
                 className={`flex shrink-0 items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-3.5 text-sm transition-colors ${
-                  isActive ? "border-accent bg-accent font-semibold text-on-accent" : "border-border bg-surface text-ink-muted hover:text-ink"
+                  isActive ? "border-primary bg-primary font-semibold text-on-accent" : "border-border bg-surface text-ink-muted hover:text-ink"
                 }`}
               >
                 <span className={`grid size-6 place-items-center rounded-full ${isActive ? "bg-on-accent/10" : ICON_TONE[t.icon]}`}>
@@ -150,7 +150,7 @@ export function Catalog({
                   data-testid={`topup-carrier-${c.name}`}
                   aria-pressed={topupCarrier?.id === c.id}
                   onClick={() => setTopupCarrier(c)}
-                  className={`ucom-surface flex items-center gap-3 rounded-2xl border p-4 text-left ${topupCarrier?.id === c.id ? "border-accent" : "border-transparent hover:border-accent/60"}`}
+                  className={`ucom-surface flex items-center gap-3 rounded-2xl border p-4 text-left ${topupCarrier?.id === c.id ? "border-primary" : "border-transparent hover:border-primary/60"}`}
                 >
                   <span className={`grid size-10 place-items-center rounded-xl ${ICON_TONE.topup}`}><CategoryIcon name="topup" /></span>
                   <span className="font-semibold text-ink">{c.name}</span>

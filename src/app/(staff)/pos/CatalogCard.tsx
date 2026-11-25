@@ -59,7 +59,7 @@ export function CatalogCard({ item, onAdd, onFinance }: {
       data-testid={`catalog-item-${item.kind}-${item.id}`}
       onClick={() => onAdd(item)}
       disabled={isSoldOut}
-      className="ucom-surface flex flex-col rounded-2xl border border-transparent p-3 text-left transition-colors hover:border-accent/60 focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-transparent"
+      className="ucom-surface flex flex-col rounded-2xl border border-transparent p-3 text-left transition-colors hover:border-primary/60 focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-transparent"
     >
       <CardBody item={item} />
     </button>

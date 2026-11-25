@@ -45,7 +45,7 @@ export function StockTable({ rows, kind, canEditCost, costById, onOpen }: {
             return (
               <tr key={`${row.kind}-${row.id}`} data-testid={`stock-row-${row.kind}-${row.id}`} onClick={() => onOpen(row)} className="cursor-pointer hover:bg-brand-ink/40">
                 <td>
-                  <button type="button" onClick={() => onOpen(row)} data-testid={`stock-open-${row.id}`} className="text-left focus-visible:outline-2 focus-visible:outline-accent">
+                  <button type="button" onClick={() => onOpen(row)} data-testid={`stock-open-${row.id}`} className="text-left focus-visible:outline-2 focus-visible:outline-primary">
                     <span data-testid={`stock-name-${row.id}`} className="block text-[13.5px] font-semibold text-ink">{row.name}</span>
                     <span className="block text-xs text-ink-muted">{row.code}</span>
                   </button>

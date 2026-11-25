@@ -4,6 +4,8 @@
 
 Accepted, 2026-09-22. Supersedes the visual, typography, and navigation portions of ADR 0018 and ADR 0019. Existing domain rules, RPC contracts, RLS, and routes remain authoritative.
 
+> **Note (2026-11-24):** [ADR 0033](0033-light-soft-cards-redesign-with-shadcn.md) replaces the dark-lime visual system, the Inter and Noto Sans Thai fonts, and "`/pos` remains unavailable below 1024px". Route names, disabled (not dead) links, the `lg` sidebar and the "no schema change as part of visual work" rule still apply.
+
 ## Decision
 
 Adopt the approved Build Brief and artifact as the visual authority:
