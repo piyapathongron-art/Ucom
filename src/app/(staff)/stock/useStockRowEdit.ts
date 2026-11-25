@@ -36,7 +36,10 @@ export function useStockRowEdit({ kind, row, categories, canEditCarrier, cost, o
     let ok: boolean;
     if (kind === "product") {
       const qtyChanged = !row || qty !== String(row.qty ?? 0);
-      ok = await onSaveProduct({ id, name, sku: code, category_id: categoryId, ...(canEditCarrier ? { carrier_id: carrierId || null } : {}), price: Number(price) || 0, ...(qtyChanged ? { qty: Number(qty) || 0, ...(row ? { expected_qty: row.qty ?? 0 } : {}) } : {}), is_active: status === "active", ...(row ? {} : { cost: Number(costDraft) || 0 }) });
+      // qty is always sent: until migration 20261125120000 is applied, production's rpc_upsert_product
+      // writes 0 for a missing qty. expected_qty goes only with a real qty change, so after the
+      // migration a stale qty edit is refused. Once it is applied, send qty only when it changed.
+      ok = await onSaveProduct({ id, name, sku: code, category_id: categoryId, ...(canEditCarrier ? { carrier_id: carrierId || null } : {}), price: Number(price) || 0, qty: Number(qty) || 0, ...(qtyChanged && row ? { expected_qty: row.qty ?? 0 } : {}), is_active: status === "active", ...(row ? {} : { cost: Number(costDraft) || 0 }) });
     } else if (row?.acquisition === "sf_credit") {
       // v_pos_stock.price shows coalesce(sale_price, list_price) for an sf_credit device, so this field
       // edits the shop's asking price, not the SF debt (list_price, set once at intake).
