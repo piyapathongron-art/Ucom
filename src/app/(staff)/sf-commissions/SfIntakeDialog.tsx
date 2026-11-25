@@ -23,9 +23,9 @@ type Row = { key: number; id: string; imei: string; model: string; list: string;
 let rowKeySeed = 0;
 const blank = (over: Partial<Row> = {}): Row => ({ key: ++rowKeySeed, id: "", imei: "", model: "", list: "", sale: "", locked: false, ...over });
 
-const label = "mb-1 block text-xs font-semibold text-ink-muted";
-const input = "ucom-field w-full px-4 py-2.5 text-sm";
-const cell = "ucom-field w-full px-3 py-2 text-sm";
+const label = "mb-1.5 block text-sm font-semibold text-foreground";
+const input = "ucom-field h-12 w-full px-4 text-base";
+const cell = "ucom-field h-11 w-full px-3 text-sm";
 
 // Create + edit share one component. Mounted only while open, so the barcode scanner listens only then.
 // Both submit callbacks resolve true on success; on failure the dialog stays open with the draft intact.
@@ -114,12 +114,12 @@ export function SfIntakeDialog({ mode, onClose, onCreate, onEdit }: {
       title={isEdit ? "แก้ไขบิล SF" : "รับเครื่องเข้าจากบิล SF"}
       size="lg"
       footer={<>
-        <p data-testid="sf-intake-summary" className="mr-auto text-sm text-ink-muted">
-          {usable.length} เครื่อง · ยอดเครดิต SF ฿{fmtMoney(credit)}
+        <p data-testid="sf-intake-summary" className="mr-auto text-sm text-muted-foreground tabular-nums">
+          {usable.length} เครื่อง · ยอดเครดิต SF <b className="font-bold text-primary">฿{fmtMoney(credit)}</b>
           {removedIds.length > 0 && <span data-testid="sf-removed-summary" className="text-danger"> · จะลบ {removedIds.length} เครื่องเมื่อบันทึก</span>}
         </p>
-        <button type="button" onClick={onClose} className="ucom-secondary px-5 py-2.5">ยกเลิก</button>
-        <button type="button" onClick={() => void submit()} disabled={!canSubmit} data-testid={isEdit ? "sf-due-edit-submit" : "sf-intake-submit"} className="ucom-primary px-5 py-2.5 disabled:opacity-40">
+        <button type="button" onClick={onClose} className="ucom-secondary min-h-12 px-5">ยกเลิก</button>
+        <button type="button" onClick={() => void submit()} disabled={!canSubmit} data-testid={isEdit ? "sf-due-edit-submit" : "sf-intake-submit"} className="ucom-primary min-h-12 px-6 disabled:opacity-40">
           {saving ? "กำลังบันทึก…" : isEdit ? "บันทึกการแก้ไข" : "บันทึกการรับเครื่อง"}
         </button>
       </>}
@@ -128,23 +128,23 @@ export function SfIntakeDialog({ mode, onClose, onCreate, onEdit }: {
         <label className="block">
           <span className={label}>เลขที่บิล SF</span>
           <input value={orderNo} onChange={(e) => setOrderNo(e.target.value)} data-testid="sf-order-no" className={input} />
-          {orderMessage && <span role="alert" className="mt-1 block text-xs text-warning">{orderMessage}</span>}
+          {orderMessage && <span role="alert" className="mt-1 block text-sm font-semibold text-danger">{orderMessage}</span>}
         </label>
         <label className="block"><span className={label}>วันที่รับ</span><input type="date" value={orderedAt} onChange={(e) => setOrderedAt(e.target.value)} className={input} /></label>
         <label className="block"><span className={label}>โน้ต</span><input value={note} onChange={(e) => setNote(e.target.value)} className={input} /></label>
       </div>
       <div>
-        <h3 className="mb-1 text-sm font-bold">รายการเครื่อง <span className="text-xs font-normal text-ink-muted">· ยิงบาร์โค้ดเพื่อเพิ่มแถว</span></h3>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h3 className="text-base font-bold">รายการเครื่อง</h3><span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">ยิงบาร์โค้ดเพื่อเพิ่มแถว</span></div>
         <div className="space-y-2">
           {rows.map((r, i) => (
             <div key={r.key}>
-              <div className="grid gap-2 md:grid-cols-[1.2fr_1fr_8rem_8rem_auto]">
+              <div className="grid gap-2 grid-cols-2 md:grid-cols-[1.3fr_1.3fr_1fr_1fr_2.75rem]">
                 {r.locked ? (
                   <>
-                    <p className="px-3 py-2 text-sm text-ink-muted">{r.imei}</p>
-                    <p className="px-3 py-2 text-sm text-ink-muted">{r.model}</p>
-                    <p className="px-3 py-2 text-sm text-ink-muted">{r.list}</p>
-                    <p className="px-3 py-2 text-xs text-ink-muted md:col-span-2">ล็อก — เครื่องออกจากคลังแล้ว</p>
+                    <p className="px-3 py-2.5 text-sm text-muted-foreground">{r.imei}</p>
+                    <p className="px-3 py-2.5 text-sm text-muted-foreground">{r.model}</p>
+                    <p className="px-3 py-2.5 text-sm text-muted-foreground">{r.list}</p>
+                    <p className="col-span-2 px-3 py-2.5 text-xs text-muted-foreground">ล็อก — เครื่องออกจากคลังแล้ว</p>
                   </>
                 ) : (
                   <>
@@ -152,15 +152,15 @@ export function SfIntakeDialog({ mode, onClose, onCreate, onEdit }: {
                     <input value={r.model} onChange={(e) => patch(r.key, { model: e.target.value })} placeholder="รุ่นเครื่อง" aria-label="รุ่นเครื่อง" data-testid={`sf-device-model-${i}`} className={cell} />
                     <input type="number" value={r.list} onChange={(e) => patch(r.key, { list: e.target.value })} placeholder="ราคาป้าย SF" aria-label="ราคาป้าย SF" data-testid={`sf-device-price-${i}`} className={cell} />
                     <input type="number" value={r.sale} onChange={(e) => patch(r.key, { sale: e.target.value })} placeholder="ราคาขาย" aria-label="ราคาขาย" data-testid={`sf-device-sale-price-${i}`} className={cell} />
-                    <button type="button" onClick={() => removeRow(r)} disabled={rows.length === 1} aria-label="ลบแถว" data-testid={`sf-device-remove-${i}`} className="ucom-secondary px-3 py-2 text-sm disabled:opacity-30">×</button>
+                    <button type="button" onClick={() => removeRow(r)} disabled={rows.length === 1} aria-label="ลบแถว" data-testid={`sf-device-remove-${i}`} className="ucom-secondary size-11 justify-self-end text-lg disabled:opacity-30">×</button>
                   </>
                 )}
               </div>
-              {(messages[r.key] ?? problems[r.key]) && <p role="alert" className="mt-1 px-3 text-xs text-warning">{messages[r.key] ?? problems[r.key]}</p>}
+              {(messages[r.key] ?? problems[r.key]) && <p role="alert" className="mt-1 px-3 text-sm font-semibold text-danger">{messages[r.key] ?? problems[r.key]}</p>}
             </div>
           ))}
         </div>
-        <button type="button" onClick={() => setRows((prev) => [...prev, blank({ model: prev[prev.length - 1]?.model ?? "", list: prev[prev.length - 1]?.list ?? "" })])} className="ucom-secondary mt-3 px-4 py-2 text-sm">+ เพิ่มแถวเครื่อง</button>
+        <button type="button" onClick={() => setRows((prev) => [...prev, blank({ model: prev[prev.length - 1]?.model ?? "", list: prev[prev.length - 1]?.list ?? "" })])} className="ucom-secondary mt-3 min-h-11 border-dashed px-5 text-sm text-primary">+ เพิ่มแถวเครื่อง</button>
       </div>
     </Modal>
   );

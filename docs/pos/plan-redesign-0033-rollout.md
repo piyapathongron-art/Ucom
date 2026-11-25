@@ -202,6 +202,24 @@ In this order:
 
 /consignments (with fix 0.7 and the Step 1 artboards), /sf-commissions, /repairs, /topup, /cash, /expenses, /settings and /liff/deposit. Do one PR each and follow the canvas page for each route. After that, remove the old `ucom-*` classes and token aliases from `globals.css`.
 
+**/sf-commissions, the SF+ tab (done 2026-11-25 on branch `design/0033-sf-commissions`, stacked on PR #11):**
+- Sub-tabs are 40px pills. The active one is tinted brand and the others are outlined, so they read as second level under the page tabs. The canvas's side-by-side due/pending layout was not used; the code's sub-tabs stay.
+- Due bills:
+  - from md up a table (e2e finds rows by bill number), and cards below md;
+  - a "ใหม่" chip on the bill just saved;
+  - 40px edit and delete buttons. A bill with a released device shows a disabled "ลบไม่ได้" instead of a greyed "ลบ".
+- Pending commissions and confirmed commissions:
+  - labelled search fields;
+  - the inline record and correct forms now link each label to its field;
+  - 40px fields and buttons, and red errors.
+- Intake dialog:
+  - 48px header fields and 44px row cells;
+  - a "ยิงบาร์โค้ดเพื่อเพิ่มแถว" chip, a 44px remove button, and a dashed brand "+ เพิ่มแถวเครื่อง";
+  - the SF credit total in bold brand blue, and red row errors.
+- Dealer account (owner only): white stat cards, 44px action buttons, 40px due-date fields and buttons, 48px dialog fields, and a 20px checkbox in a 40px row.
+- Shared fix: `.ucom-table-wrap` is now `position: relative`. An sr-only header inside a scrolling table escaped the scroll box and widened the page to 608px on a phone.
+- **Checked:** a harness with stubbed views at 1440 and 375 wide, on all three sub-tabs, with the record form and intake dialog opened and the dealer account rendered. No page overflow; every control is at least 40px (the checkbox sits in a 40px row).
+- **Not checked:** real data, and e2e (`sf.spec.ts`, `redesign-write.spec.ts`). Test IDs are unchanged, except that the locked delete button now reads "ลบไม่ได้".
 **/consignments, ฝากออก and ฝากเข้า tabs (done 2026-11-25 on branch `design/0033-consignments`, stacked on PR #11):**
 - The tabs are 44px segmented pills and the call to action is a 48px primary button. The SF+ tab still renders `SfPlusTab` unchanged; it is the /sf-commissions step.
 - From md up the table keeps its rows (e2e finds rows by role). Below md each case is a card. Status is a chip (amber waiting on money, green money done, neutral open or returned) with the date of the current step from `reported_at`, `sold_at`, `settled_at`, `paid_at` or `returned_at`, not the created date. Fix 0.7's error mapping is unchanged.
