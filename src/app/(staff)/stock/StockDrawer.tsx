@@ -29,7 +29,9 @@ export function StockDrawer(props: DrawerProps) {
   const f = useStockRowEdit(props);
   const isProduct = kind === "product";
   const isConsignedIn = row?.acquisition === "consigned_in";
-  const showCost = canEditCost && !isConsignedIn;
+  // An SF device still in stock is unpaid to SF: its cost is set only by the cash sale (ADR 0017).
+  const isUnpaidSf = row?.acquisition === "sf_credit" && row.status === "in_stock";
+  const showCost = canEditCost && !isConsignedIn && !isUnpaidSf;
   const statusLocked = !isProduct && (isConsignedIn || (row != null && !DEVICE_STATUSES.includes(row.status ?? "")));
   const statusOptions = isProduct ? ["active", "inactive"] : DEVICE_STATUSES.includes(f.status) ? DEVICE_STATUSES : [f.status, ...DEVICE_STATUSES];
 
@@ -111,6 +113,7 @@ export function StockDrawer(props: DrawerProps) {
           </div>
         </div>
       )}
+      {isUnpaidSf && <p className="ucom-info">เครื่อง SF ยังไม่ได้จ่าย SF จึงยังไม่มีต้นทุน · ต้นทุนจะเท่ากับราคาป้าย SF เมื่อขายสด · แก้ราคาป้ายได้ที่บิล SF</p>}
       {row && (
         <label className="block">
           <span className={label}>สถานะ</span>

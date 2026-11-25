@@ -9,6 +9,17 @@ import { createClient } from "@/lib/supabase/client";
 import { ConsignActionDialog, ConsignOpenDialog } from "./ConsignDialogs";
 import { fmt, statusLabel, type Action, type ActionValues, type CaseRow, type Direction, type OpenValues } from "./consignTypes";
 import { cashStatus, cashWrite, getReceivingDevice, getReceivingDeviceToken, receiptDevice } from "@/lib/cash/client";
+import { GENERIC_ERROR, toThaiError } from "@/lib/errors";
+
+// Show the real cause when we know it: a Thai RPC message (duplicate IMEI, share ≥ price, paused
+// receiving) or a Thai error from the cash client (not the receiving device, an unconfirmed cash
+// operation). Anything else, such as a network failure, keeps the "refresh and check" advice.
+function consignError(error: unknown, fallback: string): string {
+  const fromRpc = toThaiError(error);
+  if (fromRpc !== GENERIC_ERROR) return fromRpc;
+  if (error instanceof Error && !("code" in error) && /^[฀-๿]/.test(error.message)) return error.message;
+  return fallback;
+}
 
 const PAGE_SIZE = 25;
 
@@ -79,10 +90,10 @@ export function ConsignmentsTab({ direction, isOpenDialog, onOpenDialogClose }: 
         const result = await supabase.rpc("rpc_consignment_open_in", { p_imei: values.imei, p_model_name: values.modelName, p_counterparty: values.counterparty, p_listed_price: values.listedPrice });
         if (result.error) throw result.error;
       }
-    } catch {
-      toast.error(direction === "out"
+    } catch (error) {
+      toast.error(consignError(error, direction === "out"
         ? "ยังยืนยันผลฝากออกไม่ได้ กรุณารีเฟรชหน้าและตรวจว่า IMEI เป็นเครื่องซื้อขาดที่มีต้นทุน"
-        : "ยังยืนยันผลรับฝากไม่ได้ กรุณารีเฟรชหน้าและตรวจ IMEI ที่อาจซ้ำกัน", { duration: Infinity });
+        : "ยังยืนยันผลรับฝากไม่ได้ กรุณารีเฟรชหน้าและตรวจ IMEI ที่อาจซ้ำกัน"), { duration: Infinity });
       return false;
     }
     toast.success("บันทึกการฝากเครื่องแล้ว");
@@ -110,8 +121,8 @@ export function ConsignmentsTab({ direction, isOpenDialog, onOpenDialogClose }: 
               ? await cashWrite(`consign_sell:${caseId}`, "consign_sell", { id: caseId, amount: values.amountText, share: values.shareText, method: paymentMethod, account, device, deviceToken: getReceivingDeviceToken() }, () => supabase.rpc("rpc_consignment_sell_in", { p_id: caseId, p_sale_price: salePrice, p_partner_share: partnerShare, p_payment_method: paymentMethod, p_receiving_account: account }), values.operationId)
               : await cashWrite(`consign_pay:${caseId}`, "consign_pay", { id: caseId, fund: values.fund }, () => supabase.rpc("rpc_consignment_pay_in", { p_id: caseId, p_payment_method: paymentMethod }), values.operationId);
       if (result.error) throw result.error;
-    } catch {
-      toast.error("ยังยืนยันผลไม่ได้ กรุณารีเฟรชสถานะก่อนลองอีกครั้ง", { duration: Infinity });
+    } catch (error) {
+      toast.error(consignError(error, "ยังยืนยันผลไม่ได้ กรุณารีเฟรชสถานะก่อนลองอีกครั้ง"), { duration: Infinity });
       return false;
     }
     toast.success("บันทึกรายการฝากขายแล้ว");

@@ -336,6 +336,19 @@ export default function PosPage() {
           setScanFeedback(`${item.name ?? code} สินค้าหมด`);
           return;
         }
+        // v_pos_catalog has no acquisition, so a device found by lookup is checked here. An SF device
+        // must not go straight into the cart as a cash sale: staff choose ขายสด / ผ่อน SF on its card (ADR 0002).
+        if (item.kind === "device" && item.acquisition === undefined) {
+          const { data: stock, error: stockError } = await supabase.from("v_pos_stock").select("acquisition").eq("id", item.id).maybeSingle();
+          if (stockError) throw stockError;
+          item = { ...item, acquisition: stock?.acquisition ?? null };
+        }
+        if (item.kind === "device" && item.acquisition === "sf_credit") {
+          setCatalogTab("all");
+          setCatalogSearch(code);
+          setScanFeedback(`${item.name ?? code} เป็นเครื่อง SF+ กรุณาเลือก “ขายสด” หรือ “ผ่อน SF” ที่การ์ด`);
+          return;
+        }
         const existing = lines.find((line) => line.kind !== "topup" && line.kind === item.kind && line.id === item.id);
         if (existing?.kind === "device" || (existing?.kind === "product" && existing.qty >= existing.maxQty)) {
           setScanFeedback(`${item.name ?? code} อยู่ในตะกร้าครบจำนวนแล้ว`);
@@ -380,6 +393,8 @@ export default function PosPage() {
       p_device_id: item.id!,
     });
     if (error) return toThaiError(error);
+    // A financed device leaves stock, so a cash-sale line for it would fail the whole bill at checkout.
+    setLines((prev) => prev.filter((l) => !(l.kind === "device" && l.id === item.id)));
     await loadCatalog();
     return null;
   }
