@@ -202,6 +202,20 @@ In this order:
 
 /consignments (with fix 0.7 and the Step 1 artboards), /sf-commissions, /repairs, /topup, /cash, /expenses, /settings and /liff/deposit. Do one PR each and follow the canvas page for each route. After that, remove the old `ucom-*` classes and token aliases from `globals.css`.
 
+- **/liff/deposit (2026-11-25, stacked on PR #17):**
+  - The form itself is `CashDeposit`, which #17 already restyled, covering the canvas boards `LiffDeposit`, `LiffSlip` and `LiffDone`. The signed-out view is the phone `LoginForm` from /login. This PR changes only `LiffShell`'s loading and failed states, following `LiffLoading`.
+  - Loading: a white card with `role="status"`, a brand spinner (`motion-reduce:animate-none`) and the existing copy.
+  - Failed: a danger-tint card with `role="alert"`. ลองใหม่ is the 48px primary, and เปิดฟอร์มผ่านเว็บ is a 48px outline link to `/cash`. Before, these were an `ucom-primary` button and a bare underline link. The button name ลองใหม่ is unchanged.
+  - The canvas line "ถ้ายังไม่ได้เข้าสู่ระบบ …" is shown under both states. The page does show the login form when signed out.
+  - Not taken from the canvas:
+    - the "U" brand tile;
+    - the two-step progress bar on `LiffDeposit`/`LiffSlip`, because the section headings already number the steps;
+    - the `LiffDone` buttons ส่งสรุปเดิมเข้า LINE อีกครั้ง and ปิดหน้านี้, which the code does not have.
+  - **Checked:**
+    - ESLint (0 errors, 13 warnings, unchanged), `tsc`, `next build`, and all 17 `*.check.mts`.
+    - A harness rendering `LiffShell` in the failed, pending (stub SDK whose `init` never resolves) and ready states at 375 and 1440 wide: no overflow, both failed-state controls 48px and equal width, alert text contrast 5.30:1, the spinner animates, and ready shows only the children.
+  - **Not checked:** `motion-reduce` (could not be emulated), the real LIFF SDK inside LINE, and e2e or `tests/local-cash`.
+
 - **/settings (2026-11-25, stacked on PR #11):**
   - Three white cards (`rounded-xl bg-card shadow-card`) in a `max-w-3xl` column: shop info, carrier commission rates and backup.
   - Shop info is two muted tiles in a `<dl>` (one column on a phone, two from sm up).
