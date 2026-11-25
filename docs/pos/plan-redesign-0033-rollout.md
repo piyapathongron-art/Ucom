@@ -202,6 +202,38 @@ In this order:
 
 /consignments (with fix 0.7 and the Step 1 artboards), /sf-commissions, /repairs, /topup, /cash, /expenses, /settings and /liff/deposit. Do one PR each and follow the canvas page for each route. After that, remove the old `ucom-*` classes and token aliases from `globals.css`.
 
+- **/repairs (2026-11-25, stacked on PR #11):**
+  - Built from the code, not the canvas, in three places:
+    - no count tiles (รอซ่อม / กำลังซ่อม / รอรับเครื่อง), because they would need extra count queries;
+    - no separate part-cost panel, so each job keeps its own inline field;
+    - the abandon dialog has no line about part cost counting as a repair cost, because the SQL has not been checked for that.
+  - The abandon confirm stays amber, since it is irreversible and not a delete.
+  - The status filter uses the /stock segmented pills (40px, active brand blue, `aria-pressed`). The search has a label and a search icon, and keeps its placeholder.
+  - Status chips:
+    - รอซ่อม is neutral, กำลังซ่อม is brand tint, and รอรับเครื่อง is green;
+    - รับแล้ว is muted;
+    - ลูกค้าทิ้ง is the danger pair.
+  - The forward step is a brand-tint button. ปิดงาน/ออกบิล is the primary button, and ลูกค้าทิ้ง is a red text button. Every control is at least 40px.
+  - Prices show as ฿ with `tabular-nums`, right-aligned in the table. The part-cost input has an `aria-label`, and "กรอกแล้ว" is a green chip.
+  - The table stays at md and up, with all 7 columns and every test ID. Below md, each job is a white card. The cards carry no test IDs, so no ID appears twice.
+  - Intake dialog:
+    - 48px fields, with `*` and `required` on the name and device;
+    - `tel` and decimal input modes;
+    - a pending label on submit;
+    - the "data stays if saving fails" hint.
+  - Close dialog:
+    - a summary card with the status chip;
+    - a 52px price field with a hint;
+    - cash/transfer as a segmented `radiogroup`, as in /pos;
+    - a bill line with the total in brand blue (`formatMoney`).
+
+    The undefined `ucom-error` is replaced with the danger pair.
+  - Shared: the `Modal` close button is now 40×40 (it was 32px wide).
+  - **Checked:**
+    - ESLint (0 errors; text-size warnings stay at 13), `tsc`, `next build`, and all 17 `*.check.mts`.
+    - A harness with stubbed PostgREST and cash-status responses at 1440 and 375 wide, with the cash book off and on, and with the intake, close and abandon dialogs open. No overflow, no console errors.
+    - The harness found one control under 40px, the 30px-wide "แก้ไข" text button, which is now `min-w-10`. That fix was not re-measured.
+  - **Not checked:** real data and e2e (`repairs.spec.ts`, `redesign-*.spec.ts`, `pagination-filter.spec.ts`). Test IDs are unchanged, except that `close-payment-method` is now on the radiogroup instead of a `<select>`; no spec reads it.
 **/sf-commissions, the SF+ tab (done 2026-11-25 on branch `design/0033-sf-commissions`, stacked on PR #11):**
 - Sub-tabs are 40px pills. The active one is tinted brand and the others are outlined, so they read as second level under the page tabs. The canvas's side-by-side due/pending layout was not used; the code's sub-tabs stay.
 - Due bills:
