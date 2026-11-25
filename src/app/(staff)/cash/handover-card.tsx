@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CashHandover, CashStatus } from "@/lib/cash/types";
 import { formatMoney, moneyCents } from "@/lib/cash/money";
 import { lineDayLabel } from "@/lib/cash/day-selection";
@@ -16,6 +16,29 @@ function settleMismatch(form: FormData, amount: string) {
   return remainder > 0
     ? `ยอดยังขาด ฿${shown} — ใส่เงินที่เหลือกลับร้าน (คืนเข้าเก๊ะ/คืนกองรอฝาก) ให้รวมครบ ฿${formatMoney(amount)}`
     : `ยอดรวมเกินเงินที่นำออกไป ฿${shown} ตรวจยอดฝากอีกครั้ง`;
+}
+
+// Live check of the same sum settleMismatch enforces on submit, read from the enclosing form.
+function SettleTotal({ amount }: { amount: string }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  useEffect(() => {
+    const form = ref.current?.closest("form");
+    if (!form) return;
+    const update = () => {
+      // Read inputs directly: new FormData(form) skips them while CashForm's fieldset is still disabled on load.
+      const values = new FormData();
+      for (const key of ["bank", "drawer", "returned"]) {
+        const input = form.elements.namedItem(key);
+        if (input instanceof HTMLInputElement) values.set(key, input.value);
+      }
+      try { setProblem(settleMismatch(values, amount)); } catch { setProblem("กรอกยอดเป็นตัวเลข เช่น 1500 หรือ 1500.50"); }
+    };
+    Promise.resolve().then(update);
+    form.addEventListener("input", update);
+    return () => form.removeEventListener("input", update);
+  }, [amount]);
+  return <p ref={ref} role="status" className={`rounded-xl px-4 py-3 text-sm font-semibold tabular-nums ${problem ? "bg-warning-bg text-warning" : "bg-success-bg text-success"}`}>{problem ?? `ยอดครบ ฿${formatMoney(amount)} พอดี`}</p>;
 }
 
 const states = { handed_over: "กำลังไปฝาก", reported: "แจ้งฝากแล้ว รอตรวจ", confirmed: "เจ้าของยืนยันแล้ว", disputed: "หลักฐานต้องแก้ไข", returned: "คืนเงินเข้าร้านแล้ว" };
@@ -45,6 +68,7 @@ export default function HandoverCard({ item, status, isCompact = false }: { item
           <Field name="bank" type="number" label="ฝากธนาคารจริง (บาท)" value={isCompact ? item.bankBound ?? item.amount : undefined} />
           {isCompact ? <details className="rounded-xl bg-muted px-4 py-1"><summary className={SUMMARY}>เงินเหลือกลับร้าน</summary><div className="space-y-3 pb-3"><Field name="drawer" type="number" label="เงินคืนเข้าเก๊ะเพิ่มหลังนำออก (บาท)" value="0" /><Field name="returned" type="number" label="คืนกองรอฝาก (บาท)" value="0" /></div></details>
             : <><Field name="drawer" type="number" label="เงินคืนเข้าเก๊ะเพิ่มหลังนำออก (บาท)" value="0" /><Field name="returned" type="number" label="คืนกองรอฝาก (บาท)" value="0" /></>}
+          <SettleTotal amount={item.amount} />
           <Field name="depositedAt" type="datetime-local" label="วันและเวลาที่ฝากจริง (เวลาไทย)" isNow />
           <label className="text-sm font-semibold">หลักฐานฝากเงิน<input className={FILE_INPUT} name="file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required /></label>
           <Check name="physicallyReturned" label={isCompact ? "ยืนยันว่าเงินที่นำออกไปจัดการครบแล้ว (ฝากธนาคารแล้ว และเงินที่เหลือถ้ามีคืนเข้าร้านแล้ว)" : "นำเศษเข้าเก๊ะและยอดคืนกองรอฝากกลับเข้าร้านแล้ว เงินที่นำออกได้รับการจัดการครบ"} />

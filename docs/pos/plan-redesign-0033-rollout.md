@@ -210,7 +210,8 @@ In this order:
   - Not taken from the canvas:
     - the "U" brand tile;
     - the two-step progress bar on `LiffDeposit`/`LiffSlip`, because the section headings already number the steps;
-    - the `LiffDone` buttons ส่งสรุปเดิมเข้า LINE อีกครั้ง and ปิดหน้านี้, which the code does not have.
+    - the `LiffDone` button ปิดหน้านี้, which the code does not have (it would need `liff.closeWindow()`; owner decision). ส่งสรุปเดิมเข้า LINE อีกครั้ง does exist, as the `HandoverCard` text link.
+  - Follow-up (PR `design/0033-liff-polish`): `CashForm` no longer flashes the blocked-intent warning while it checks localStorage, its error messages render as danger alerts, and the settle form shows a live total (green when bank + drawer + returned equals the amount, amber otherwise). The canvas has matching v2 boards on the LIFF page.
   - **Checked:**
     - ESLint (0 errors, 13 warnings, unchanged), `tsc`, `next build`, and all 17 `*.check.mts`.
     - A harness rendering `LiffShell` in the failed, pending (stub SDK whose `init` never resolves) and ready states at 375 and 1440 wide: no overflow, both failed-state controls 48px and equal width, alert text contrast 5.30:1, the spinner animates, and ready shows only the children.
