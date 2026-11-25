@@ -27,6 +27,9 @@ import { CASH_PAUSE_KEY, RECEIPT_OFFLINE_MESSAGE, cashStatus, getReceivingDevice
 import { clearReceipt, prepareReceipt, sendReceipt } from "@/lib/cash/receipt";
 import { PendingCashRequests } from "@/lib/cash/PendingCashRequests";
 import { OpeningCoveredQueue } from "./OpeningCoveredQueue";
+import { useIsLarge } from "./useIsLarge";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { lineTotal } from "./types";
 
 type CachedCatalogPage = {
   page?: number;
@@ -64,6 +67,8 @@ export default function PosPage() {
   const [clientUuid, setClientUuid] = useState(() => crypto.randomUUID());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isLarge = useIsLarge();
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [queue, setQueue] = useState<QueuedSale[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<string | null>(null);
@@ -506,7 +511,7 @@ export default function PosPage() {
           setError("ยังยืนยันผลบิลไม่ได้ กรุณาตรวจการเชื่อมต่อแล้วลองยืนยันบิลเดิมอีกครั้ง ไม่ต้องรับเงินซ้ำ");
           return;
         }
-        setLines([]); setClientUuid(crypto.randomUUID());
+        setLines([]); setClientUuid(crypto.randomUUID()); setIsCartOpen(false);
         void loadCatalog();
       });
     } catch (failure) {
@@ -532,26 +537,48 @@ export default function PosPage() {
     loadCatalog();
   }
 
+  const isPaused = cashBook ? isReceivingLocallyPaused(cashBook) : false;
+  const isOtherDevice = Boolean(cashBook?.epoch && cashBook.receivingDevice !== deviceId);
+  const billCount = lines.length;
+  const billItemsTotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
+
+  const cart = (compact: boolean) => (
+    <Cart
+      lines={lines}
+      onUpdateLine={updateLine}
+      onRemoveLine={removeLine}
+      onSubmit={submit}
+      submitting={submitting}
+      error={error}
+      compact={compact}
+    />
+  );
+
   return (
-    <main data-page="pos" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background lg:h-dvh">
-      <p className="border-b border-border px-5 py-2 text-xs text-ink-muted" data-testid="cash-pos-device">
-        เครื่องรับเงิน: {deviceId || "กำลังตรวจสอบ"} · คิวค้าง {queue.length} บิล · ออกบิลเมื่อเชื่อมต่อระบบเท่านั้น
-        {cashBook?.epoch && ` · ${isReceivingLocallyPaused(cashBook) ? cashBook.isReceivingPaused && cashBook.ackVersion === cashBook.version ? "หยุดรับเงินและยืนยันยอดล่าสุดแล้ว" : "หยุดรับเงินในเครื่อง รอยืนยันยอดล่าสุด" : "กำลังรับเงิน"}`}
-        {cashBook?.epoch && cashBook.receivingDevice !== deviceId && " · เครื่องนี้ไม่ใช่เครื่องรับเงินหลัก"}
-      </p>
-      {cashBook?.epoch && cashBook.receivingDevice === deviceId && <div className="hidden gap-2 border-b border-border px-5 py-2 lg:flex">
-        <button type="button" data-testid="cash-pos-pause" disabled={isChangingReceiving || submitting || isSyncing} onClick={() => void changeReceiving(true)} className="ucom-secondary px-4 py-2 text-sm disabled:opacity-50">{isReceivingLocallyPaused(cashBook) ? "ยืนยันหยุดและยอดล่าสุด" : "หยุดรับเงินเพื่อปิดยอด/ส่งมอบ"}</button>
-        {isReceivingLocallyPaused(cashBook) && <button type="button" data-testid="cash-pos-resume" disabled={isChangingReceiving || submitting || isSyncing} onClick={() => void changeReceiving(false)} className="ucom-primary px-4 py-2 text-sm disabled:opacity-50">กลับมารับเงิน</button>}
-      </div>}
-      {cashError && <p role="alert" className="ucom-error px-5 py-2">{cashError}</p>}
-      <PendingCashRequests queuedIds={queue.map(sale => sale.clientUuid)} onBusyChange={isBusy => { moneyBusyRef.current = isBusy; }} onResolved={(action, id) => { if (action === "sale" && id === clientUuid) { setLines([]); setClientUuid(crypto.randomUUID()); } if (action === "covered_sale") { setQueue(removeFromQueue(id)); clearReceipt(id); } loadCatalog(); }} />
-      <OpeningCoveredQueue queue={queue} status={cashBook} onBusyChange={isBusy => { moneyBusyRef.current = isBusy; }} onCovered={id => { setQueue(removeFromQueue(id)); clearReceipt(id); loadCatalog(); }} />
-      <QueueBanner
-        queue={queue}
-        isSyncing={isSyncing}
-        onSync={() => syncQueue(true)}
-        onRemove={cashBook && !cashBook.epoch ? setPendingRemoveUuid : undefined}
-      />
+    <main data-page="pos" className="flex min-h-0 flex-1 flex-col gap-3 pb-28 lg:h-[calc(100dvh-2rem)] lg:overflow-hidden lg:pb-0">
+      <div className="mx-4 mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-card px-4 py-2.5 shadow-card lg:mx-0 lg:mt-0">
+        <span aria-hidden="true" className={`size-2.5 shrink-0 rounded-full ${isOtherDevice || isPaused ? "bg-warning" : "bg-success"}`} />
+        <p className="min-w-0 flex-1 text-sm text-foreground" data-testid="cash-pos-device">
+          เครื่องรับเงิน: {deviceId || "กำลังตรวจสอบ"} · คิวค้าง {queue.length} บิล · ออกบิลเมื่อเชื่อมต่อระบบเท่านั้น
+          {cashBook?.epoch && ` · ${isPaused ? cashBook.isReceivingPaused && cashBook.ackVersion === cashBook.version ? "หยุดรับเงินและยืนยันยอดล่าสุดแล้ว" : "หยุดรับเงินในเครื่อง รอยืนยันยอดล่าสุด" : "กำลังรับเงิน"}`}
+          {isOtherDevice && " · เครื่องนี้ไม่ใช่เครื่องรับเงินหลัก"}
+        </p>
+        {cashBook?.epoch && cashBook.receivingDevice === deviceId && <div className="hidden gap-2 lg:flex">
+          <button type="button" data-testid="cash-pos-pause" disabled={isChangingReceiving || submitting || isSyncing} onClick={() => void changeReceiving(true)} className="h-10 rounded-full border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50">{isPaused ? "ยืนยันหยุดและยอดล่าสุด" : "หยุดรับเงินเพื่อปิดยอด/ส่งมอบ"}</button>
+          {isPaused && <button type="button" data-testid="cash-pos-resume" disabled={isChangingReceiving || submitting || isSyncing} onClick={() => void changeReceiving(false)} className="h-10 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/85 disabled:opacity-50">กลับมารับเงิน</button>}
+        </div>}
+      </div>
+      {cashError && <p role="alert" className="mx-4 rounded-xl bg-danger-bg p-3 text-sm text-danger lg:mx-0">{cashError}</p>}
+      <div className="flex flex-col gap-3 px-4 empty:hidden lg:px-0">
+        <PendingCashRequests queuedIds={queue.map(sale => sale.clientUuid)} onBusyChange={isBusy => { moneyBusyRef.current = isBusy; }} onResolved={(action, id) => { if (action === "sale" && id === clientUuid) { setLines([]); setClientUuid(crypto.randomUUID()); } if (action === "covered_sale") { setQueue(removeFromQueue(id)); clearReceipt(id); } loadCatalog(); }} />
+        <OpeningCoveredQueue queue={queue} status={cashBook} onBusyChange={isBusy => { moneyBusyRef.current = isBusy; }} onCovered={id => { setQueue(removeFromQueue(id)); clearReceipt(id); loadCatalog(); }} />
+        <QueueBanner
+          queue={queue}
+          isSyncing={isSyncing}
+          onSync={() => syncQueue(true)}
+          onRemove={cashBook && !cashBook.epoch ? setPendingRemoveUuid : undefined}
+        />
+      </div>
       <ConfirmDialog
         open={pendingRemoveUuid !== null}
         title="ลบบิลค้างนี้ทิ้ง?"
@@ -560,21 +587,15 @@ export default function PosPage() {
         onClose={() => setPendingRemoveUuid(null)}
         onConfirm={() => void confirmRemoveQueuedSale()}
       >
-        <p className="text-sm text-ink">ต้องการลบบิลค้างที่มีปัญหานี้ออกจากคิวใช่หรือไม่?</p>
-        <p className="text-sm text-ink-muted">บิลที่ลบจะไม่ถูกส่งเข้าระบบและกู้คืนไม่ได้</p>
+        <p className="text-sm text-foreground">ต้องการลบบิลค้างที่มีปัญหานี้ออกจากคิวใช่หรือไม่?</p>
+        <p className="text-sm text-muted-foreground">บิลที่ลบจะไม่ถูกส่งเข้าระบบและกู้คืนไม่ได้</p>
       </ConfirmDialog>
       {scanFeedback && (
-        <p role="status" data-testid="scan-feedback" className="border-b border-border px-5 py-2 text-sm text-ink">
+        <p role="status" data-testid="scan-feedback" className="mx-4 rounded-xl bg-accent px-4 py-2.5 text-sm text-foreground lg:mx-0">
           {scanFeedback}
         </p>
       )}
-      <div className="flex flex-1 items-center justify-center px-8 py-16 text-center lg:hidden">
-        <div className="max-w-sm">
-          <h1 className="mt-3 text-xl font-semibold tracking-tight text-ink">หน้าขายต้องใช้จอกว้างขึ้น</h1>
-          <p className="mt-2 text-sm leading-6 text-ink-muted">กรุณาเปิดด้วยแท็บเล็ตหรือคอมพิวเตอร์</p>
-        </div>
-      </div>
-      <div className="hidden min-h-0 flex-1 lg:flex">
+      <div className="flex min-h-0 flex-1 gap-4">
         <Catalog
           catalog={catalog}
           topProducts={topProducts}
@@ -582,6 +603,7 @@ export default function PosPage() {
           onAddCatalog={addCatalogItem}
           onAddTopup={addTopup}
           onFinanceDevice={financeDevice}
+          canFinance={isLarge}
           search={catalogSearch}
           onSearchChange={(value) => {
             setCatalogSearch(value);
@@ -606,15 +628,36 @@ export default function PosPage() {
             setCatalogPage(1);
           }}
         />
-        <Cart
-          lines={lines}
-          onUpdateLine={updateLine}
-          onRemoveLine={removeLine}
-          onSubmit={submit}
-          submitting={submitting}
-          error={error}
-        />
+        {isLarge && (
+          <aside aria-label="บิลปัจจุบัน" className="w-[22rem] shrink-0 overflow-hidden rounded-xl bg-card shadow-card xl:w-[25rem]">
+            {cart(false)}
+          </aside>
+        )}
       </div>
+
+      {/* Below lg (ADR 0033 decision 7): the catalogue fills the screen, and the bill opens as a sheet. */}
+      {!isLarge && (
+        <>
+          <div className="fixed inset-x-0 bottom-0 z-30 bg-card px-4 pt-3 shadow-[0_-4px_16px_rgb(16_24_40/0.08)]" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              data-testid="mobile-cart-open"
+              className="flex h-14 w-full items-center justify-between rounded-full bg-primary px-6 text-base font-bold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <span>ดูบิล · {billCount} รายการ</span>
+              <span className="font-mono">฿{billItemsTotal.toLocaleString("th-TH")}</span>
+            </button>
+          </div>
+          <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+            <SheetContent side="bottom" className="h-[92dvh] gap-0 rounded-t-xl p-0">
+              <SheetTitle className="sr-only">บิลปัจจุบัน</SheetTitle>
+              <SheetDescription className="sr-only">รายการในบิล วิธีชำระเงิน และปุ่มปิดบิล</SheetDescription>
+              {cart(true)}
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
     </main>
   );
 }

@@ -16,40 +16,37 @@ export function QueueBanner({
   if (queue.length === 0) return null;
 
   const rejected = queue.filter((s) => s.lastError);
+  const tone = rejected.length > 0 ? "bg-danger-bg text-danger" : "bg-warning-bg text-warning";
 
   return (
-    <div
-      data-testid="queue-banner"
-      className={
-        rejected.length > 0
-          ? "bg-danger/10 px-4 py-2.5 text-sm font-semibold text-danger"
-          : "bg-warning-bg px-4 py-2.5 text-sm font-semibold text-warning"
-      }
-    >
-      <div className="mx-auto flex max-w-[1440px] items-center gap-3">
-        <span className="font-medium" data-testid="queue-count">บิลค้าง {queue.length} ใบ</span>
+    <div data-testid="queue-banner" role="status" className={`flex flex-col gap-2 rounded-xl p-4 text-sm ${tone}`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="font-semibold" data-testid="queue-count">
+          บิลค้าง {queue.length} ใบ{rejected.length > 0 ? ` · ส่งไม่ผ่าน ${rejected.length} ใบ` : ""}
+        </span>
         <button
           type="button"
           onClick={onSync}
           disabled={isSyncing}
           data-testid="queue-sync"
-          className="rounded-full border border-current px-3 py-1 text-xs font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-50"
+          className="h-10 rounded-full bg-card px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
         >
           {isSyncing ? "กำลังส่ง" : "ส่งบิลค้าง"}
         </button>
       </div>
+      <p className="text-foreground">บิลที่ทำไว้ตอนเชื่อมต่อไม่ได้ ระบบจะลองส่งเองเมื่อกลับมาออนไลน์</p>
 
       {rejected.length > 0 && (
-        <ul data-testid="queue-rejected" className="mx-auto mt-1 max-w-[1440px] list-disc pl-5 text-xs space-y-1">
+        <ul data-testid="queue-rejected" className="flex flex-col gap-2">
           {rejected.map((s) => (
-            <li key={s.clientUuid} className="flex items-center justify-between gap-2">
+            <li key={s.clientUuid} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card px-3 py-2 text-foreground">
               <span>{s.lastError}</span>
               {onRemove && (
                 <button
                   type="button"
                   data-testid={`queue-remove-${s.clientUuid}`}
                   onClick={() => onRemove(s.clientUuid)}
-                  className="rounded-full bg-danger/20 px-3 py-1 text-[0.7rem] font-bold text-danger hover:bg-danger/30 transition-colors"
+                  className="h-10 rounded-full border border-danger/40 px-4 text-sm font-semibold text-danger hover:bg-danger-bg"
                 >
                   ลบบิลนี้ทิ้ง
                 </button>

@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Thai } from "next/font/google";
+import { Anuphan } from "next/font/google";
 import { AppToaster } from "./_components/AppToaster";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const notoSansThai = Noto_Sans_Thai({
-  variable: "--font-noto-sans-thai",
+// ADR 0033: Anuphan for Thai and Latin text. It is a variable font, so no weights are listed.
+const anuphan = Anuphan({
+  variable: "--font-anuphan",
   subsets: ["thai", "latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -23,7 +18,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="th"
-      className={`${inter.variable} ${notoSansThai.variable} h-full antialiased`}
+      className={`${anuphan.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}<AppToaster /></body>
     </html>

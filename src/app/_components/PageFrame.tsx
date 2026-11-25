@@ -23,12 +23,12 @@ export function PageFrame({
     <main
       data-page={page}
       data-loading={dataLoading}
-      className={`ucom-page w-full space-y-6 p-4 md:p-8 ${className}`}
+      className={`ucom-page w-full space-y-5 p-4 md:p-6 lg:p-0 lg:pt-1 ${className}`}
     >
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-[26px] font-bold leading-8 tracking-tight text-ink">{title}</h1>
-          {description && <p className="mt-1 max-w-3xl text-[12.5px] text-ink-muted">{description}</p>}
+          <h1 className="text-2xl leading-8 font-bold text-foreground">{title}</h1>
+          {description && <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{description}</p>}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </header>

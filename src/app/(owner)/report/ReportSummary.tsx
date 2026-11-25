@@ -25,22 +25,23 @@ const shortDate = (day: string | null) =>
   day ? new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short" }).format(new Date(`${day}T00:00:00`)) : "";
 const LIST_LIMIT = 6;
 
-function Panel({ title, aside, children, grow = false }: { title: string; aside?: string; children: React.ReactNode; grow?: boolean }) {
+export function Panel({ title, aside, children, grow = false, testId }: { title: string; aside?: string; children: React.ReactNode; grow?: boolean; testId?: string }) {
   return (
-    <section className={`ucom-surface flex flex-col gap-4 p-5 ${grow ? "flex-1" : ""}`}>
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
-        {aside && <span className="text-xs text-ink-muted">{aside}</span>}
+    <section data-testid={testId} className={`flex flex-col gap-4 rounded-xl bg-card p-5 shadow-card ${grow ? "flex-1" : ""}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-base font-bold text-foreground">{title}</h2>
+        {aside && <span className="text-sm text-muted-foreground">{aside}</span>}
       </div>
       {children}
     </section>
   );
 }
 
-function Bar({ share, isLead }: { share: number; isLead: boolean }) {
+// Decorative: every bar sits next to its value in text, so the bar itself carries no information alone.
+export function Bar({ share, isLead, isNegative = false }: { share: number; isLead: boolean; isNegative?: boolean }) {
   return (
-    <div className="h-2 w-full rounded-full bg-sunken">
-      <div className={`h-full rounded-full ${isLead ? "bg-accent" : "bg-ink-faint"}`} style={{ width: `${Math.max(0, Math.min(100, share))}%` }} />
+    <div aria-hidden="true" className="h-2.5 w-full rounded-full bg-muted">
+      <div className={`h-full rounded-full ${isNegative ? "bg-danger" : isLead ? "bg-primary" : "bg-primary/45"}`} style={{ width: `${Math.max(0, Math.min(100, share))}%` }} />
     </div>
   );
 }
@@ -94,26 +95,31 @@ export function ReportSummary({ from, to }: { from: string; to: string }) {
 
   if (failed)
     return (
-      <div data-testid="report-summary-error" className="flex items-center justify-between gap-3 rounded-2xl bg-danger/10 p-4 text-sm text-danger">
+      <div data-testid="report-summary-error" role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-danger-bg p-4 text-sm font-semibold text-danger">
         <span>โหลดสรุปไม่สำเร็จ</span>
-        <button type="button" onClick={() => { setFailed(false); setRetryKey((k) => k + 1); }} className="ucom-danger px-4 py-2 text-sm">ลองใหม่</button>
+        <button type="button" onClick={() => { setFailed(false); setRetryKey((k) => k + 1); }} className="ucom-danger bg-card px-4 text-sm">ลองใหม่</button>
       </div>
     );
-  if (!summary) return <p className="text-sm text-ink-muted">กำลังโหลดสรุป...</p>;
+  if (!summary)
+    return (
+      <div aria-busy="true" aria-label="กำลังโหลดสรุป" className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        {[0, 1].map((i) => <div key={i} className="h-64 animate-pulse rounded-xl bg-card shadow-card motion-reduce:animate-none" />)}
+      </div>
+    );
 
   const channelTotal = summary.channels.reduce((s, c) => s + c.amount, 0);
   const maxQty = summary.top[0]?.qty ?? 0;
 
   return (
-    <div data-testid="report-summary" className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_400px]">
+    <div data-testid="report-summary" className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
       <div className="flex min-w-0 flex-col gap-4">
         <Panel title="ยอดขายตามช่องทางรับเงิน">
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-3">
             {summary.channels.map((c, i) => {
               const share = channelTotal > 0 ? Math.round((c.amount / channelTotal) * 100) : 0;
               return (
-                <div key={c.channel} data-testid={`report-channel-${c.channel}`} className="flex flex-col gap-1">
-                  <div className="flex justify-between text-[13px] font-semibold text-ink">
+                <div key={c.channel} data-testid={`report-channel-${c.channel}`} className="flex flex-col gap-1.5">
+                  <div className="flex flex-wrap justify-between gap-x-3 text-sm font-semibold text-foreground">
                     <span>{c.channel}</span>
                     <span className="tabular-nums">{baht(c.amount)} · {share}%</span>
                   </div>
@@ -126,64 +132,64 @@ export function ReportSummary({ from, to }: { from: string; to: string }) {
 
         <Panel title="สินค้าขายดี" grow>
           {summary.top.length === 0 ? (
-            <p className="text-sm text-ink-muted">ยังไม่มีสินค้าขายในช่วงนี้</p>
+            <p className="text-sm text-muted-foreground">ยังไม่มีสินค้าขายในช่วงนี้</p>
           ) : (
-            <div className="flex flex-col gap-3">
+            <ol className="flex flex-col gap-3">
               {summary.top.map((p, i) => (
-                <div key={p.name} className="flex items-center gap-3">
-                  <span className="w-44 truncate text-[13px] font-medium text-ink" title={p.name}>{p.name}</span>
-                  <Bar share={maxQty > 0 ? (p.qty / maxQty) * 100 : 0} isLead={i === 0} />
-                  <span className="w-16 shrink-0 text-right text-[13px] font-semibold tabular-nums text-ink">{p.qty} ชิ้น</span>
-                </div>
+                <li key={p.name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[11rem_minmax(0,1fr)_auto]">
+                  <span className="truncate text-sm font-medium text-foreground" title={p.name}>{p.name}</span>
+                  <span className="col-span-2 row-start-2 sm:col-span-1 sm:row-start-auto"><Bar share={maxQty > 0 ? (p.qty / maxQty) * 100 : 0} isLead={i === 0} /></span>
+                  <span className="text-right text-sm font-semibold tabular-nums text-foreground">{p.qty} ชิ้น</span>
+                </li>
               ))}
-            </div>
+            </ol>
           )}
         </Panel>
       </div>
 
       <div className="flex min-w-0 flex-col gap-4">
         <Panel title="ค่าคอม SF+" aside={summary.pendingCount > 0 ? `${summary.pendingCount} เครื่องรอค่าคอม` : undefined}>
-          <div className="flex flex-col divide-y divide-border">
+          <ul className="flex flex-col divide-y divide-border">
             {summary.sf.map((r) => (
-              <div key={`${r.ref_id}-${r.day}`} className="flex items-center justify-between py-2.5 first:pt-0">
+              <li key={`${r.ref_id}-${r.day}`} className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
                 <div className="flex flex-col">
-                  <span className="text-[13px] font-semibold text-ink">IMEI ···{(r.detail ?? "").slice(-4)}</span>
-                  <span className="text-[11.5px] text-ink-muted">รับเงินเข้า {shortDate(r.day)}</span>
+                  <span className="text-sm font-semibold text-foreground">IMEI ···{(r.detail ?? "").slice(-4)}</span>
+                  <span className="text-xs text-muted-foreground">รับเงินเข้า {shortDate(r.day)}</span>
                 </div>
-                <span className="text-[13.5px] font-bold tabular-nums text-success">{baht(r.sf_commission ?? 0)}</span>
-              </div>
+                <span className="text-sm font-bold tabular-nums text-success">{baht(r.sf_commission ?? 0)}</span>
+              </li>
             ))}
             {summary.pending.map((p) => (
-              <div key={p.device_unit_id} className="flex items-center justify-between py-2.5 first:pt-0">
+              <li key={p.device_unit_id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
                 <div className="flex flex-col">
-                  <span className="text-[13px] font-semibold text-ink">{p.model_name} · {(p.imei ?? "").slice(-4)}</span>
-                  <span className="text-[11.5px] text-ink-faint">ยังไม่ได้รับ</span>
+                  <span className="text-sm font-semibold text-foreground">{p.model_name} · {(p.imei ?? "").slice(-4)}</span>
+                  <span className="text-xs text-muted-foreground">ยังไม่ได้รับ</span>
                 </div>
-                <span className="text-[13.5px] font-bold text-ink-faint">รอทราบ</span>
-              </div>
+                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">รอทราบ</span>
+              </li>
             ))}
-            {summary.sf.length === 0 && summary.pending.length === 0 && <p className="text-sm text-ink-muted">ไม่มีค่าคอมในช่วงนี้</p>}
-          </div>
+            {summary.sf.length === 0 && summary.pending.length === 0 && <li className="text-sm text-muted-foreground">ไม่มีค่าคอมในช่วงนี้</li>}
+          </ul>
         </Panel>
 
         <Panel title="งานซ่อมที่ปิดช่วงนี้" aside={summary.repairCount > LIST_LIMIT ? `${summary.repairCount} งาน` : undefined} grow>
-          <div className="flex flex-col divide-y divide-border">
+          <ul className="flex flex-col divide-y divide-border">
             {summary.repairs.map((r) => {
               const profit = r.repair_profit ?? 0;
               return (
-                <div key={r.ref_id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
-                  <span className="min-w-0 truncate text-[13px] text-ink">
+                <li key={r.ref_id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
+                  <span className="min-w-0 truncate text-sm text-foreground">
                     {r.detail || r.label} — {(r.repair_revenue ?? 0) > 0 ? "ลูกค้ารับแล้ว" : "ลูกค้าทิ้ง"}
                   </span>
-                  <span className={`shrink-0 text-[13.5px] font-bold tabular-nums ${profit < 0 ? "text-warning" : "text-success"}`}>
+                  <span className={`shrink-0 text-sm font-bold tabular-nums ${profit < 0 ? "text-warning" : "text-success"}`}>
                     {profit > 0 ? "+" : ""}{baht(profit)}
                   </span>
-                </div>
+                </li>
               );
             })}
-            {summary.repairs.length === 0 && <p className="text-sm text-ink-muted">ไม่มีงานซ่อมที่ปิดในช่วงนี้</p>}
-          </div>
-          <p className="mt-auto border-t border-dashed border-border pt-3 text-[11.5px] leading-4 text-ink-muted">
+            {summary.repairs.length === 0 && <li className="text-sm text-muted-foreground">ไม่มีงานซ่อมที่ปิดในช่วงนี้</li>}
+          </ul>
+          <p className="mt-auto border-t border-dashed border-border pt-3 text-xs text-muted-foreground">
             กำไรงานซ่อมติดลบได้ — งานที่ลูกค้าทิ้งนับเป็นงานปิดแต่ไม่มีรายได้คู่กัน ไม่ใช่ข้อผิดพลาด
           </p>
         </Panel>

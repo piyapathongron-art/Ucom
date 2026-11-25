@@ -6,6 +6,7 @@ import { PageFrame, PageSection } from "@/app/_components/PageFrame";
 import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 import { ErrorPanel } from "@/app/_components/ErrorPanel";
 import { WalletFundDialog } from "./WalletFundDialog";
+import { HISTORY_PAGE_SIZE, TopupHistory } from "./TopupHistory";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/types/database";
 import { withReceivingIntake } from "@/lib/cash/client";
@@ -15,6 +16,13 @@ type Wallet = Tables<"v_pos_topup_wallet_balance">;
 type TopupSale = Tables<"v_pos_topup_history">;
 
 const fail = (message: string) => toast.error(message, { duration: Infinity });
+
+const PAYMENT_METHODS = [["cash", "เงินสด"], ["transfer", "โอน"]] as const;
+
+const payOption = (isActive: boolean) =>
+  `h-11 rounded-full text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+    isActive ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+  }`;
 
 export default function TopupPage() {
   const supabase = createClient();
@@ -47,7 +55,7 @@ export default function TopupPage() {
         .select("*", { count: "exact" })
         .order("sold_at", { ascending: false })
         .order("sale_item_id", { ascending: false })
-        .range((page - 1) * 20, page * 20 - 1),
+        .range((page - 1) * HISTORY_PAGE_SIZE, page * HISTORY_PAGE_SIZE - 1),
     ]);
     if (profileResult.error || walletResult.error || historyResult.error) {
       throw new Error("top-up data unavailable");
@@ -157,78 +165,73 @@ export default function TopupPage() {
 
   const currentWallet = wallets.find((wallet) => wallet.carrier_id === selectedCarrier);
   const previewCost = Math.round(Number(amount) * (1 - (carrierRates[selectedCarrier] ?? 0)) * 100) / 100;
+  const label = "mb-1.5 block text-sm font-semibold";
   return (
     <PageFrame
       page="topup"
-     
       title="เติมเงิน"
       description="ขายเติมเงินจากวอลเล็ตค่ายและดูรายการล่าสุด"
-      actions={isOwner ? <button type="button" onClick={() => setIsFundOpen(true)} data-testid="open-wallet-fund" className="ucom-primary px-[18px] py-2.5">+ เติมเงินเข้าวอลเล็ต</button> : undefined}
+      actions={isOwner ? <button type="button" onClick={() => setIsFundOpen(true)} data-testid="open-wallet-fund" className="ucom-secondary h-11 px-5">+ เติมเงินเข้าวอลเล็ต</button> : undefined}
     >
       {loadError && <ErrorPanel message={loadError} onRetry={() => { setLoadError(null); setIsLoading(true); loadPage().catch(() => setLoadError("โหลดข้อมูลเติมเงินไม่สำเร็จ")).finally(() => setIsLoading(false)); }} />}
 
       <PageSection title="ยอดวอลเล็ต" description="ยอดจริงตั้งต้น + เงินเติมหลังตั้งยอด − ต้นทุนขายหลังตั้งยอด (รายการเก่านำเข้าไม่หักซ้ำ)">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {wallets.map((wallet) => (
-            <div key={wallet.carrier_id} data-testid={`wallet-balance-${wallet.carrier_id}`} className="ucom-surface p-4">
-              <p className="text-sm font-semibold text-ink">{wallet.name}</p>
-              <p className="mt-2 font-mono text-2xl font-bold text-ink">{wallet.is_initialized ? `฿${(wallet.balance ?? 0).toLocaleString()}` : "ยังไม่ตั้งยอด"}</p>
-              <p className="mt-1 text-xs text-ink-muted">{wallet.is_initialized ? "คงเหลือพร้อมขาย" : "ให้เจ้าของร้านบันทึกยอดจริงก่อนขาย"}</p>
-              {isOwner && wallet.is_initialized && <p className="mt-2 text-xs text-success">ค่าคอมวันนี้ ฿{(wallet.commission_today ?? 0).toLocaleString()}</p>}
-              {isOwner && !wallet.is_initialized && wallet.carrier_id && <form onSubmit={(event) => { event.preventDefault(); void openWallet(wallet.carrier_id!); }} className="mt-3 flex gap-2">
-                <input aria-label={`ยอดตั้งต้น ${wallet.name}`} className="ucom-field min-w-0 flex-1 px-3 py-2 text-sm" type="number" min="0" step="0.01" placeholder="ยอดจริง ฿" value={openingAmounts[wallet.carrier_id] ?? ""} onChange={(event) => setOpeningAmounts((current) => ({ ...current, [wallet.carrier_id!]: event.target.value }))} disabled={openingCarrier !== null} />
-                <button className="ucom-primary rounded-full px-3 py-2 text-xs disabled:opacity-50" disabled={openingCarrier !== null}>ตั้งยอด</button>
-              </form>}
+            <div key={wallet.carrier_id} data-testid={`wallet-balance-${wallet.carrier_id}`} className={wallet.is_initialized ? "rounded-xl bg-card p-5 shadow-card" : "rounded-xl border border-dashed border-border-strong bg-card p-5"}>
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="font-bold">{wallet.name}</p>
+                {isOwner && wallet.is_initialized && <p className="text-sm text-success tabular-nums">ค่าคอมวันนี้ ฿{(wallet.commission_today ?? 0).toLocaleString("th-TH")}</p>}
+              </div>
+              {wallet.is_initialized ? <>
+                <p className="mt-1.5 text-2xl font-bold tabular-nums">฿{(wallet.balance ?? 0).toLocaleString("th-TH")}</p>
+                <p className="text-sm text-muted-foreground">คงเหลือพร้อมขาย</p>
+              </> : <>
+                <p className="mt-1.5 text-sm text-muted-foreground">ยังไม่ตั้งยอด{isOwner ? "" : " · ให้เจ้าของร้านบันทึกยอดจริงก่อนขาย"}</p>
+                {isOwner && wallet.carrier_id && <>
+                  <form onSubmit={(event) => { event.preventDefault(); void openWallet(wallet.carrier_id!); }} className="mt-3 flex gap-2">
+                    <input aria-label={`ยอดตั้งต้น ${wallet.name}`} className="ucom-field min-w-0 flex-1 px-3 text-sm tabular-nums" type="number" inputMode="decimal" min="0" step="0.01" placeholder="ยอดจริง (บาท)" value={openingAmounts[wallet.carrier_id] ?? ""} onChange={(event) => setOpeningAmounts((current) => ({ ...current, [wallet.carrier_id!]: event.target.value }))} disabled={openingCarrier !== null} />
+                    <button className="ucom-primary px-4" disabled={openingCarrier !== null}>ตั้งยอด</button>
+                  </form>
+                  <p className="mt-2 text-sm text-muted-foreground">ตั้งได้ครั้งเดียว แก้ภายหลังผ่านหน้านี้ไม่ได้</p>
+                </>}
+              </>}
             </div>
           ))}
-          {!isLoading && wallets.length === 0 && <p className="text-sm text-ink-muted">ยังไม่มีข้อมูลวอลเล็ต</p>}
+          {!isLoading && wallets.length === 0 && <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูลวอลเล็ต</p>}
         </div>
       </PageSection>
 
-      <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
-        <PageSection title="เติมเงินให้ลูกค้า">
-          <form onSubmit={(event) => { event.preventDefault(); void submitTopup(); }} className="ucom-surface space-y-4 rounded-2xl p-5">
-            <label className="block space-y-1.5 text-sm text-ink-muted">
-              <span>ค่าย</span>
-              <select className="ucom-field w-full px-3 py-2.5" value={selectedCarrier} onChange={(event) => setSelectedCarrier(event.target.value)} disabled={isLoading || isSubmitting}>
-                {wallets.map((wallet) => <option key={wallet.carrier_id} value={wallet.carrier_id ?? ""}>{wallet.name}</option>)}
-              </select>
-            </label>
-            {currentWallet && <p className="text-xs text-ink-muted">{currentWallet.is_initialized ? `วอลเล็ตค่ายนี้คงเหลือ ฿${(currentWallet.balance ?? 0).toLocaleString()}` : "วอลเล็ตค่ายนี้ยังไม่ตั้งยอด"}</p>}
-            <label className="block space-y-1.5 text-sm text-ink-muted">
-              <span>จำนวนเงินที่ลูกค้าจ่าย</span>
-              <input className="ucom-field w-full px-3 py-2.5 font-mono" type="number" inputMode="decimal" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} disabled={isLoading || isSubmitting} placeholder="0.00" />
-            </label>
-            {isOwner && amount && selectedCarrier in carrierRates && Number.isFinite(previewCost) && (
-              <div className="space-y-1 border-t border-border pt-3 text-xs text-ink-muted">
-                <p>หักจากวอลเล็ตโดยประมาณ ฿{previewCost.toLocaleString()}</p>
-                <p className="text-success">ค่าคอมของร้านโดยประมาณ ฿{(Number(amount) - previewCost).toLocaleString()}</p>
-              </div>
-            )}
-            <div className="flex gap-2">
-              <button type="button" className={`flex-1 rounded-full border p-2 text-sm ${paymentMethod === "cash" ? "border-accent bg-accent text-background" : "border-border text-ink-muted"}`} onClick={() => setPaymentMethod("cash")}>เงินสด</button>
-              <button type="button" className={`flex-1 rounded-full border p-2 text-sm ${paymentMethod === "transfer" ? "border-accent bg-accent text-background" : "border-border text-ink-muted"}`} onClick={() => setPaymentMethod("transfer")}>โอน</button>
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+        <form onSubmit={(event) => { event.preventDefault(); void submitTopup(); }} className="space-y-4 rounded-xl bg-card p-5 shadow-card">
+          <h2 className="text-lg font-bold">เติมเงินให้ลูกค้า</h2>
+          <label className="block">
+            <span className={label}>ค่าย</span>
+            <select className="ucom-field h-12 w-full px-4 text-base" value={selectedCarrier} onChange={(event) => setSelectedCarrier(event.target.value)} disabled={isLoading || isSubmitting}>
+              {wallets.map((wallet) => <option key={wallet.carrier_id} value={wallet.carrier_id ?? ""}>{wallet.name}</option>)}
+            </select>
+            {currentWallet && <span className="mt-1.5 block text-sm text-muted-foreground tabular-nums">{currentWallet.is_initialized ? `วอลเล็ตค่ายนี้คงเหลือ ฿${(currentWallet.balance ?? 0).toLocaleString("th-TH")}` : "วอลเล็ตค่ายนี้ยังไม่ตั้งยอด"}</span>}
+          </label>
+          <label className="block">
+            <span className={label}>จำนวนเงินที่ลูกค้าจ่าย</span>
+            <input className="ucom-field h-13 w-full px-4 text-lg font-bold tabular-nums" type="number" inputMode="decimal" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} disabled={isLoading || isSubmitting} placeholder="0.00" />
+          </label>
+          {isOwner && amount && selectedCarrier in carrierRates && Number.isFinite(previewCost) && (
+            <div className="space-y-1 rounded-xl bg-muted px-4 py-3 text-sm tabular-nums">
+              <p className="flex justify-between gap-3"><span className="text-muted-foreground">หักจากวอลเล็ตโดยประมาณ</span><span>฿{previewCost.toLocaleString("th-TH")}</span></p>
+              <p className="flex justify-between gap-3"><span className="text-muted-foreground">ค่าคอมของร้านโดยประมาณ</span><span className="font-semibold text-success">฿{(Number(amount) - previewCost).toLocaleString("th-TH")}</span></p>
             </div>
-            {paymentMethod === "transfer" && <input className="ucom-field w-full px-3 py-2.5 text-sm" value={receivingAccount} onChange={(event) => setReceivingAccount(event.target.value)} placeholder="บัญชีที่รับเงิน" />}
-            <button type="submit" className="ucom-primary w-full rounded-full px-4 py-3 text-sm font-semibold disabled:opacity-50" disabled={isLoading || isSubmitting || !currentWallet?.is_initialized}>{isSubmitting ? "กำลังบันทึก..." : `ยืนยันขายเติมเงิน${amount ? ` · ฿${Number(amount).toLocaleString()}` : ""}`}</button>
-          </form>
-        </PageSection>
+          )}
+          <div role="radiogroup" aria-label="วิธีชำระเงิน" className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
+            {PAYMENT_METHODS.map(([value, text]) => (
+              <button key={value} type="button" role="radio" aria-checked={paymentMethod === value} onClick={() => setPaymentMethod(value)} className={payOption(paymentMethod === value)}>{text}</button>
+            ))}
+          </div>
+          {paymentMethod === "transfer" && <input aria-label="บัญชีที่รับเงิน" className="ucom-field h-12 w-full px-4 text-base" value={receivingAccount} onChange={(event) => setReceivingAccount(event.target.value)} placeholder="บัญชีที่รับเงิน" />}
+          <button type="submit" className="ucom-primary h-14 w-full px-4 text-base" disabled={isLoading || isSubmitting || !currentWallet?.is_initialized}>{isSubmitting ? "กำลังบันทึก..." : `ยืนยันขายเติมเงิน${amount ? ` · ฿${Number(amount).toLocaleString("th-TH")}` : ""}`}</button>
+        </form>
 
-        <PageSection title="รายการเติมเงินล่าสุด">
-          <div className="ucom-table-wrap">
-            <table className="ucom-table">
-              <thead><tr><th>วันเวลา</th><th>ค่าย</th><th className="text-right">ยอดลูกค้า</th>{isOwner && <th className="text-right">ค่าคอม</th>}<th>พนักงาน</th></tr></thead>
-              <tbody>
-                {history.map((row) => <tr key={row.sale_item_id}><td className="text-ink-muted">{row.sold_at ? new Date(row.sold_at).toLocaleString("th-TH") : "—"}</td><td>{row.carrier_name}{row.is_imported && <span className="ml-2 text-xs text-ink-muted">นำเข้า</span>}</td><td className="text-right font-mono">฿{(row.amount ?? 0).toLocaleString()}</td>{isOwner && <td className="text-right font-mono text-success">฿{(row.commission ?? 0).toLocaleString()}</td>}<td className="text-ink-muted">{row.cashier_name ?? "—"}</td></tr>)}
-              </tbody>
-            </table>
-            {!isLoading && history.length === 0 && <p className="p-6 text-center text-sm text-ink-muted">ยังไม่มีรายการเติมเงิน</p>}
-          </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-ink-muted">
-            <span>หน้า {historyPage} · {historyTotal} รายการ</span>
-            <div className="flex gap-2"><button type="button" className="ucom-secondary rounded-full px-3 py-1.5 disabled:opacity-40" disabled={historyPage === 1} onClick={() => setHistoryPage((page) => page - 1)}>ก่อนหน้า</button><button type="button" className="ucom-secondary rounded-full px-3 py-1.5 disabled:opacity-40" disabled={historyPage * 20 >= historyTotal} onClick={() => setHistoryPage((page) => page + 1)}>ถัดไป</button></div>
-          </div>
-        </PageSection>
+        <TopupHistory rows={history} total={historyTotal} page={historyPage} isOwner={isOwner} isLoading={isLoading} onPageChange={setHistoryPage} />
       </div>
       {isFundOpen && <WalletFundDialog wallets={wallets} onClose={() => setIsFundOpen(false)} onSaved={() => { void loadPage(); }} />}
       <ConfirmDialog
@@ -238,8 +241,8 @@ export default function TopupPage() {
         onClose={() => setPendingOpening(null)}
         onConfirm={() => void confirmOpening()}
       >
-        <p className="text-sm text-ink">ยอดจริง ฿{(pendingOpening?.value ?? 0).toLocaleString("th-TH")}</p>
-        <p className="text-sm text-ink-muted">ตั้งได้เพียงครั้งเดียวและแก้ผ่านหน้านี้ไม่ได้</p>
+        <p className="font-semibold tabular-nums">ยอดจริง ฿{(pendingOpening?.value ?? 0).toLocaleString("th-TH")}</p>
+        <p className="text-sm text-muted-foreground">ตั้งได้เพียงครั้งเดียวและแก้ผ่านหน้านี้ไม่ได้</p>
       </ConfirmDialog>
     </PageFrame>
   );

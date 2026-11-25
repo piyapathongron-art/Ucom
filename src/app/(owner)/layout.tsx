@@ -11,7 +11,7 @@ export default async function OwnerLayout({ children }: LayoutProps<"/">) {
     : { data: null };
 
   return (
-    <div className="flex min-h-full flex-1 flex-col lg:flex-row">
+    <div className="flex min-h-full flex-1 flex-col lg:flex-row lg:items-start lg:gap-4 lg:p-4">
       <NavBar links={buildNavLinks(true)} onLogout={logout} displayName={profile?.display_name || "เจ้าของร้าน"} role="เจ้าของร้าน" />
       <div className="min-w-0 flex-1">{children}</div>
     </div>

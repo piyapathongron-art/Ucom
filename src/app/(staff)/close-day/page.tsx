@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ErrorPanel } from "@/app/_components/ErrorPanel";
 import { PageFrame } from "@/app/_components/PageFrame";
+import { Button } from "@/components/ui/button";
 import BillsSection from "./BillsSection";
 import ItemsSection from "./ItemsSection";
 import LedgerSection from "./LedgerSection";
@@ -25,13 +26,13 @@ export default function CloseDayPage() {
       dataLoading={d.isLoading}
       actions={
         d.isOwner && d.roleResolved ? (
-          <label className="flex items-center gap-2 text-sm text-ink-muted">
-            <span>วันที่</span>
+          <label className="flex flex-col gap-1 text-sm font-semibold text-foreground">
+            วันที่
             <input
               type="date"
               value={d.date}
               onChange={e => d.applyDate(e.target.value)}
-              className="ucom-field px-3 py-1.5 text-sm"
+              className="ucom-field h-11 rounded-full px-4 text-sm"
             />
           </label>
         ) : undefined
@@ -45,18 +46,24 @@ export default function CloseDayPage() {
       )}
 
       {d.queuedCount > 0 && d.isToday && (
-        <div data-testid="close-day-queue-warning" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-warning-bg px-4 py-3 text-sm font-semibold text-warning">
-          <span>ยังมีบิลค้างในคิว {d.queuedCount} ใบ ยอดยังไม่ครบ กรุณาซิงก์หรือจัดการบิลที่มีปัญหาก่อนปิดร้าน</span>
-          <Link href="/pos" className="ucom-secondary px-4 py-1.5 text-xs text-ink">ไปที่หน้าขาย</Link>
+        <div data-testid="close-day-queue-warning" role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-warning-bg px-5 py-4 text-sm text-warning">
+          <span><b className="font-bold">ยังมีบิลค้างในคิว {d.queuedCount} ใบ</b> ยอดยังไม่ครบ กรุณาซิงก์หรือจัดการบิลที่มีปัญหาก่อนปิดร้าน</span>
+          <Button asChild size="sm" className="bg-warning font-semibold text-on-accent hover:bg-warning/90"><Link href="/pos">ไปที่หน้าขาย</Link></Button>
         </div>
       )}
 
       {d.isLoading ? (
-        <div className="text-ink-muted">กำลังโหลด...</div>
+        <div aria-busy="true" aria-label="กำลังโหลด" className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+          {[18, 10].map((first, i) => (
+            <div key={i} className="flex flex-col gap-4">
+              {[first, 8].map((rem, j) => <div key={j} style={{ height: `${rem}rem` }} className="animate-pulse rounded-xl bg-card shadow-card motion-reduce:animate-none" />)}
+            </div>
+          ))}
+        </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
           {/* ซ้าย: กล่องปิดร้าน — ยอดระบบ, รายรับนอกบิล, รายจ่ายประจำวัน, นับเงินสด, ยืนยัน */}
-          <div className="space-y-8">
+          <div className="flex min-w-0 flex-col gap-4">
             {shouldUseCash ? <CashClosing key={d.date} date={d.date} isToday={d.isToday} queuedCount={d.queuedCount} /> : d.cash.isReady ? <ClosingSummary
               cashTotal={d.cashTotal}
               transferTotal={d.transferTotal}
@@ -68,7 +75,7 @@ export default function CloseDayPage() {
               toSend={d.toSend}
               sfCount={d.sfCount}
               fmt={d.fmt}
-            /> : <p role="alert" className="ucom-error">{d.cash.error ?? "กำลังตรวจระบบเงินสด..."}</p>}
+            /> : <p role="alert" className="rounded-2xl bg-danger-bg px-4 py-3 text-sm font-semibold text-danger">{d.cash.error ?? "กำลังตรวจระบบเงินสด..."}</p>}
 
             <LedgerSection
               kind="income"
@@ -123,7 +130,7 @@ export default function CloseDayPage() {
           </div>
 
           {/* ขวา: บิลวันนี้ (ขึ้นก่อน) ตามด้วยสรุปสินค้าของวันนั้น */}
-          <div className="space-y-8">
+          <div className="flex min-w-0 flex-col gap-4">
             <BillsSection
               bills={d.bills}
               fmt={d.fmt}

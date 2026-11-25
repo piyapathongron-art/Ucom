@@ -16,7 +16,7 @@ export function AppToaster() {
           success: "!bg-success-bg !text-success",
           warning: "!bg-warning-bg !text-warning",
           error: "!text-danger",
-          actionButton: "rounded-full bg-accent px-3 py-1 text-xs font-bold text-on-accent",
+          actionButton: "rounded-full bg-primary px-3 py-1 text-xs font-bold text-on-accent",
           closeButton: "text-ink-muted",
         },
       }}
