@@ -314,14 +314,6 @@
   vertical-align: middle;
 }
 
-.ucom-page[data-page="report"] [data-testid^="card-"] {
-  border-color: var(--color-border-strong);
-}
-
-.ucom-page[data-page="report"] [data-testid="card-net_profit"] p:nth-child(2) {
-  color: var(--primary);
-}
-
 .ucom-table tbody tr:last-child td {
   border-bottom: 0;
 }

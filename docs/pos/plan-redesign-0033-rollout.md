@@ -175,6 +175,16 @@ Still to do, in one PR:
   - The fund name stays "เงินเก๊ะ" until owner decision 7.
   - **Checked:** a sample-data harness with stubbed cash RPCs at 1440, 1280 and 375 wide, for staff and owner, before and after closing, and with the cash book off. No overflow; every control is at least 40px. Text-size warnings went from 42 to 33.
   - **Not checked:** against real data, and e2e (`close-day.spec.ts`, `redesign-*.spec.ts`). Test IDs are unchanged.
+- **/report (done on PR #11, 2026-11-25):**
+  - Kept the code's ranges (วันนี้ / สัปดาห์นี้ / เดือนนี้ / ปีนี้ plus a custom range), its four profit cards, and the channel, best-seller, SF and repair panels. No "ส่งออก JSON", no K/M: every amount is in full baht.
+  - Range, view and grouping controls are the /stock segmented pills (40px, active brand blue). The custom range is a labelled fieldset with 40px date fields, side by side on a phone.
+  - The sales card is the brand-blue hero, as on the canvas; the other three are white. The change against the previous period is a chip. Cards are 2×2 on a phone and 4 across from xl.
+  - Summary panels, the daily-profit strip, the empty state and the loading skeletons are white cards. Bars are decorative, with the value always in text beside them.
+  - Bills keep their table (e2e reads cells by column). The bill number is a button, so a row opens from the keyboard. The open row is tinted, channels are chips, and the bill detail is a card with the net amount in brand blue.
+  - Drill-down rows show Thai dates (2569, พฤศจิกายน 2569, อ. 24 พ.ย. 2569) and expand through a button. Day entries get kind chips (SF in neutral grey, not purple) and labelled 40px search and type filters.
+  - Removed the two `globals.css` rules that styled the old dashed report cards.
+  - **Checked:** a harness with stubbed PostgREST responses at 1440 and 375 wide, on all three views, with a bill and a day opened. No overflow; every control is at least 40px. Text-size warnings went from 33 to 13.
+  - **Not checked:** real data, printing a bill, and e2e (`report.spec.ts`, `export.spec.ts`, `redesign-*.spec.ts`). Test IDs and column order are unchanged.
 
 In this order:
 - **/login:** small. Remove the "use a tablet" tip, and add the empty-field error, the pending state and the mobile layout.

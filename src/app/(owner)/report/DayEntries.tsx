@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useId, useState } from "react";
 import { PaginationControls } from "@/app/_components/PaginationControls";
 import { orIlike, pageRange } from "@/lib/supabase/pagination";
 import { createClient } from "@/lib/supabase/client";
@@ -24,8 +24,16 @@ function timeInBangkok(iso: string | null): string {
 }
 
 function money(n: number): string {
-  return n.toLocaleString();
+  return n.toLocaleString("th-TH");
 }
+
+// Kind chips on the ADR 0033 text-on-tint pairs; SF uses brand blue, not purple (owner decision 6 pending).
+const KIND_TONE: Record<string, string> = {
+  sale: "bg-accent text-accent-foreground",
+  repair: "bg-success-bg text-success",
+  sf: "bg-secondary text-foreground",
+  expense: "bg-danger-bg text-danger",
+};
 
 // The line items of one bill. Only sale entries open — a repair job's money is its quote
 // and its part cost, which the entry row already shows in full.
@@ -82,9 +90,9 @@ export function SaleLines({ saleId }: { saleId: string }) {
   }, [saleId, page, pageSize]);
 
   if (failed) return <p className="px-4 py-2 text-sm text-danger">โหลดรายการสินค้าไม่สำเร็จ</p>;
-  if (!lines) return <p className="px-4 py-2 text-sm text-ink-muted">กำลังโหลด</p>;
+  if (!lines) return <p className="px-4 py-2 text-sm text-muted-foreground">กำลังโหลด</p>;
   if (lines.length === 0)
-    return <p className="px-4 py-2 text-sm text-ink-muted">บิลนี้ไม่มีรายการสินค้า</p>;
+    return <p className="px-4 py-2 text-sm text-muted-foreground">บิลนี้ไม่มีรายการสินค้า</p>;
 
   return (
     <div>
@@ -98,7 +106,7 @@ export function SaleLines({ saleId }: { saleId: string }) {
               <td className="px-4 py-1">{line.name_snapshot}</td>
               <td className="px-4 py-1 text-right">× {line.qty ?? 0}</td>
               <td className="px-4 py-1 text-right">{money(line.unit_price ?? 0)}</td>
-              <td className="px-4 py-1 text-right text-ink-muted">
+              <td className="px-4 py-1 text-right text-muted-foreground">
                 {(line.item_discount ?? 0) > 0 ? `ลด ${money(line.item_discount ?? 0)}` : ""}
               </td>
               <td className="px-4 py-1 text-right">
@@ -196,7 +204,7 @@ export function DayEntries({ day }: { day: string }) {
         </button>
       </div>
     );
-  if (isLoading || !entries) return <p className="px-4 py-2 text-sm text-ink-muted">กำลังโหลด</p>;
+  if (isLoading || !entries) return <p className="px-4 py-2 text-sm text-muted-foreground">กำลังโหลด</p>;
   if (entries.length === 0)
     return (
       <div className="space-y-3 px-4 py-3">
@@ -212,7 +220,7 @@ export function DayEntries({ day }: { day: string }) {
             setPage(1);
           }}
         />
-        <p className="text-sm text-ink-muted">ไม่มีรายการในวันนี้</p>
+        <p className="text-sm text-muted-foreground">ไม่มีรายการในวันนี้</p>
         <PaginationControls
           page={page}
           pageSize={pageSize}
@@ -252,19 +260,21 @@ export function DayEntries({ day }: { day: string }) {
           const isOpen = isSale && openSale === entry.ref_id;
           const profit = entryProfit(entry);
             return (
-              <tr key={`${entry.kind}-${entry.ref_id}-${entry.occurred_at}`} className="border-b border-border">
-                <td className="px-4 py-1 align-top" colSpan={7}>
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-ink-muted">{timeInBangkok(entry.occurred_at)}</span>
-                  <span className="rounded border border-border bg-background px-2 py-0.5 text-xs">
+              <tr key={`${entry.kind}-${entry.ref_id}-${entry.occurred_at}`} className="border-b border-border last:border-b-0">
+                <td className="py-2.5 align-top whitespace-normal" colSpan={7}>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  <span className="w-12 tabular-nums text-muted-foreground">{timeInBangkok(entry.occurred_at)}</span>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${KIND_TONE[entry.kind ?? ""] ?? "bg-muted text-foreground"}`}>
                     {KIND_LABEL[entry.kind ?? ""] ?? entry.kind}
                   </span>
-                  <span className="font-medium">{entry.label}</span>
-                  <span className="text-ink-muted">{entry.detail}</span>
-                  <span className="ml-auto">รายได้ {money(entryRevenue(entry))}</span>
+                  <span className="min-w-0 flex-1 basis-40">
+                    <span className="block font-semibold">{entry.label}</span>
+                    {entry.detail && <span className="block text-xs text-muted-foreground">{entry.detail}</span>}
+                  </span>
+                  <span className="tabular-nums">รายได้ {money(entryRevenue(entry))}</span>
                   <span
                     data-testid="entry-profit"
-                    className={`w-32 text-right ${profit < 0 ? "text-danger" : ""}`}
+                    className={`min-w-28 text-right font-semibold tabular-nums ${profit < 0 ? "text-danger" : "text-success"}`}
                   >
                     กำไร {money(profit)}
                   </span>
@@ -272,8 +282,9 @@ export function DayEntries({ day }: { day: string }) {
                     <button
                       type="button"
                       data-testid={`open-sale-${entry.ref_id}`}
+                      aria-expanded={Boolean(isOpen)}
                       onClick={() => setOpenSale(isOpen ? null : entry.ref_id)}
-                      className="ucom-secondary px-2 py-0.5 text-xs"
+                      className="ucom-secondary px-3 text-xs"
                     >
                       {isOpen ? "ปิดรายการ" : "ดูรายการ"}
                     </button>
@@ -313,20 +324,26 @@ function DetailFilters({
   kindFilter: string;
   onKindChange: (value: string) => void;
 }) {
+  const id = useId();
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <label className="sr-only" htmlFor={`${id}-search`}>ค้นหารายการ</label>
       <input
+        id={`${id}-search`}
+        type="search"
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
         data-testid="report-detail-search"
         placeholder="ค้นหารายการ"
-        className="ucom-field w-full px-3 py-2 text-sm md:w-64"
+        className="ucom-field h-10 w-full rounded-full px-4 text-sm md:w-64"
       />
+      <label className="sr-only" htmlFor={`${id}-kind`}>ประเภทรายการ</label>
       <select
+        id={`${id}-kind`}
         value={kindFilter}
         onChange={(event) => onKindChange(event.target.value)}
         data-testid="report-detail-kind"
-        className="ucom-field px-3 py-2 text-sm"
+        className="ucom-field h-10 rounded-full px-4 text-sm"
       >
         <option value="all">ทุกประเภท</option>
         <option value="sale">ขาย</option>

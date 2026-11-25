@@ -19,6 +19,17 @@ const MONEY_COLUMNS = [
 
 const COLUMN_COUNT = MONEY_COLUMNS.length + 1;
 
+// Buckets are ISO prefixes ("2026", "2026-11", "2026-11-24"); show them as Thai dates (Buddhist year).
+const BUCKET_FORMAT: Record<Grouping, Intl.DateTimeFormatOptions> = {
+  year: { year: "numeric" },
+  month: { month: "long", year: "numeric" },
+  day: { weekday: "short", day: "numeric", month: "short", year: "numeric" },
+};
+function bucketLabel(bucket: string, level: Grouping): string {
+  const iso = level === "year" ? `${bucket}-01-01` : level === "month" ? `${bucket}-01` : bucket;
+  return new Intl.DateTimeFormat("th-TH", { ...BUCKET_FORMAT[level], timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
+}
+
 export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: Grouping }) {
   // one flat set for every level: buckets are date prefixes, so "2026", "2026-08" and
   // "2026-08-11" can never collide.
@@ -33,7 +44,7 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
 
   if (rows.length === 0) {
     return (
-      <p data-testid="report-empty" className="text-ink-muted">
+      <p data-testid="report-empty" className="rounded-xl bg-card p-6 text-center text-sm text-muted-foreground shadow-card">
         ไม่มีข้อมูลในช่วงที่เลือก
       </p>
     );
@@ -60,22 +71,27 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
             <tr
               data-testid={`report-row-${row.bucket}`}
               onClick={() => toggle(row.bucket)}
-              className="cursor-pointer border-b border-border hover:bg-background"
+              className={`cursor-pointer ${isOpen && !below ? "bg-accent" : "hover:bg-muted"}`}
             >
-              <td className="px-4 py-2" style={{ paddingLeft: `${depth * 1.5 + 1}rem` }}>
-                <span className="mr-2 inline-block w-3 text-ink-muted">
-                  {isOpen ? "▾" : "▸"}
-                </span>
-                {row.bucket}
+              <td className="py-2" style={{ paddingLeft: `${depth * 1.25 + 1}rem` }}>
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  onClick={(event) => { event.stopPropagation(); toggle(row.bucket); }}
+                  className={`inline-flex min-h-10 items-center gap-2 rounded-md text-left focus-visible:outline-2 focus-visible:outline-primary ${depth === 0 ? "font-bold" : "font-semibold"}`}
+                >
+                  <span aria-hidden="true" className="inline-block w-3 text-muted-foreground">{isOpen ? "▾" : "▸"}</span>
+                  {bucketLabel(row.bucket, level)}
+                </button>
               </td>
               {MONEY_COLUMNS.map(([label, key]) => (
                 <td
                   key={label}
-                  className={`px-4 py-2 text-right font-mono ${
-                    key !== "net_profit" ? "hidden md:table-cell" : ""
-                  } ${row[key] < 0 ? "text-danger" : ""}`}
+                  className={`text-right tabular-nums ${
+                    key !== "net_profit" ? "hidden md:table-cell" : "font-bold"
+                  } ${row[key] < 0 ? "text-danger" : key === "net_profit" ? "text-success" : ""}`}
                 >
-                  {row[key].toLocaleString()}
+                  {row[key].toLocaleString("th-TH")}
                 </td>
               ))}
             </tr>
@@ -83,7 +99,7 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
               (below ? (
                 renderLevel(row.bucketRows, below, depth + 1)
               ) : (
-                <tr data-testid={`report-detail-${row.bucket}`} className="bg-background">
+                <tr data-testid={`report-detail-${row.bucket}`} className="bg-muted">
                   <td colSpan={COLUMN_COUNT} className="p-0" onClick={(event) => event.stopPropagation()}>
                     <DayEntries day={row.bucket} />
                   </td>
@@ -98,12 +114,13 @@ export function ReportTable({ rows, grouping }: { rows: ReportRow[]; grouping: G
     <div className="ucom-table-wrap">
       <table className="ucom-table whitespace-nowrap">
         <thead>
-          <tr className="border-b border-border">
-            <th className="px-4 py-2 font-medium">ช่วง</th>
+          <tr>
+            <th scope="col">ช่วง</th>
             {MONEY_COLUMNS.map(([label, key]) => (
               <th
                 key={label}
-                className={`px-4 py-2 font-medium text-right ${
+                scope="col"
+                className={`text-right ${
                   key !== "net_profit" ? "hidden md:table-cell" : ""
                 }`}
               >

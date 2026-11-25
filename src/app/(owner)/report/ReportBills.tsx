@@ -5,7 +5,7 @@ import { PaginationControls } from "@/app/_components/PaginationControls";
 import { createClient } from "@/lib/supabase/client";
 import { pageRange } from "@/lib/supabase/pagination";
 import { BillDetail } from "./BillDetail";
-import { billLabel, channelOf } from "./summary";
+import { THAI_AID_ACCOUNT, billLabel, channelOf } from "./summary";
 
 type BillRow = {
   id: string;
@@ -22,6 +22,13 @@ const when = (iso: string | null) =>
   iso
     ? new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso))
     : "";
+
+// Channel chips: cash neutral, transfer brand tint, the Thai-aid account amber (text-on-tint pairs).
+const CHANNEL_TONE: Record<string, string> = {
+  เงินสด: "bg-muted text-foreground",
+  โอนเงิน: "bg-accent text-accent-foreground",
+  [THAI_AID_ACCOUNT]: "bg-warning-bg text-warning",
+};
 
 // Every sale bill in the range, newest first. A row opens its line items in place.
 export function ReportBills({ from, to }: { from: string; to: string }) {
@@ -81,49 +88,55 @@ export function ReportBills({ from, to }: { from: string; to: string }) {
 
   if (failed)
     return (
-      <div data-testid="report-bills-error" className="flex items-center justify-between gap-3 rounded-2xl bg-danger/10 p-4 text-sm text-danger">
+      <div data-testid="report-bills-error" role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-danger-bg p-4 text-sm font-semibold text-danger">
         <span>โหลดรายการบิลไม่สำเร็จ</span>
-        <button type="button" onClick={() => setRetryKey((k) => k + 1)} className="ucom-danger px-4 py-2 text-sm">ลองใหม่</button>
+        <button type="button" onClick={() => setRetryKey((k) => k + 1)} className="ucom-danger bg-card px-4 text-sm">ลองใหม่</button>
       </div>
     );
-  if (!bills) return <p className="text-sm text-ink-muted">กำลังโหลดรายการบิล...</p>;
-  if (bills.length === 0) return <p data-testid="report-bills-empty" className="ucom-info">ไม่มีบิลขายในช่วงที่เลือก</p>;
+  if (!bills) return <div aria-busy="true" aria-label="กำลังโหลดรายการบิล" className="h-72 animate-pulse rounded-xl bg-card shadow-card motion-reduce:animate-none" />;
+  if (bills.length === 0) return <p data-testid="report-bills-empty" className="rounded-xl bg-card p-6 text-center text-sm text-muted-foreground shadow-card">ไม่มีบิลขายในช่วงที่เลือก</p>;
 
   return (
     <div className="space-y-3">
       <div className="ucom-table-wrap">
+        <p className="px-5 pt-4 pb-1 text-sm text-muted-foreground">กดเลขที่บิลหรือแถวเพื่อดูรายการสินค้าในบิล</p>
         <table data-testid="report-bills" className="ucom-table whitespace-nowrap">
           <thead>
             <tr>
-              <th>เลขที่บิล</th>
-              <th>เวลา</th>
-              <th>ช่องทาง</th>
-              <th>พนักงาน</th>
-              <th className="text-right">ยอดรวม</th>
-              <th className="text-right">กำไร</th>
+              <th scope="col">เลขที่บิล</th>
+              <th scope="col">เวลา</th>
+              <th scope="col">ช่องทาง</th>
+              <th scope="col">พนักงาน</th>
+              <th scope="col" className="text-right">ยอดรวม</th>
+              <th scope="col" className="text-right">กำไร</th>
             </tr>
           </thead>
           <tbody>
             {bills.map((bill) => {
               const isOpen = openId === bill.id;
+              const toggle = () => setOpenId(isOpen ? null : bill.id);
               return (
                 <Fragment key={bill.id}>
                   <tr
                     data-testid={`report-bill-${bill.id}`}
-                    onClick={() => setOpenId(isOpen ? null : bill.id)}
+                    onClick={toggle}
                     aria-expanded={isOpen}
-                    className="cursor-pointer hover:bg-brand-ink/40"
+                    className={`cursor-pointer ${isOpen ? "bg-accent shadow-[inset_3px_0_0_var(--primary)]" : "hover:bg-muted"}`}
                   >
-                    <td data-testid="bill-no" className="font-semibold tabular-nums">{billLabel(bill.billNo)}</td>
-                    <td className="tabular-nums text-ink-muted">{when(bill.occurredAt)}</td>
-                    <td>{bill.channel}</td>
-                    <td className="text-ink-muted">{bill.staff}</td>
+                    <td data-testid="bill-no" className="font-semibold tabular-nums">
+                      <button type="button" aria-expanded={isOpen} onClick={(event) => { event.stopPropagation(); toggle(); }} className="min-h-10 rounded-md text-left focus-visible:outline-2 focus-visible:outline-primary">
+                        {billLabel(bill.billNo)}
+                      </button>
+                    </td>
+                    <td className="tabular-nums text-muted-foreground">{when(bill.occurredAt)}</td>
+                    <td><span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHANNEL_TONE[bill.channel] ?? "bg-muted text-foreground"}`}>{bill.channel}</span></td>
+                    <td className="text-muted-foreground">{bill.staff}</td>
                     <td className="text-right font-semibold tabular-nums">{baht(bill.revenue)}</td>
                     <td className={`text-right font-semibold tabular-nums ${bill.profit < 0 ? "text-danger" : "text-success"}`}>{baht(bill.profit)}</td>
                   </tr>
                   {isOpen && (
                     <tr>
-                      <td colSpan={6} className="bg-sunken !p-0">
+                      <td colSpan={6} className="bg-muted !p-0">
                         <BillDetail saleId={bill.id} netProfit={bill.profit} />
                       </td>
                     </tr>
@@ -134,7 +147,6 @@ export function ReportBills({ from, to }: { from: string; to: string }) {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-ink-muted">คลิกแถวเพื่อดูรายการสินค้าในบิล</p>
       <PaginationControls
         page={page}
         pageSize={pageSize}

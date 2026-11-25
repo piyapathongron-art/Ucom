@@ -16,8 +16,11 @@ export type ReportView = "summary" | "bills" | "drill";
 
 const VIEWS: [ReportView, string][] = [["summary", "สรุป"], ["bills", "รายการบิลทั้งหมด"], ["drill", "เจาะลึกรายวัน/เดือน/ปี"]];
 const baht = (n: number) => `${n < 0 ? "−" : ""}฿${Math.abs(n).toLocaleString("th-TH")}`;
-const segment = (isActive: boolean) =>
-  `rounded-full px-4 py-2 text-[13px] font-semibold ${isActive ? "bg-brand-ink text-white" : "text-ink-muted hover:text-ink"}`;
+// ADR 0033 segmented control, the same one /stock uses: 40px pills, the active one brand blue.
+// On a phone the three view tabs are wider than the screen: they scroll sideways, without a scrollbar.
+export const segmentGroup = "flex w-fit max-w-full gap-1 overflow-x-auto rounded-full bg-card p-1 shadow-card [scrollbar-width:none]";
+export const segment = (isActive: boolean) =>
+  `h-10 shrink-0 rounded-full px-4 text-sm font-semibold whitespace-nowrap ${isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`;
 
 export function ReportClient({ initialView }: { initialView: ReportView }) {
   const supabase = createClient();
@@ -112,7 +115,7 @@ export function ReportClient({ initialView }: { initialView: ReportView }) {
       description={new Intl.DateTimeFormat("th-TH", { dateStyle: "full", timeZone: "Asia/Bangkok" }).format(new Date())}
       dataLoading={isLoading}
       actions={
-        <div className="flex gap-1 rounded-full bg-sunken p-1">
+        <div role="group" aria-label="ช่วงเวลา" className={segmentGroup}>
           {quick.map(([key, label, qFrom, qTo, g]) => (
             <button key={key} type="button" onClick={() => applyRange(qFrom, qTo, g)} data-testid={`quick-${key}`} aria-pressed={from === qFrom && to === qTo} className={segment(from === qFrom && to === qTo)}>
               {label}
@@ -123,39 +126,50 @@ export function ReportClient({ initialView }: { initialView: ReportView }) {
     >
       {error && <ErrorPanel message={error} onRetry={() => { setIsLoading(true); setReloadKey((value) => value + 1); }} />}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div role="tablist" aria-label="มุมมองรายงาน" className="flex gap-1 rounded-full bg-sunken p-1">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div role="tablist" aria-label="มุมมองรายงาน" className={segmentGroup}>
           {VIEWS.map(([key, label]) => (
             <button key={key} type="button" role="tab" aria-selected={view === key} onClick={() => pickView(key)} data-testid={`report-tab-${key}`} className={segment(view === key)}>
               {label}
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-xs text-ink-muted">
-          <span>กำหนดช่วงวันที่เอง</span>
-          <input type="date" value={from} onChange={(e) => applyRange(e.target.value, to)} data-testid="report-from" aria-label="ตั้งแต่วันที่" className="ucom-field px-3.5 py-1.5 text-sm" />
-          <span aria-hidden="true">–</span>
-          <input type="date" value={to} onChange={(e) => applyRange(from, e.target.value)} data-testid="report-to" aria-label="ถึงวันที่" className="ucom-field px-3.5 py-1.5 text-sm" />
-        </label>
+        <fieldset className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-end">
+          <legend className="mb-1 text-sm font-semibold text-foreground">กำหนดช่วงวันที่เอง</legend>
+          <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">ตั้งแต่
+            <input type="date" value={from} onChange={(e) => applyRange(e.target.value, to)} data-testid="report-from" aria-label="ตั้งแต่วันที่" className="ucom-field h-10 w-full min-w-0 rounded-full px-3 text-sm sm:px-4" />
+          </label>
+          <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">ถึง
+            <input type="date" value={to} onChange={(e) => applyRange(from, e.target.value)} data-testid="report-to" aria-label="ถึงวันที่" className="ucom-field h-10 w-full min-w-0 rounded-full px-3 text-sm sm:px-4" />
+          </label>
+        </fieldset>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {cards.map((card) => (
-          <div key={card.key} data-testid={`card-${card.key}`} className="ucom-surface flex flex-col gap-1.5 rounded-2xl border border-dashed border-border p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">{card.label}</p>
-            <p className={`text-[26px] font-bold leading-[30px] tabular-nums ${card.value < 0 ? "text-danger" : "text-ink"}`}>{baht(card.value)}</p>
-            <p className="text-[12.5px] font-medium text-ink-muted">{card.sub}</p>
-            {card.change && (
-              <p data-testid="card-sale_revenue-change" className={`text-[12.5px] font-medium ${card.change.isUp ? "text-success" : "text-danger"}`}>{card.change.text}</p>
-            )}
-          </div>
-        ))}
+      {/* Sales is the hero card (brand blue), as on the canvas; the other three stay white. Full baht, never K/M. */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
+        {cards.map((card, i) => {
+          const isHero = i === 0;
+          return (
+            <div key={card.key} data-testid={`card-${card.key}`} className={`flex min-w-0 flex-col gap-1 rounded-xl p-4 md:p-5 ${isHero ? "bg-primary text-primary-foreground" : "bg-card shadow-card"}`}>
+              <p className={`text-sm font-medium ${isHero ? "text-primary-foreground/85" : "text-muted-foreground"}`}>{card.label}</p>
+              <p className={`text-xl font-bold tabular-nums break-all md:text-3xl ${isHero ? "" : card.value < 0 ? "text-danger" : "text-foreground"}`}>{baht(card.value)}</p>
+              <p className={`text-xs md:text-sm ${isHero ? "text-primary-foreground/85" : "text-muted-foreground"}`}>{card.sub}</p>
+              {card.change && (
+                <p data-testid="card-sale_revenue-change" className="mt-1">
+                  <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold md:text-sm ${isHero ? "bg-primary-foreground/20 text-primary-foreground" : card.change.isUp ? "bg-success-bg text-success" : "bg-danger-bg text-danger"}`}>{card.change.text}</span>
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {isLoading ? (
-        <p className="text-ink-muted">กำลังโหลด</p>
+        <div aria-busy="true" aria-label="กำลังโหลด" className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+          {[16, 16].map((rem, i) => <div key={i} style={{ height: `${rem}rem` }} className="animate-pulse rounded-xl bg-card shadow-card motion-reduce:animate-none" />)}
+        </div>
       ) : rows.length === 0 ? (
-        <p data-testid="report-empty" className="ucom-info">ไม่มีข้อมูลในช่วงที่เลือก</p>
+        <p data-testid="report-empty" className="rounded-xl bg-card p-6 text-center text-sm text-muted-foreground shadow-card">ไม่มีข้อมูลในช่วงที่เลือก</p>
       ) : view === "summary" ? (
         <ReportSummary from={from} to={to} />
       ) : view === "bills" ? (
@@ -165,7 +179,7 @@ export function ReportClient({ initialView }: { initialView: ReportView }) {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="flex gap-1 self-start rounded-full bg-sunken p-1 w-fit">
+          <div role="group" aria-label="จัดกลุ่ม" className={segmentGroup}>
             {(Object.entries(GROUPING_LABEL) as [Grouping, string][]).map(([g, label]) => (
               <button key={g} type="button" onClick={() => setGrouping(g)} data-testid={`group-${g}`} aria-pressed={grouping === g} className={segment(grouping === g)}>
                 {label}
