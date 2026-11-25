@@ -35,8 +35,8 @@ export function LedgerAddDialog({ kind, withDate, defaultDate, testIdPrefix, onC
   const [formError, setFormError] = useState<string | null>(null);
   const isExpense = kind === "expense";
   const canSubmit = cash.isReady && name.trim() !== "" && Number(amount) > 0 && (!withDate || date !== "") && !saving;
-  const field = "ucom-field w-full px-4 py-2.5 text-sm";
-  const lbl = "block space-y-1 text-xs font-semibold text-ink-muted";
+  const field = "ucom-field h-12 w-full px-4 text-base font-normal";
+  const lbl = "block space-y-1.5 text-sm font-semibold";
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -56,15 +56,15 @@ export function LedgerAddDialog({ kind, withDate, defaultDate, testIdPrefix, onC
       onClose={onClose}
       title={isExpense ? "บันทึกรายจ่าย" : "บันทึกรายรับนอกบิล"}
       footer={<>
-        <button type="button" onClick={onClose} className="ucom-secondary px-5 py-2.5">ยกเลิก</button>
-        <button type="submit" form="ledger-add-form" data-testid={`${testIdPrefix}-submit`} disabled={!canSubmit} className="ucom-primary px-5 py-2.5 disabled:opacity-40">
-          {isExpense ? "บันทึกรายจ่าย" : "บันทึกรายรับ"}
+        <button type="button" onClick={onClose} className="ucom-secondary h-12 px-6">ยกเลิก</button>
+        <button type="submit" form="ledger-add-form" data-testid={`${testIdPrefix}-submit`} disabled={!canSubmit} className="ucom-primary h-12 px-6">
+          {saving ? "กำลังบันทึก..." : isExpense ? "บันทึกรายจ่าย" : "บันทึกรายรับ"}
         </button>
       </>}
     >
-      <form id="ledger-add-form" onSubmit={(e) => void submit(e)} className="space-y-3">
+      <form id="ledger-add-form" onSubmit={(e) => void submit(e)} className="space-y-4">
         <label className={lbl}><span>รายการ</span><input required data-testid={`${testIdPrefix}-name`} value={name} onChange={(e) => setName(e.target.value)} className={field} placeholder="ชื่อรายการ" /></label>
-        <label className={lbl}><span>จำนวนเงิน (บาท)</span><input type="number" required min="0.01" step="any" data-testid={`${testIdPrefix}-amount`} value={amount} onChange={(e) => setAmount(e.target.value)} className={field} placeholder="0.00" /></label>
+        <label className={lbl}><span>จำนวนเงิน (บาท)</span><input type="number" required min="0.01" step="any" data-testid={`${testIdPrefix}-amount`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} className={`${field} font-semibold tabular-nums`} placeholder="0.00" /></label>
         {withDate && <label className={lbl}><span>วันที่</span><input type="date" required data-testid={`${testIdPrefix}-date`} value={date} onChange={(e) => setDate(e.target.value)} className={field} /></label>}
         <label className={lbl}><span>{isExpense ? "จ่ายจาก" : "รับเข้า"}</span>
           {cash.isActive ? <FundSelect value={fund} onChange={setFund} allowDrawer={isExpense} disabled={saving} testId={`${testIdPrefix}-${isExpense ? "paid-from" : "received-to"}`} /> :
@@ -73,7 +73,8 @@ export function LedgerAddDialog({ kind, withDate, defaultDate, testIdPrefix, onC
             <option value="transfer">{LEDGER_METHOD_LABEL[kind].transfer}</option>
           </select>}
         </label>
-        {(cash.error || formError) && <p role="alert" className="text-sm text-danger">{cash.error || formError}</p>}
+        {cash.isActive && <p className="text-sm text-muted-foreground">บันทึกแล้วจะลบเองไม่ได้ ถ้าผิดให้เจ้าของแก้พร้อมเหตุผลที่หน้าเงินสด</p>}
+        {(cash.error || formError) && <p role="alert" className="rounded-xl bg-danger-bg px-4 py-3 text-sm font-semibold text-danger">{cash.error || formError}</p>}
       </form>
     </Modal>
   );
