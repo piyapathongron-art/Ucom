@@ -46,7 +46,7 @@ export function Modal({
             type="button"
             onClick={onClose}
             aria-label="ปิด"
-            className="ucom-secondary flex h-8 w-8 shrink-0 items-center justify-center text-ink-muted"
+            className="ucom-secondary flex size-10 shrink-0 items-center justify-center text-ink-muted"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />

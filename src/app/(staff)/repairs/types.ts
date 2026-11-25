@@ -38,9 +38,16 @@ export const REPAIR_STATUS_LABEL: Record<RepairStatus, string> = {
 };
 
 export const REPAIR_STATUS_BADGE: Record<RepairStatus, string> = {
-  pending: "bg-sunken text-ink-muted border border-border-strong",
-  in_progress: "bg-warning-bg text-warning",
-  ready: "bg-sunken text-ink-muted border border-border-strong",
-  collected: "bg-success-bg text-success",
-  abandoned: "bg-sunken text-ink-muted border border-border-strong",
+  pending: "bg-muted text-foreground",
+  in_progress: "bg-accent text-accent-foreground",
+  ready: "bg-success-bg text-success",
+  collected: "bg-muted text-muted-foreground",
+  abandoned: "bg-danger-bg text-danger",
 };
+
+// Shared by the desktop row and the mobile card; every control is at least 40px (ADR 0033).
+export const FORWARD_BUTTON = "inline-flex h-10 items-center rounded-full bg-accent px-3 text-sm font-semibold text-accent-foreground hover:bg-accent/70";
+export const TEXT_LINK = "inline-flex min-h-10 min-w-10 items-center justify-center text-sm font-semibold text-primary underline underline-offset-2";
+export const ABANDON_LINK = "inline-flex min-h-10 items-center justify-center text-sm font-semibold text-danger underline underline-offset-2";
+
+export const formatPrice = (price: number | null) => (price != null ? `฿${price.toLocaleString("th-TH")}` : "-");
