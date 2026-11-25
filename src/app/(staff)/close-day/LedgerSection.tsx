@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { EmptyState } from "@/app/_components/EmptyState";
 import { LEDGER_METHOD_LABEL, LedgerAddDialog, type LedgerKind, type LedgerValues } from "@/app/_components/LedgerAddDialog";
 import { PaginationControls } from "@/app/_components/PaginationControls";
+import { Button } from "@/components/ui/button";
 import { useCashStatus } from "@/lib/cash/useCashStatus";
+import { Panel, panelRow } from "./Panel";
 
 export type CloseDayLedgerRow = { id: string; name: string; amount: number; method: string | null };
 
 // Off-bill expense / income card of the close-day page. Add dialog is the shared one (no date: always today);
-// owners also get a link to the full ledger page.
+// owners also get a link to the full ledger page. Rows are a list, not a table, so they fit a phone.
 export default function LedgerSection({ kind, rows, isToday, isOwner, deleteConfirmId, onSetDeleteConfirmId, onAdd, onDelete, fmt, page, pageSize, total, isLoading, onPageChange, onPageSizeChange }: {
   kind: LedgerKind;
   rows: CloseDayLedgerRow[];
@@ -32,50 +33,47 @@ export default function LedgerSection({ kind, rows, isToday, isOwner, deleteConf
   const cash = useCashStatus();
   const isExpense = kind === "expense";
   const prefix = `close-day-${kind}`;
+  const methodLabel = (method: string | null) =>
+    cash.isActive && method === "cash" ? (isExpense ? "เงินสด" : "เงินรอฝาก") : method ? LEDGER_METHOD_LABEL[kind][method] ?? method : "-";
 
   return (
-    <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">{isExpense ? "รายจ่ายร้าน" : "รายรับนอกบิล"}</h2>
-        <div className="flex items-center gap-2">
-          {isOwner && <Link href="/expenses" data-testid={`${prefix}-ledger-link`} className="text-xs font-semibold text-primary underline">ดูทั้งหมดในหน้ารายรับ–รายจ่าย</Link>}
-          {isToday && <button type="button" onClick={() => setIsAddOpen(true)} data-testid={`open-${prefix}-add`} className="ucom-secondary px-4 py-2 text-sm">+ {isExpense ? "บันทึกรายจ่าย" : "บันทึกรายรับ"}</button>}
-        </div>
-      </div>
-
-      {rows.length === 0 ? <EmptyState title={isExpense ? "ไม่มีรายการรายจ่าย" : "ไม่มีรายการรายรับนอกบิล"} /> : (
-        <div className="ucom-table-wrap">
-          <table className="ucom-table">
-            <thead><tr><th>รายการ</th><th className="text-right">จำนวนเงิน</th><th>{isExpense ? "จ่ายจาก" : "รับเข้า"}</th>{isToday && <th />}</tr></thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id} data-testid={`${prefix}-row-${row.id}`}>
-                  <td className="text-[13.5px] font-semibold">{row.name}</td>
-                  <td className="text-right text-[13.5px] font-semibold tabular-nums">{fmt(row.amount)}</td>
-                  <td className="text-[13px] text-ink-muted">{cash.isActive && row.method === "cash" ? kind === "income" ? "เงินรอฝาก" : "เงินสด" : row.method ? LEDGER_METHOD_LABEL[kind][row.method] ?? row.method : "-"}</td>
-                  {isToday && (
-                    <td>
-                      <div className="flex items-center justify-end gap-2">
-                        {cash.isActive ? <Link href="/cash" className="text-xs text-primary underline">ให้เจ้าของแก้ไข</Link> : !cash.isReady ? <span className="text-xs text-ink-muted">ตรวจสถานะเงินสด</span> : deleteConfirmId === row.id ? (
-                          <>
-                            <button type="button" onClick={() => void onDelete(row.id)} data-testid={`${prefix}-delete-confirm-${row.id}`} className="rounded-full bg-danger px-3.5 py-1.5 text-xs font-bold text-on-accent">ยืนยันลบ</button>
-                            <button type="button" onClick={() => onSetDeleteConfirmId(null)} className="ucom-secondary px-3.5 py-1.5 text-xs">ยกเลิก</button>
-                          </>
-                        ) : (
-                          <button type="button" onClick={() => onSetDeleteConfirmId(row.id)} data-testid={`${prefix}-delete-${row.id}`} className="ucom-danger px-3.5 py-1.5 text-xs">ลบ</button>
-                        )}
-                      </div>
-                    </td>
+    <Panel
+      title={isExpense ? "รายจ่ายร้าน" : "รายรับนอกบิล"}
+      action={<>
+        {isOwner && <Link href="/expenses" data-testid={`${prefix}-ledger-link`} className="inline-flex min-h-10 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline">ดูทั้งหมดในหน้ารายรับ–รายจ่าย</Link>}
+        {isToday && <Button type="button" variant="secondary" size="sm" onClick={() => setIsAddOpen(true)} data-testid={`open-${prefix}-add`} className="bg-accent font-semibold text-accent-foreground">+ {isExpense ? "บันทึกรายจ่าย" : "บันทึกรายรับ"}</Button>}
+      </>}
+    >
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{isExpense ? "ไม่มีรายการรายจ่าย" : "ไม่มีรายการรายรับนอกบิล"}</p>
+      ) : (
+        <ul aria-label={isExpense ? "รายจ่ายร้าน" : "รายรับนอกบิล"}>
+          {rows.map((row) => (
+            <li key={row.id} data-testid={`${prefix}-row-${row.id}`} className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1 ${panelRow}`}>
+              <span className="min-w-0 flex-1 font-medium">{row.name}</span>
+              <span className="tabular-nums">
+                <span className="font-semibold">฿{fmt(row.amount)}</span>
+                {row.method && <span className="text-muted-foreground"> · {isExpense ? "จ่ายจาก" : "รับเข้า"}{methodLabel(row.method)}</span>}
+              </span>
+              {isToday && (
+                <span className="flex items-center gap-2">
+                  {cash.isActive ? <Link href="/cash" className="inline-flex min-h-10 items-center text-xs font-semibold text-primary underline-offset-4 hover:underline">ให้เจ้าของแก้ไข</Link> : !cash.isReady ? <span className="text-xs text-muted-foreground">ตรวจสถานะเงินสด</span> : deleteConfirmId === row.id ? (
+                    <>
+                      <Button type="button" size="xs" onClick={() => void onDelete(row.id)} data-testid={`${prefix}-delete-confirm-${row.id}`} className="bg-danger font-bold text-on-accent hover:bg-danger/90">ยืนยันลบ</Button>
+                      <Button type="button" size="xs" variant="outline" onClick={() => onSetDeleteConfirmId(null)}>ยกเลิก</Button>
+                    </>
+                  ) : (
+                    <Button type="button" size="xs" variant="destructive" onClick={() => onSetDeleteConfirmId(row.id)} data-testid={`${prefix}-delete-${row.id}`}>ลบ</Button>
                   )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
 
-      <PaginationControls page={page} pageSize={pageSize} total={total} isLoading={isLoading} label={isExpense ? "รายจ่าย" : "รายรับนอกบิล"} testIdPrefix={`close-day-${isExpense ? "expenses" : "income"}-pagination`} onPageChange={onPageChange} onPageSizeChange={onPageSizeChange} />
+      {total > pageSize && <PaginationControls page={page} pageSize={pageSize} total={total} isLoading={isLoading} label={isExpense ? "รายจ่าย" : "รายรับนอกบิล"} testIdPrefix={`close-day-${isExpense ? "expenses" : "income"}-pagination`} onPageChange={onPageChange} onPageSizeChange={onPageSizeChange} />}
       {isAddOpen && <LedgerAddDialog kind={kind} withDate={false} defaultDate="" testIdPrefix={prefix} onClose={() => setIsAddOpen(false)} onSubmit={onAdd} />}
-    </section>
+    </Panel>
   );
 }

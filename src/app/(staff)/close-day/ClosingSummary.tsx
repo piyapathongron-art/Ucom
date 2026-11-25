@@ -13,6 +13,7 @@ interface Props {
   fmt: (n: number) => string;
 }
 
+// Day totals for the single-drawer close (cash book off). The two-fund close uses CashClosing instead.
 export default function ClosingSummary({
   cashTotal,
   transferTotal,
@@ -25,55 +26,47 @@ export default function ClosingSummary({
   sfCount,
   fmt,
 }: Props) {
+  const tiles = [
+    ["เงินสด", cashTotal, "close-day-cash-total"],
+    ["เงินโอน", transferTotal, "close-day-transfer-total"],
+    ["รายรับนอกบิล (เงินสด)", cashIncomeTotal, "close-day-income-total"],
+    ["รายจ่าย (เงินสด)", cashExpenseTotal, "close-day-expense-total"],
+    ["จ่ายเจ้าของเครื่องฝากเข้า (เงินสด)", cashConsignmentPayoutTotal, "close-day-consignment-payout-total"],
+    ["ค่าอะไหล่จากลิ้นชัก", cashPartTotal, "close-day-part-total"],
+  ] as const;
+
   return (
-    <>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="ucom-surface p-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">เงินสด</p>
-          <p data-testid="close-day-cash-total" className="text-xl font-semibold font-mono tabular-nums mt-1">{fmt(cashTotal)}</p>
-        </div>
-        <div className="ucom-surface p-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">เงินโอน</p>
-          <p data-testid="close-day-transfer-total" className="text-xl font-semibold font-mono tabular-nums mt-1">{fmt(transferTotal)}</p>
-        </div>
-        <div className="ucom-surface p-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">รายรับนอกบิล (เงินสด)</p>
-          <p data-testid="close-day-income-total" className="text-xl font-semibold font-mono tabular-nums mt-1">{fmt(cashIncomeTotal)}</p>
-        </div>
-        <div className="ucom-surface p-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">รายจ่าย (เงินสด)</p>
-          <p data-testid="close-day-expense-total" className="text-xl font-semibold font-mono tabular-nums mt-1">{fmt(cashExpenseTotal)}</p>
-        </div>
-        <div className="ucom-surface p-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">จ่ายเจ้าของเครื่องฝากเข้า (เงินสด)</p>
-          <p data-testid="close-day-consignment-payout-total" className="text-xl font-semibold font-mono tabular-nums mt-1">{fmt(cashConsignmentPayoutTotal)}</p>
-        </div>
-        <div className="ucom-surface p-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">ค่าอะไหล่จากลิ้นชัก</p>
-          <p data-testid="close-day-part-total" className="text-xl font-semibold font-mono tabular-nums mt-1">{fmt(cashPartTotal)}</p>
-        </div>
-      </div>
+    <section className="flex flex-col gap-4 rounded-xl bg-card p-5 shadow-card md:p-6" aria-labelledby="close-day-summary-title">
+      <h2 id="close-day-summary-title" className="text-lg font-bold">สรุปยอดวันนี้</h2>
+      <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {tiles.map(([label, value, testId]) => (
+          <div key={testId} className="rounded-2xl bg-muted px-4 py-3">
+            <dt className="text-sm text-muted-foreground">{label}</dt>
+            <dd data-testid={testId} className="mt-0.5 text-xl font-bold tabular-nums">{fmt(value)}</dd>
+          </div>
+        ))}
+      </dl>
 
       {parts.length > 0 && (
-        <div className="ucom-surface p-4">
-          <p className="mb-2 text-sm font-semibold">เงินออกจากลิ้นชัก · อะไหล่</p>
-          {parts.map((part) => (
-            <div key={part.id} className="flex justify-between gap-3 text-sm">
-              <span>อะไหล่ · {part.job_label}</span>
-              <span className="font-mono tabular-nums">฿{fmt(Number(part.amount))}</span>
-            </div>
-          ))}
+        <div className="rounded-2xl bg-muted px-4 py-3">
+          <p className="mb-1 text-sm font-semibold">เงินออกจากลิ้นชัก · อะไหล่</p>
+          <ul>
+            {parts.map((part) => (
+              <li key={part.id} className="flex justify-between gap-3 py-1 text-sm">
+                <span>อะไหล่ · {part.job_label}</span>
+                <span className="tabular-nums">฿{fmt(Number(part.amount))}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
-      <div className="ucom-surface p-4">
-        <p className="text-sm font-medium text-ink">ยอดที่ต้องส่ง</p>
-        <p data-testid="close-day-to-send" className="text-2xl font-bold font-mono tabular-nums mt-1 text-ink">{fmt(toSend)}</p>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 rounded-2xl bg-accent px-4 py-4">
+        <p className="font-semibold text-accent-foreground">ยอดที่ต้องส่ง</p>
+        <p data-testid="close-day-to-send" className="text-2xl font-bold tabular-nums text-foreground">{fmt(toSend)}</p>
       </div>
 
-      {sfCount > 0 && (
-        <div className="text-ink font-medium">ปล่อย SF+ วันนี้ {sfCount} เครื่อง</div>
-      )}
-    </>
+      {sfCount > 0 && <p className="text-sm font-medium">ปล่อย SF+ วันนี้ {sfCount} เครื่อง</p>}
+    </section>
   );
 }

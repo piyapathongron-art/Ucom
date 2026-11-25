@@ -164,6 +164,17 @@ Still to do, in one PR:
   - `PageFrame`, `Drawer`, `ConfirmDialog` and the legacy `.ucom-*` classes are now sized to ADR 0033 (40px controls, 14px button text, no uppercase labels).
   - Every page not yet redesigned gets these too.
   - Arbitrary text-size warnings went from 60 to 42.
+- **/close-day (done on PR #11, 2026-11-25):**
+  - The two-fund card follows ADR 0032's three steps as tinted step cards: done is green with a tick, the current step is outlined, later steps are muted. Step 2 stays locked until step 1 is done, so the canvas's "count while a bill is queued" state cannot happen.
+  - Count fields are 52px with labels in baht and a one-line hint for each fund. The review button is 48px and full width.
+  - Staff never see system balances; the owner sees three balance tiles. After closing, everyone sees the latest revision as a green status card with the counts and a ตรง / ขาด / เกิน chip per fund, which is the difference ADR 0032 already shows staff. The system figures stay owner-only.
+  - The confirm dialog tints each fund by its difference, and the cancel button reads "กลับไปนับใหม่".
+  - Ledger, bills and items are white cards with list rows instead of tables, so they fit 375px. Item kinds are in Thai. Ledger pagination shows only when there is more than one page.
+  - The cash-book-off path (`ClosingSummary`, `ClosingForm`) gets the same cards and a 52px count field.
+  - The undefined `ucom-error` class is replaced with the danger pair on this page.
+  - The fund name stays "เงินเก๊ะ" until owner decision 7.
+  - **Checked:** a sample-data harness with stubbed cash RPCs at 1440, 1280 and 375 wide, for staff and owner, before and after closing, and with the cash book off. No overflow; every control is at least 40px. Text-size warnings went from 42 to 33.
+  - **Not checked:** against real data, and e2e (`close-day.spec.ts`, `redesign-*.spec.ts`). Test IDs are unchanged.
 
 In this order:
 - **/login:** small. Remove the "use a tablet" tip, and add the empty-field error, the pending state and the mobile layout.
