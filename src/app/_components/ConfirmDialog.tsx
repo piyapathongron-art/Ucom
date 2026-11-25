@@ -23,7 +23,7 @@ export function ConfirmDialog({ open, title, confirmLabel, cancelLabel = "ยก
       title={title}
       footer={<>
         <button type="button" onClick={onClose} disabled={isBusy} className="ucom-secondary px-5 py-2.5">{cancelLabel}</button>
-        <button type="button" onClick={onConfirm} data-testid={confirmTestId} disabled={isBusy || !canConfirm} className="rounded-full bg-warning px-5 py-2.5 text-[13.5px] font-bold text-on-accent disabled:opacity-50">{confirmLabel}</button>
+        <button type="button" onClick={onConfirm} data-testid={confirmTestId} disabled={isBusy || !canConfirm} className="rounded-full bg-warning px-5 py-2.5 text-sm font-bold text-on-accent disabled:opacity-50">{confirmLabel}</button>
       </>}
     >
       {children}

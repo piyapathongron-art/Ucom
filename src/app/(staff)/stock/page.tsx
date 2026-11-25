@@ -19,7 +19,7 @@ const STATUS_BY_KIND: Record<StockKind, string[]> = {
   device: ["in_stock", "consigned_out", "written_off"],
 };
 
-const chip = "ucom-field border-dashed px-3.5 py-2 text-sm";
+const chip = "ucom-field h-10 px-3.5 text-sm";
 
 export default function StockPage() {
   const supabase = createClient();
@@ -181,7 +181,7 @@ export default function StockPage() {
             type="button"
             onClick={() => setDrawer({ kind: kindFilter, row: null })}
             data-testid={isProduct ? "open-add-product" : "open-add-device"}
-            className="ucom-primary px-[18px] py-2.5"
+            className="ucom-primary h-11 px-5"
           >
             + {isProduct ? "เพิ่มสินค้าใหม่" : "เพิ่มเครื่อง (ซื้อขาด)"}
           </button>
@@ -191,7 +191,7 @@ export default function StockPage() {
       {error && <ErrorPanel message={error} onRetry={() => void loadStock()} />}
 
       <div className="ucom-toolbar">
-        <div className="flex gap-1 rounded-full bg-sunken p-1">
+        <div className="flex gap-1 rounded-full bg-muted p-1">
           {(["product", "device"] as const).map((kind) => (
             <button
               key={kind}
@@ -199,7 +199,7 @@ export default function StockPage() {
               onClick={() => pickKind(kind)}
               data-testid={`stock-kind-${kind}`}
               aria-pressed={kindFilter === kind}
-              className={`rounded-full px-4 py-1.5 text-sm ${kindFilter === kind ? "bg-brand-ink font-semibold text-white" : "text-ink-muted"}`}
+              className={`h-10 rounded-full px-4 text-sm font-semibold ${kindFilter === kind ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               {kind === "product" ? "สินค้า (นับจำนวน)" : "เครื่อง (นับ IMEI)"}
             </button>
@@ -227,12 +227,16 @@ export default function StockPage() {
           <option value="all">สถานะ: ทั้งหมด</option>
           {STATUS_BY_KIND[kindFilter].map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
         </select>
-        <input
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          placeholder="ค้นหาสินค้า / เครื่อง / SKU / IMEI"
-          className="ucom-field ml-auto w-full px-4 py-2 text-sm md:w-80"
-        />
+        <label className="ml-auto flex w-full items-center gap-2 rounded-xl border border-input bg-card px-3.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25 md:w-80">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true" className="size-4 shrink-0 text-muted-foreground"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
+          <span className="sr-only">ค้นหาในสต็อก</span>
+          <input
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            placeholder="ค้นหาสินค้า / เครื่อง / SKU / IMEI"
+            className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+        </label>
       </div>
 
       {isLoading && rows.length === 0 ? (

@@ -165,8 +165,10 @@
   isolation: isolate;
 }
 
+/* Legacy ucom classes, sized to ADR 0033 so pages not yet redesigned already meet it:
+   ~22px cards, controls at least 40px, 14px button text, labels never uppercase (Thai). */
 .ucom-surface {
-  border-radius: 20px;
+  border-radius: calc(var(--radius) * 1.4);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
 }
@@ -176,30 +178,41 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem;
-  border-radius: 20px;
+  border-radius: calc(var(--radius) * 1.4);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
   padding: 0.75rem;
 }
 
 .ucom-field {
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-sunken);
+  min-height: 2.5rem;
+  border: 1px solid var(--input);
+  border-radius: calc(var(--radius) * 0.8);
+  background: var(--card);
   color: var(--color-ink);
   outline: none;
 }
 
 .ucom-field:focus-visible {
-  border-color: var(--color-ink);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-ink) 14%, transparent);
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 25%, transparent);
+}
+
+.ucom-primary,
+.ucom-secondary,
+.ucom-danger {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
 }
 
 .ucom-primary {
   border-radius: 999px;
   background: var(--primary);
-  color: var(--color-on-accent);
-  font-size: 13.5px;
+  color: var(--primary-foreground);
+  font-size: 0.875rem;
   font-weight: 700;
   transition: opacity 160ms ease, transform 160ms ease;
 }
@@ -224,7 +237,7 @@
 }
 
 .ucom-primary:focus-visible {
-  outline: 2px solid var(--color-ink);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -233,7 +246,7 @@
   border-radius: 999px;
   background: var(--color-surface);
   color: var(--color-ink);
-  font-size: 13.5px;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
@@ -245,7 +258,7 @@
   border: 1px solid color-mix(in srgb, var(--color-danger) 36%, var(--color-border));
   border-radius: 999px;
   color: var(--color-danger);
-  font-size: 13.5px;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
@@ -266,7 +279,7 @@
 
 .ucom-table-wrap {
   overflow-x: auto;
-  border-radius: 20px;
+  border-radius: calc(var(--radius) * 1.4);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
 }
@@ -286,12 +299,10 @@
 }
 
 .ucom-table th {
-  background: var(--color-sunken);
-  color: var(--color-ink-muted);
-  font-size: 11px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   text-align: left;
   white-space: nowrap;
 }
@@ -319,7 +330,7 @@
 /* Unlayered on purpose: must beat px-* utilities so text never runs under the chevron. */
 select.ucom-field {
   appearance: none;
-  padding-right: 2.25rem;
+  padding-right: 2.5rem;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%234b5563' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.9rem center;

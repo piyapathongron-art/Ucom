@@ -150,6 +150,21 @@ Still to do, in one PR:
 
 ## Step 5. /login, /stock, /close-day, /report
 
+**Status (2026-11-25): /login and /stock done on PR #11; /close-day and /report not started.**
+- **/login:**
+  - a brand panel from lg, without the false offline claim;
+  - 48px labelled fields and a Thai error with `role="alert"`;
+  - a submit button with a pending state;
+  - the "use a tablet" tip is gone.
+- **/stock:**
+  - a 40px segmented kind toggle and a labelled search (same placeholder);
+  - the table below md becomes cards;
+  - status chips on the status pairs, and the quantity stepper at 40px (was 28px).
+- **Shared:**
+  - `PageFrame`, `Drawer`, `ConfirmDialog` and the legacy `.ucom-*` classes are now sized to ADR 0033 (40px controls, 14px button text, no uppercase labels).
+  - Every page not yet redesigned gets these too.
+  - Arbitrary text-size warnings went from 60 to 42.
+
 In this order:
 - **/login:** small. Remove the "use a tablet" tip, and add the empty-field error, the pending state and the mobile layout.
 - **/stock:**

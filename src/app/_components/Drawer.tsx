@@ -12,10 +12,10 @@ export function Drawer({ open, onClose, title, footer, children }: { open: boole
     if (!open && dialog.open) dialog.close();
   }, [open]);
   return (
-    <dialog ref={ref} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()} className="m-0 ml-auto h-full max-h-full w-[min(380px,100vw)] bg-surface p-0 text-ink shadow-2xl backdrop:bg-background/80 open:flex open:flex-col">
+    <dialog ref={ref} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()} className="m-0 ml-auto h-full max-h-full w-[min(400px,100vw)] rounded-l-xl bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/40 open:flex open:flex-col">
       <div className="flex items-center justify-between px-6 pt-5 pb-3">
         <h2 className="text-lg font-bold">{title}</h2>
-        <button type="button" onClick={onClose} aria-label="ปิด" className="ucom-secondary grid h-8 w-8 place-items-center text-ink-muted">
+        <button type="button" onClick={onClose} aria-label="ปิด" className="grid size-10 place-items-center rounded-full bg-muted text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" /></svg>
         </button>
       </div>

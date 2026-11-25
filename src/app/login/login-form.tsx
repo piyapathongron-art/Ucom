@@ -1,5 +1,8 @@
 import { login } from "./actions";
+import { SubmitButton } from "./submit-button";
 import { safeReturnPath } from "@/lib/safe-return";
+
+const field = "h-12 w-full rounded-xl border border-input bg-card px-4 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40";
 
 export default async function LoginForm({
   searchParams,
@@ -9,88 +12,59 @@ export default async function LoginForm({
   appearance?: "default" | "phone";
 }) {
   const { error, next } = await searchParams;
+  const isPhone = appearance === "phone";
+
+  const form = (
+    <form action={login} className="flex w-full max-w-sm flex-col gap-5 rounded-xl bg-card p-7 shadow-card">
+      <input type="hidden" name="next" value={safeReturnPath(next)} />
+      <div className="flex flex-col items-center gap-2 text-center">
+        <span className="grid size-11 place-items-center rounded-md bg-primary text-lg font-bold text-primary-foreground">U</span>
+        <h1 className="text-xl font-bold text-foreground">เข้าสู่ระบบ</h1>
+        <p className="text-sm text-muted-foreground">ใช้ชื่อผู้ใช้ที่เจ้าของร้านตั้งให้</p>
+      </div>
+
+      {error && (
+        <p role="alert" className="rounded-xl bg-danger-bg p-3 text-sm text-danger">
+          {error === "missing" ? "กรอกชื่อผู้ใช้และรหัสผ่านให้ครบ" : "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง ลองอีกครั้ง"}
+        </p>
+      )}
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="username" className="text-sm font-semibold text-foreground">ชื่อผู้ใช้</label>
+        <input id="username" name="username" required autoFocus autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="เช่น somchai.staff" className={field} />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="password" className="text-sm font-semibold text-foreground">รหัสผ่าน</label>
+        <input id="password" name="password" type="password" required autoComplete="current-password" className={field} />
+      </div>
+
+      <SubmitButton />
+
+      <p className="text-center text-sm text-muted-foreground">ลืมรหัสผ่าน ติดต่อเจ้าของร้านเพื่อตั้งใหม่ให้</p>
+    </form>
+  );
+
+  // The LIFF deposit page reuses the form inside LINE: card only, no brand panel.
+  if (isPhone) return <main className="flex min-h-full flex-1 items-center justify-center bg-background p-4">{form}</main>;
 
   return (
-    <main className="ucom-login-glow flex min-h-full flex-1 items-center justify-center p-6">
-      <form
-        action={login}
-        className="ucom-surface flex w-full max-w-sm flex-col gap-5 p-8"
-      >
-        <input type="hidden" name="next" value={safeReturnPath(next)} />
-        <div className="flex flex-col items-center gap-2.5 text-center">
-          <div className="ucom-badge-glow flex h-11 w-11 items-center justify-center rounded-[0.7rem] font-mono text-lg font-bold">
-            U
+    <main className="flex min-h-full flex-1 items-center justify-center bg-background p-4 lg:p-8">
+      <div className="grid w-full max-w-4xl items-center gap-10 lg:grid-cols-2">
+        <section className="hidden flex-col gap-5 lg:flex" aria-label="เกี่ยวกับระบบ">
+          <div className="flex items-center gap-3">
+            <span className="grid size-12 place-items-center rounded-md bg-primary text-xl font-bold text-primary-foreground">U</span>
+            <span className="text-2xl font-bold text-foreground">Ucom POS</span>
           </div>
-          <h1 className="text-[17px] font-bold">เข้าสู่ระบบ Ucom</h1>
-          <p className="text-xs text-ink-muted">ระบบขายหน้าร้าน</p>
-        </div>
-
-        {appearance !== "phone" && <div className="flex items-center gap-2 rounded-lg bg-warning/10 px-3 py-2.5 text-xs font-semibold text-warning md:hidden">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4 shrink-0"
-            aria-hidden="true"
-          >
-            <path d="M3 8.5c2.5-2.2 5.6-3.5 9-3.5s6.5 1.3 9 3.5M6 12c1.8-1.5 3.9-2.3 6-2.3s4.2.8 6 2.3M9.3 15.3c.8-.6 1.7-1 2.7-1s1.9.4 2.7 1M12 18.5h.01" />
-            <line x1="3" y1="3" x2="21" y2="21" />
-          </svg>
-          เพื่อประสบการณ์ที่ดีที่สุด แนะนำให้ใช้แท็บเล็ตหรือเดสก์ท็อป
-        </div>}
-
-        {error && (
-          <p className="rounded-2xl bg-danger/10 p-3 text-sm text-danger">
-            {error === "missing"
-              ? "กรอกชื่อผู้ใช้และรหัสผ่านให้ครบ"
-              : "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"}
-          </p>
-        )}
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="username" className="text-xs font-semibold text-ink-muted">
-            ชื่อผู้ใช้
-          </label>
-          <input
-            id="username"
-            name="username"
-            required
-            autoFocus
-            autoComplete="username"
-            placeholder="เช่น somchai.staff"
-            className="ucom-field px-3.5 py-2.5 text-sm"
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="password" className="text-xs font-semibold text-ink-muted">
-            รหัสผ่าน
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            placeholder="••••••••"
-            className="ucom-field px-3.5 py-2.5 text-sm"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="ucom-primary mt-1 w-full justify-center px-4 py-3 text-sm"
-        >
-          เข้าสู่ระบบ
-        </button>
-
-        <p className="text-center text-[11.5px] text-ink-muted">
-          ลืมรหัสผ่าน ติดต่อเจ้าของร้านเพื่อรีเซ็ตให้
-        </p>
-      </form>
+          <h2 className="text-3xl leading-tight font-bold text-balance text-foreground">ขาย ซ่อม ปิดร้าน ครบในที่เดียว</h2>
+          <p className="max-w-md text-base leading-7 text-muted-foreground">ระบบหน้าร้านสำหรับพนักงานและเจ้าของร้าน ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และมือถือ</p>
+          <ul className="flex flex-wrap gap-2 text-sm font-semibold">
+            <li className="rounded-full bg-accent px-3.5 py-1.5 text-accent-foreground">นับเงินปิดร้านแบบไม่เห็นยอด</li>
+            <li className="rounded-full bg-accent px-3.5 py-1.5 text-accent-foreground">สรุปยอดส่ง LINE</li>
+          </ul>
+        </section>
+        <div className="flex justify-center lg:justify-end">{form}</div>
+      </div>
     </main>
   );
 }
