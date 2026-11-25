@@ -11,6 +11,7 @@ import { CASH_OPERATION_EVENT, assertStoredCashIntent, clearCashIntent, refreshC
 import { createClient } from "@/lib/supabase/client";
 import { readQueue } from "../pos/queue";
 import type { CashSource } from "@/lib/cash/types";
+import { ALERT } from "./cash-styles";
 
 const moneyKeys = new Set(["amount", "bank", "drawer", "pending", "returned", "minimum", "drawerBeforeDeparture"]);
 const numberKeys = new Set(["version", "weekday", "overdueHours"]);
@@ -35,14 +36,16 @@ export default function CashForm({ action, epoch, fields = {}, children, label, 
   const formRef = useRef<HTMLFormElement>(null);
   const scope = String(fields.handoverId ?? fields.id ?? fields.kind ?? "new");
   const [job, setJob] = useState<CashIntent | null>(null);
+  // Blocked until the first localStorage check; only a confirmed block shows the warning, so it does not flash on load.
   const [hasBlockedIntent, setHasBlockedIntent] = useState(true);
+  const [isChecking, setIsChecking] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
   useEffect(() => {
     const refresh = () => {
       const entries = refreshCashOperations();
       const matched = entries.find(item => item.intent?.action === action && item.intent.payload && typeof item.intent.payload === "object" && !Array.isArray(item.intent.payload) && String(item.intent.payload.handoverId ?? item.intent.payload.id ?? item.intent.payload.kind ?? "new") === scope);
-      setJob(matched?.intent ?? null); setHasBlockedIntent(entries.length > 0);
+      setJob(matched?.intent ?? null); setHasBlockedIntent(entries.length > 0); setIsChecking(false);
     };
     Promise.resolve().then(refresh);
     window.addEventListener("storage", refresh); window.addEventListener(CASH_OPERATION_EVENT, refresh);
@@ -100,7 +103,7 @@ export default function CashForm({ action, epoch, fields = {}, children, label, 
       if (!pending.actorId || await cashActor() !== pending.actorId) throw new Error("ต้องใช้บัญชีผู้ทำรายการเดิมเพื่อยืนยันผล รายการเก่าต้องตรวจเจ้าของคำขอก่อน");
       assertStoredCashIntent(pending);
       const result = await executeCash(pending.id, pending.epoch, pending.action, pending.payload, pending.actorId);
-      setMessage(result.message);
+      setMessage({ text: result.message, isError: !result.ok });
       if ((result.ok || ("rejected" in result && result.rejected)) && "actorId" in result && result.actorId === pending.actorId && "id" in result && result.id === pending.id) {
         if (result.ok && "notificationSent" in result && result.notificationSent === false) localStorage.setItem(`ucom-cash-notification-v1:${pending.id}`, pending.actorId);
         clearCashIntent(pending); setJob(null);
@@ -111,16 +114,16 @@ export default function CashForm({ action, epoch, fields = {}, children, label, 
       }
       if (result.ok) router.refresh();
       });
-    } catch (error) { setMessage(error instanceof Error ? error.message : "ยังไม่ทราบผล กดลองอีกครั้งด้วยรายการเดิม"); }
+    } catch (error) { setMessage({ text: error instanceof Error ? error.message : "ยังไม่ทราบผล กดลองอีกครั้งด้วยรายการเดิม", isError: true }); }
     finally { setIsBusy(false); }
   }
   // onSubmit, not action={}: React 19 resets uncontrolled fields after a form action, which wiped everything a rejected submit should keep.
   return <form ref={formRef} onSubmit={event => { event.preventDefault(); void submit(new FormData(event.currentTarget)); }} className="flex flex-col gap-3">
     <fieldset disabled={isBusy || Boolean(job) || hasBlockedIntent} className="flex min-w-0 flex-col gap-4">{children}</fieldset>
-    {hasBlockedIntent && <p className="rounded-xl bg-warning-bg px-4 py-3 text-sm font-semibold text-warning">มีรายการเงินเดิมรอยืนยัน ต้องใช้บัญชีผู้ทำรายการเดิมตรวจผลก่อนทำรายการใหม่</p>}
+    {hasBlockedIntent && !isChecking && <p className="rounded-xl bg-warning-bg px-4 py-3 text-sm font-semibold text-warning">มีรายการเงินเดิมรอยืนยัน ต้องใช้บัญชีผู้ทำรายการเดิมตรวจผลก่อนทำรายการใหม่</p>}
     {job && <p className="rounded-xl bg-warning-bg px-4 py-3 text-sm font-semibold text-warning">ลองซ้ำด้วยข้อมูลเดิมก่อนทำรายการอื่น</p>}
     <button className="ucom-primary h-12 w-full px-5 text-base" disabled={isBusy || (!job && (isDisabled || hasBlockedIntent))}>{isBusy ? "กำลังบันทึก…" : job ? "ลองรายการเดิมซ้ำ" : label}</button>
     {isDisabled && !job && !hasBlockedIntent && disabledReason && <p className="text-sm text-muted-foreground">{disabledReason}</p>}
-    {message && <p role="status" className="text-sm">{message}</p>}
+    {message && (message.isError ? <p role="alert" className={ALERT}>{message.text}</p> : <p role="status" className="text-sm">{message.text}</p>)}
   </form>;
 }
