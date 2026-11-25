@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PageFrame } from "@/app/_components/PageFrame";
+import { Button } from "@/components/ui/button";
 import { SfPlusTab } from "../sf-commissions/SfPlusTab";
 import { ConsignmentsTab } from "./ConsignmentsTab";
 
@@ -25,12 +26,12 @@ export default function ConsignmentsClient({ initialTab }: { initialTab: Consign
       title="ฝากขาย & SF+"
       description="ติดตามเครื่องฝากออก ฝากเข้า และบิล SF+ แยกการส่งเครื่อง การขาย และการรับ–จ่ายเงิน"
       actions={
-        <button type="button" onClick={() => setIsDialogOpen(true)} data-testid={tab === "sf" ? "open-sf-intake" : "open-consignment-dialog"} className="ucom-primary px-[18px] py-2.5">
+        <Button type="button" size="lg" onClick={() => setIsDialogOpen(true)} data-testid={tab === "sf" ? "open-sf-intake" : "open-consignment-dialog"} className="h-12 font-bold">
           {active.cta}
-        </button>
+        </Button>
       }
     >
-      <div role="tablist" aria-label="ประเภท" className="flex gap-1 self-start rounded-full bg-sunken p-1">
+      <div role="tablist" aria-label="ประเภท" className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-full bg-card p-1 shadow-card">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -39,7 +40,7 @@ export default function ConsignmentsClient({ initialTab }: { initialTab: Consign
             aria-selected={tab === t.key}
             data-testid={`consignments-tab-${t.key}`}
             onClick={() => { setTab(t.key); setIsDialogOpen(false); }}
-            className={`rounded-full px-5 py-1.5 text-sm ${tab === t.key ? "bg-brand-ink font-semibold text-white" : "text-ink-muted"}`}
+            className={`h-11 shrink-0 rounded-full px-5 text-sm font-semibold ${tab === t.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
           >
             {t.label}
           </button>
