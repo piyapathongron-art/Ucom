@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { todayInBangkok } from "../report/types";
 import { PageFrame } from "@/app/_components/PageFrame";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { Tables } from "@/lib/types/database";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -155,92 +157,97 @@ export default function SettingsPage() {
   return (
     <PageFrame
       page="settings"
-     
       title="ตั้งค่า"
       description="จัดการและสำรองข้อมูลระบบโดยไม่เปลี่ยนข้อมูลต้นทาง"
       dataLoading={isExporting}
     >
+      <div className="max-w-3xl space-y-4">
+        <section className="space-y-3 rounded-xl bg-card p-5 shadow-card">
+          <h2 className="text-lg font-bold">ข้อมูลร้าน</h2>
+          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-xl bg-muted p-3.5">
+              <dt className="text-sm text-muted-foreground">ผู้ใช้งาน</dt>
+              <dd className="font-semibold">{profile?.display_name ?? "—"}</dd>
+            </div>
+            <div className="rounded-xl bg-muted p-3.5">
+              <dt className="text-sm text-muted-foreground">สิทธิ์</dt>
+              <dd className="font-semibold">
+                {profile ? (ROLE_LABEL[profile.role] ?? profile.role) : "—"}
+              </dd>
+            </div>
+          </dl>
+        </section>
 
-      <section className="ucom-surface max-w-2xl space-y-3 p-4 md:p-6">
-        <h2 className="text-lg font-medium">ข้อมูลร้าน</h2>
-        <div className="flex justify-between border-b border-border py-2 text-sm">
-          <span className="text-ink-muted">ผู้ใช้งาน</span>
-          <span className="font-medium text-ink">{profile?.display_name ?? "—"}</span>
-        </div>
-        <div className="flex justify-between py-2 text-sm">
-          <span className="text-ink-muted">สิทธิ์</span>
-          <span className="font-medium text-ink">
-            {profile ? (ROLE_LABEL[profile.role] ?? profile.role) : "—"}
-          </span>
-        </div>
-      </section>
-
-      <section className="ucom-surface mt-5 max-w-2xl space-y-4 p-4 md:p-6">
-        <div>
-          <h2 className="text-lg font-medium">ค่าคอมมิชชันเติมเงิน</h2>
-          <p className="mt-1 text-sm text-ink-muted">กำหนดแยกตามค่าย มีผลกับยอดขายใหม่ ไม่เปลี่ยนต้นทุนรายการเดิม</p>
-        </div>
-        {rateError && <p role="alert" className="text-sm text-danger">{rateError}</p>}
-        {carriers.map((carrier) => (
-          <form key={carrier.id} className="flex flex-wrap items-end gap-3 border-t border-border pt-3" onSubmit={(event) => { event.preventDefault(); void saveRate(carrier); }}>
-            <label className="flex-1 space-y-1 text-sm text-ink-muted">
-              <span>{carrier.name} (%)</span>
-              <input className="ucom-field w-full px-3 py-2 font-mono" type="number" min="0" max="99.99" step="0.01" inputMode="decimal" value={rates[carrier.id] ?? ""} onChange={(event) => setRates((current) => ({ ...current, [carrier.id]: event.target.value }))} disabled={savingCarrier !== null} required />
-            </label>
-            <button className="ucom-primary px-4 py-2 text-sm disabled:opacity-50" type="submit" disabled={savingCarrier !== null || rates[carrier.id] === (carrier.commission_rate * 100).toFixed(2)}>
-              {savingCarrier === carrier.id ? "กำลังบันทึก..." : "บันทึก"}
-            </button>
-          </form>
-        ))}
-      </section>
-
-      <section className="ucom-surface mt-5 max-w-2xl space-y-5 p-4 md:p-6">
-        <div className="border-b border-border pb-3">
-          <h2 className="text-lg font-medium">สำรองข้อมูล</h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            ส่งออกข้อมูลการขาย สต๊อก และรายงานทั้งหมดเป็นไฟล์เดียว ใช้แทนระบบสำรองข้อมูลอัตโนมัติ
-            ควรกดทุกครั้งหลังปิดร้าน
-          </p>
-        </div>
-
-        <div>
-          <button
-            type="button"
-            data-testid="export-button"
-            disabled={isExporting}
-            onClick={handleExport}
-            className="ucom-primary px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isExporting ? "กำลังรวบรวมข้อมูล" : "ดาวน์โหลดไฟล์สำรอง"}
-          </button>
-        </div>
-
-        {error && (
-          <div
-            data-testid="export-error"
-            className="rounded-2xl bg-danger/10 p-3 text-sm text-danger"
-          >
-            {error}
+        <section className="space-y-3 rounded-xl bg-card p-5 shadow-card">
+          <div>
+            <h2 className="text-lg font-bold">ค่าคอมมิชชันเติมเงิน</h2>
+            <p className="mt-1 text-sm text-muted-foreground">กำหนดแยกตามค่าย มีผลกับยอดขายใหม่ ไม่เปลี่ยนต้นทุนรายการเดิม</p>
           </div>
-        )}
+          {rateError && (
+            <p role="alert" className="rounded-xl bg-danger-bg px-4 py-3 text-sm font-semibold text-danger">{rateError}</p>
+          )}
+          {carriers.map((carrier) => {
+            const inputId = `rate-${carrier.id}`;
+            return (
+              <form key={carrier.id} className="flex flex-wrap items-center gap-3 border-t border-border pt-3" onSubmit={(event) => { event.preventDefault(); void saveRate(carrier); }}>
+                <label htmlFor={inputId} className="min-w-32 flex-1 font-semibold">{carrier.name} (%)</label>
+                <Input id={inputId} className="h-11 w-32 text-right tabular-nums" type="number" min="0" max="99.99" step="0.01" inputMode="decimal" value={rates[carrier.id] ?? ""} onChange={(event) => setRates((current) => ({ ...current, [carrier.id]: event.target.value }))} disabled={savingCarrier !== null} required />
+                <Button size="lg" type="submit" disabled={savingCarrier !== null || rates[carrier.id] === (carrier.commission_rate * 100).toFixed(2)}>
+                  {savingCarrier === carrier.id ? "กำลังบันทึก..." : "บันทึก"}
+                </Button>
+              </form>
+            );
+          })}
+        </section>
 
-        {summary && (
-          <div
-            data-testid="export-summary"
-            className="space-y-2 border border-border bg-background p-4 text-sm"
-          >
-            <p className="border-b border-border pb-2 font-medium text-ink">
-              สรุปจำนวนข้อมูลที่ส่งออก:
-            </p>
-            {summary.map((item) => (
-              <div key={item.table} className="flex justify-between gap-4 text-ink-muted">
-                <span>{item.table}</span>
-                <span className="font-mono text-ink">{item.count} แถว</span>
-              </div>
-            ))}
+        <section className="space-y-4 rounded-xl bg-card p-5 shadow-card">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-bold">สำรองข้อมูล</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                ส่งออกข้อมูลการขาย สต๊อก และรายงานทั้งหมดเป็นไฟล์เดียว ใช้แทนระบบสำรองข้อมูลอัตโนมัติ
+                ควรกดทุกครั้งหลังปิดร้าน
+              </p>
+            </div>
+            <Button
+              type="button"
+              data-testid="export-button"
+              disabled={isExporting}
+              onClick={handleExport}
+              className="h-12 px-6 font-bold"
+            >
+              {isExporting ? "กำลังรวบรวมข้อมูล" : "ดาวน์โหลดไฟล์สำรอง"}
+            </Button>
           </div>
-        )}
-      </section>
+
+          {error && (
+            <div
+              data-testid="export-error"
+              role="alert"
+              className="rounded-xl bg-danger-bg px-4 py-3 text-sm font-semibold text-danger"
+            >
+              {error}
+            </div>
+          )}
+
+          {summary && (
+            <div
+              data-testid="export-summary"
+              className="space-y-2 rounded-xl bg-success-bg p-4 text-sm text-success"
+            >
+              <p className="font-semibold">สรุปจำนวนข้อมูลที่ส่งออก:</p>
+              <ul className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
+                {summary.map((item) => (
+                  <li key={item.table} className="flex min-w-0 justify-between gap-3">
+                    <span className="truncate">{item.table}</span>
+                    <span className="tabular-nums">{item.count} แถว</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      </div>
     </PageFrame>
   );
 }

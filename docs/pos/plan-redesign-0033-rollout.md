@@ -202,6 +202,20 @@ In this order:
 
 /consignments (with fix 0.7 and the Step 1 artboards), /sf-commissions, /repairs, /topup, /cash, /expenses, /settings and /liff/deposit. Do one PR each and follow the canvas page for each route. After that, remove the old `ucom-*` classes and token aliases from `globals.css`.
 
+- **/settings (2026-11-25, stacked on PR #11):**
+  - Three white cards (`rounded-xl bg-card shadow-card`) in a `max-w-3xl` column: shop info, carrier commission rates and backup.
+  - Shop info is two muted tiles in a `<dl>` (one column on a phone, two from sm up).
+  - Each carrier rate is still its own `<form>` with an `input[type="number"]` and a "บันทึก" submit, because e2e W10 finds the form that way. The label is linked with `htmlFor`/`id`. The input is the house `Input` at 44px with right-aligned `tabular-nums` (it was `font-mono`). The button is `Button size="lg"` (44px). The rate error uses the danger pair.
+  - The backup button is the 48px primary and keeps `data-testid="export-button"`. The export error uses the danger pair with `role="alert"` and keeps `export-error`. The summary is a success-tinted card with a grid of `table · N แถว`, and keeps `export-summary`.
+  - Dropped from the canvas:
+    - The Thai table names and the "อื่น ๆ · 5 ตาราง" grouping in the summary. The code exports raw table names, so the summary shows those.
+    - The file name in the summary heading. The download already carries it.
+    - The canvas copy for the backup and rate descriptions. The code's copy stays.
+  - **Checked:**
+    - ESLint (0 errors, 13 warnings, unchanged), `tsc`, `next build`, and all 17 `*.check.mts`.
+    - A harness with stubbed auth, profile, carrier and export responses at 1440 and 375 wide: no overflow (also with the summary open), every control at least 40px (inputs and save buttons 44px, export 48px), linked labels, one form per carrier, no duplicate test IDs. A rate save showed the toast and disabled the button again.
+    - Known, unchanged: the input has `max="99.99"`, so out-of-range values hit the browser's native validation tooltip before the red alert. The alert still covers the regex cases the native check misses.
+  - **Not checked:** real writes and real data, and e2e (`export.spec.ts`, `redesign-write.spec.ts` W10, `redesign-readonly.spec.ts`). Test IDs, the form/input markup and the button names are unchanged.
 - **/expenses (2026-11-25, stacked on PR #11):**
   - Built from the code, not the canvas, in two places:
     - The fund stays a `<select>` (`FundSelect`), not the canvas's radio cards. It is shared with the consignment pay dialog, and e2e calls `selectOption` on it.
