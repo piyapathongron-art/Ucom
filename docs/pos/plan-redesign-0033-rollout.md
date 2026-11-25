@@ -202,6 +202,37 @@ In this order:
 
 /consignments (with fix 0.7 and the Step 1 artboards), /sf-commissions, /repairs, /topup, /cash, /expenses, /settings and /liff/deposit. Do one PR each and follow the canvas page for each route. After that, remove the old `ucom-*` classes and token aliases from `globals.css`.
 
+- **/topup (2026-11-25, stacked on PR #11):**
+  - Built from the code, not the canvas:
+    - no "ใกล้หมด" low-balance state, because there is no threshold in the code or the SQL;
+    - no quick-amount chips (50 / 100 / 300 / 500), because they would be a new feature;
+    - errors stay toasts, where the canvas shows them inline.
+  - Wallet cards:
+    - an initialized wallet is a white card with its balance in `tabular-nums`, plus the owner-only commission for today;
+    - a wallet that is not set yet is outlined with a dashed border, with the owner's opening field, a 40px ตั้งยอด button and the one-time hint;
+    - the opening input and its button keep the same parent, because e2e finds the button through the input.
+  - Sale form:
+    - a white card with 48px carrier select and a 52px amount field;
+    - the owner's estimate (wallet deduction and commission) shows as a tinted box;
+    - cash/transfer is a segmented `radiogroup`, as in /pos, and the account field has a label;
+    - the submit button is 56px and full width.
+  - The fund button is now secondary (outlined), as on the canvas, so the sale stays the main action.
+  - Fund dialog:
+    - 48px and 52px fields;
+    - the balance under the carrier, and "ยอดหลังเติม" in brand tint (current balance plus amount);
+    - the not-set warning and the form error as tinted boxes.
+  - History is split into `TopupHistory.tsx`, which keeps `page.tsx` under 300 lines:
+    - a table from md up and a list below md;
+    - Thai dates with time;
+    - the "นำเข้า" chip;
+    - commission only for the owner;
+    - 40px pagination.
+  - Shared: the `Modal` close button is 40×40. This is the same one-line change as on the /repairs PR, so the two merge cleanly.
+  - **Checked:**
+    - ESLint (0 errors; text-size warnings stay at 13), `tsc`, `next build`, and all 17 `*.check.mts`.
+    - A harness with stubbed auth and PostgREST responses at 1440 and 375 wide, for owner and staff, with set and unset wallets, the fund dialog and the set-balance confirm open. No overflow, every control at least 40px, and no console errors. Staff see no commission and no fund button.
+  - **Not checked:** real writes, real data and e2e (`topup-live-acceptance.spec.ts`, `features-readonly.spec.ts`, `expenses.spec.ts`, `redesign-readonly.spec.ts`). Test IDs, labels and button names are unchanged.
+
 ## Owner decisions, collected
 
 1. PosSuccess: drop it, show it without a bill number, or approve a backend step that returns the bill number.
