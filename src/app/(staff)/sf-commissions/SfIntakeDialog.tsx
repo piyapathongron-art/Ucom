@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Modal } from "@/app/_components/Modal";
 import { createClient } from "@/lib/supabase/client";
 import { useBarcodeScanner } from "../pos/useBarcodeScanner";
-import { rowMessages } from "./sfDuplicates";
+import { positivePrice, rowMessages, sfRowProblem } from "./sfDuplicates";
 import { fmtMoney, todayInBangkok } from "./utils";
 import type { SfDueRow, SfOrderDeviceRow, SfOrderPayload } from "./useSfDue";
 
@@ -21,7 +21,7 @@ type Row = { key: number; id: string; imei: string; model: string; list: string;
 
 // React keys only — a module counter is enough (never persisted).
 let rowKeySeed = 0;
-const blank = (over: Partial<Row> = {}): Row => ({ key: ++rowKeySeed, id: "", imei: "", model: "", list: "0", sale: "", locked: false, ...over });
+const blank = (over: Partial<Row> = {}): Row => ({ key: ++rowKeySeed, id: "", imei: "", model: "", list: "", sale: "", locked: false, ...over });
 
 const label = "mb-1 block text-xs font-semibold text-ink-muted";
 const input = "ucom-field w-full px-4 py-2.5 text-sm";
@@ -63,12 +63,15 @@ export function SfIntakeDialog({ mode, onClose, onCreate, onEdit }: {
   useBarcodeScanner((code) => setRows((prev) => {
     const last = prev[prev.length - 1];
     if (last && !last.locked && !last.imei.trim()) return prev.map((r) => (r.key === last.key ? { ...r, imei: code } : r));
-    return [...prev, blank({ imei: code, model: last?.model ?? "", list: last?.list ?? "0" })];
+    return [...prev, blank({ imei: code, model: last?.model ?? "", list: last?.list ?? "" })];
   }));
 
+  // Rows are checked as typed so a bad SF tag price never silently becomes 0 (the SQL refuses it too).
+  const problems: Record<number, string> = {};
+  rows.forEach((r) => { const problem = sfRowProblem(r); if (problem) problems[r.key] = problem; });
   const usable = rows.filter((r) => !r.locked && r.imei.trim() && r.model.trim());
-  const credit = usable.reduce((sum, r) => sum + (Number(r.list) || 0), 0);
-  const canSubmit = orderNo.trim() !== "" && usable.length > 0 && !saving;
+  const credit = usable.reduce((sum, r) => sum + (positivePrice(r.list) ?? 0), 0);
+  const canSubmit = orderNo.trim() !== "" && usable.length > 0 && Object.keys(problems).length === 0 && !saving;
 
   // Best-effort pre-check; the DB unique constraints on imei / order_no remain the real guard.
   async function existingImeis(imeis: string[]) {
@@ -96,7 +99,7 @@ export function SfIntakeDialog({ mode, onClose, onCreate, onEdit }: {
       setSaving(false);
       return;
     }
-    const devices = usable.map((r) => ({ imei: r.imei, model_name: r.model, list_price: Number(r.list) || 0, sale_price: r.sale.trim() === "" ? null : Number(r.sale) || 0 }));
+    const devices = usable.map((r) => ({ imei: r.imei.trim(), model_name: r.model.trim(), list_price: positivePrice(r.list)!, sale_price: r.sale.trim() === "" ? null : positivePrice(r.sale)! }));
     const ok = isEdit
       ? await onEdit({ id: mode.order.sf_order_id!, order_no: orderNo, ordered_at: orderedAt, note, devices: usable.map((r, i) => ({ id: r.id, ...devices[i] })), removed_device_ids: removedIds })
       : await onCreate({ order_no: orderNo, ordered_at: orderedAt, note, devices });
@@ -153,11 +156,11 @@ export function SfIntakeDialog({ mode, onClose, onCreate, onEdit }: {
                   </>
                 )}
               </div>
-              {messages[r.key] && <p role="alert" className="mt-1 px-3 text-xs text-warning">{messages[r.key]}</p>}
+              {(messages[r.key] ?? problems[r.key]) && <p role="alert" className="mt-1 px-3 text-xs text-warning">{messages[r.key] ?? problems[r.key]}</p>}
             </div>
           ))}
         </div>
-        <button type="button" onClick={() => setRows((prev) => [...prev, blank({ model: prev[prev.length - 1]?.model ?? "", list: prev[prev.length - 1]?.list ?? "0" })])} className="ucom-secondary mt-3 px-4 py-2 text-sm">+ เพิ่มแถวเครื่อง</button>
+        <button type="button" onClick={() => setRows((prev) => [...prev, blank({ model: prev[prev.length - 1]?.model ?? "", list: prev[prev.length - 1]?.list ?? "" })])} className="ucom-secondary mt-3 px-4 py-2 text-sm">+ เพิ่มแถวเครื่อง</button>
       </div>
     </Modal>
   );
