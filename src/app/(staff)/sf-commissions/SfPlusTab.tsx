@@ -178,15 +178,17 @@ export function SfPlusTab({ isCreateOpen, onCreateClose }: { isCreateOpen: boole
 
   return (
     <>
-      <div role="tablist" className="flex flex-wrap gap-2">
+      {/* Second-level tabs: tinted when active, outlined otherwise (canvas SfDue), so they read below the page tabs. */}
+      <div role="tablist" aria-label="SF+" className="flex flex-wrap gap-2">
         {subTabs.map(([key, label]) => (
           <button
             key={key}
+            type="button"
             role="tab"
             aria-selected={tab === key}
             data-testid={`sf-tab-${key}`}
             onClick={() => { setTab(key); setHighlightOrderNo(null); }}
-            className={`rounded-full px-4 py-1.5 text-sm ${tab === key ? "bg-brand-ink font-semibold text-white" : "ucom-field border-dashed text-ink-muted"}`}
+            className={`h-10 rounded-full px-4 text-sm font-semibold ${tab === key ? "bg-accent text-accent-foreground" : "border border-border bg-card text-foreground hover:bg-muted"}`}
           >
             {label}
           </button>

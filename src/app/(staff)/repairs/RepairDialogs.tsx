@@ -26,8 +26,8 @@ export function RepairDialogs({ row, showClose, showAbandon, onCloseClose, onClo
         onClose={onCloseAbandon}
         onConfirm={() => { onAbandon(); onCloseAbandon(); }}
       >
-        <p className="text-sm text-ink">{row.customer_name} · {row.device_desc}</p>
-        <p className="text-sm text-ink-muted">ตัดงานทิ้งแล้วจะกดกลับเป็นสถานะอื่นไม่ได้ และแถวจะไม่ถูกลบ</p>
+        <p className="font-semibold">{row.customer_name} · {row.device_desc}</p>
+        <p className="text-sm text-muted-foreground">ตัดงานทิ้งแล้วจะกดกลับเป็นสถานะอื่นไม่ได้ และแถวจะไม่ถูกลบ</p>
       </ConfirmDialog>
     </>
   );
