@@ -278,6 +278,8 @@
 }
 
 .ucom-table-wrap {
+  /* relative: keeps absolutely positioned sr-only header text inside the scroll box on phones. */
+  position: relative;
   overflow-x: auto;
   border-radius: calc(var(--radius) * 1.4);
   background: var(--color-surface);
