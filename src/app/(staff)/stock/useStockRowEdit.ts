@@ -35,7 +35,8 @@ export function useStockRowEdit({ kind, row, categories, canEditCarrier, cost, o
     const id = row?.id ?? undefined;
     let ok: boolean;
     if (kind === "product") {
-      ok = await onSaveProduct({ id, name, sku: code, category_id: categoryId, ...(canEditCarrier ? { carrier_id: carrierId || null } : {}), price: Number(price) || 0, qty: Number(qty) || 0, is_active: status === "active", ...(row ? {} : { cost: Number(costDraft) || 0 }) });
+      const qtyChanged = !row || qty !== String(row.qty ?? 0);
+      ok = await onSaveProduct({ id, name, sku: code, category_id: categoryId, ...(canEditCarrier ? { carrier_id: carrierId || null } : {}), price: Number(price) || 0, ...(qtyChanged ? { qty: Number(qty) || 0, ...(row ? { expected_qty: row.qty ?? 0 } : {}) } : {}), is_active: status === "active", ...(row ? {} : { cost: Number(costDraft) || 0 }) });
     } else if (row?.acquisition === "sf_credit") {
       // v_pos_stock.price shows coalesce(sale_price, list_price) for an sf_credit device, so this field
       // edits the shop's asking price, not the SF debt (list_price, set once at intake).

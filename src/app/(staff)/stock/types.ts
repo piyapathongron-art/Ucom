@@ -28,7 +28,10 @@ export type ProductSave = {
   category_id: string;
   carrier_id?: string | null;
   price: number;
-  qty: number;
+  // On edit, qty is sent only when the user changed it, together with the qty the form showed
+  // (expected_qty) so the RPC refuses a stale value instead of undoing a sale made meanwhile.
+  qty?: number;
+  expected_qty?: number;
   is_active: boolean;
   cost?: number; // used only when creating (id empty) — RPC ignores it on edit
 };
