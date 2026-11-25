@@ -47,7 +47,7 @@ export function PaginationControls({
               onChange={(event) => onPageSizeChange(Number(event.target.value))}
               disabled={isLoading}
               data-testid={`${testIdPrefix}-page-size`}
-              className="ucom-field px-2 py-1.5 text-sm"
+              className="ucom-field h-10 px-3 text-sm"
             >
               {Array.from(new Set([safePageSize, ...pageSizeOptions])).map((option) => (
                 <option key={option} value={option}>
@@ -65,7 +65,7 @@ export function PaginationControls({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={isLoading || currentPage <= 1}
           data-testid={`${testIdPrefix}-prev`}
-          className="ucom-secondary px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          className="ucom-secondary h-10 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-40"
         >
           ก่อนหน้า
         </button>
@@ -74,7 +74,7 @@ export function PaginationControls({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={isLoading || currentPage >= totalPages}
           data-testid={`${testIdPrefix}-next`}
-          className="ucom-secondary px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          className="ucom-secondary h-10 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-40"
         >
           ถัดไป
         </button>

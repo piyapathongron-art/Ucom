@@ -40,10 +40,10 @@ export function OpeningCoveredQueue({ queue, status, onCovered, onBusyChange }: 
   }
 
   if (candidates.length === 0) return null;
-  return <section className="border-b border-border px-5 py-3 text-sm" data-testid="cash-opening-covered-queue">
+  return <section className="rounded-xl bg-card p-4 text-sm shadow-card ring-2 ring-primary/40" data-testid="cash-opening-covered-queue">
     <p className="font-semibold">เจ้าของต้องจัดประเภทบิลค้างก่อนเปิดระบบ</p>
-    <p className="text-xs text-ink-muted">ใช้เฉพาะบิลที่เงินรับรวมอยู่ในยอดตั้งต้นแล้ว บิลที่เป็นเงินรับใหม่ต้องหยุดและให้เจ้าของตรวจสอบแยก</p>
-    <ul className="mt-2 space-y-2">{candidates.map(sale => <li key={sale.clientUuid} className="flex flex-wrap items-center gap-3"><span>{sale.clientUuid}</span><button type="button" className="ucom-secondary px-3 py-1" onClick={() => { setSelected(sale); setError(null); }}>จัดเป็นเงินในยอดตั้งต้น</button></li>)}</ul>
+    <p className="text-sm text-muted-foreground">ใช้เฉพาะบิลที่เงินรับรวมอยู่ในยอดตั้งต้นแล้ว บิลที่เป็นเงินรับใหม่ต้องหยุดและให้เจ้าของตรวจสอบแยก</p>
+    <ul className="mt-2 space-y-2">{candidates.map(sale => <li key={sale.clientUuid} className="flex flex-wrap items-center gap-3"><span>{sale.clientUuid}</span><button type="button" className="h-10 rounded-full bg-accent px-4 font-semibold text-accent-foreground" onClick={() => { setSelected(sale); setError(null); }}>จัดเป็นเงินในยอดตั้งต้น</button></li>)}</ul>
     <ConfirmDialog open={Boolean(selected)} title="ยืนยันบิลที่รวมอยู่ในยอดตั้งต้น" confirmLabel="บันทึกบิลโดยไม่เพิ่มเงินสดซ้ำ" isBusy={isBusy} canConfirm={Boolean(originalActor && reason.trim() && isAttested)} onClose={() => { if (!isBusy) setSelected(null); }} onConfirm={() => void confirm()}>
       <p className="text-xs text-ink-muted">บิล {selected?.clientUuid} · เวลารับเงิน {selected ? new Date(selected.queuedAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) : ""}</p>
       <label className="block text-sm">ผู้รับเงินเดิม<select value={originalActor} onChange={event => setOriginalActor(event.target.value)} className="ucom-field mt-1 w-full px-3 py-2"><option value="">เลือกพนักงานที่รับเงินจริง</option>{profiles.map(profile => <option key={profile.id} value={profile.id}>{profile.display_name}</option>)}</select></label>

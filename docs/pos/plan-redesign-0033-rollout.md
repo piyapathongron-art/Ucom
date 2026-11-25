@@ -113,6 +113,25 @@ Still to do, in one PR:
 
 ## Step 4. /pos
 
+**Status (2026-11-25): done on PR #11, not merged.**
+- Steps 2 and 3 (foundation and shell) are on the same PR.
+- **Large screens:**
+  - status card, queue cards, search card, white catalogue cards, and a 22–25rem white cart card;
+  - honest totals: subtotal → per-line discounts → bill discount → net;
+  - per-line and bill discounts collapse behind "+ ส่วนลด" / "เพิ่ม";
+  - SF cards use brand blue, not purple.
+- **Below lg:**
+  - the catalogue fills the screen, and a fixed "ดูบิล" bar opens the cart in a bottom sheet;
+  - ผ่อน SF shows "ผ่อนบนจอใหญ่", and per-line discounts are hidden;
+  - the cart renders once (`useIsLarge`), so its state never splits.
+- **Defaults chosen for the open owner decisions:**
+  - top-up and the bill discount are allowed on phones;
+  - the receiving pause/resume controls stay large-screen only, so a phone is not offered as the receiving device.
+
+  Either can change once the owner decides.
+- **Checked:** in the browser with sample data at 1440×900 and 375px. No overflow; every control is at least 40px; the checkout button is 56px. Shared pagination buttons went from 34px to 40px.
+- **Not checked:** e2e against real data, and the post-checkout dialog (not built; owner decision 1).
+
 1. **Desktop/tablet (≥ lg).** Rebuild `Catalog`, `CatalogCard`, `Cart`, `QueueBanner` and `OpeningCoveredQueue` on the canvas, corrected as in Step 1. Keep `queue.ts`, the cash client, `rpc_create_sale` and `rpc_finance_device` as they are.
    - Include fixes 0.5 and 0.6.
    - Fix the totals labels: show subtotal, discount and net instead of the misleading "ยอดรวมก่อนส่วนลด".
