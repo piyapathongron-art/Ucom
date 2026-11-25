@@ -1,6 +1,6 @@
 "use client";
 
-import { REPAIR_STATUS_BADGE, REPAIR_STATUS_LABEL, type PartPaidFrom, type RepairRow, type RepairStatus } from "./types";
+import { ABANDON_LINK, FORWARD_BUTTON, REPAIR_STATUS_BADGE, REPAIR_STATUS_LABEL, TEXT_LINK, formatPrice, type PartPaidFrom, type RepairRow, type RepairStatus } from "./types";
 import type { CloseJobPayload } from "./CloseJobDialog";
 import { RepairDialogs } from "./RepairDialogs";
 import { useRepairRowActions } from "./useRepairRowActions";
@@ -43,39 +43,38 @@ function Row({
 
   return (
     <>
-      <tr className="border-b border-border bg-surface" data-testid={`repair-row-${row.id}`}>
-        <td className="text-sm text-ink-muted">{receivedAtStr}</td>
+      <tr className="border-b border-border bg-card align-top" data-testid={`repair-row-${row.id}`}>
+        <td className="text-sm text-muted-foreground tabular-nums">{receivedAtStr}</td>
         <td>
           <div data-testid={`repair-customer-${row.id}`}>
-            <div className="font-medium text-sm text-ink">{row.customer_name}</div>
-            {row.customer_phone && <div className="text-xs text-ink-muted">{row.customer_phone}</div>}
+            <div className="text-sm font-semibold">{row.customer_name}</div>
+            {row.customer_phone && <div className="text-sm text-muted-foreground tabular-nums">{row.customer_phone}</div>}
           </div>
         </td>
         <td>
-          <div className="text-sm text-ink">{row.device_desc}</div>
-          {row.symptom && <div className="text-xs text-ink-muted">{row.symptom}</div>}
+          <div className="text-sm font-semibold">{row.device_desc}</div>
+          {row.symptom && <div className="text-sm text-muted-foreground">{row.symptom}</div>}
         </td>
-        <td className="text-sm text-ink">
-          {row.quoted_price != null ? row.quoted_price.toLocaleString() : "-"}
+        <td className="text-right text-sm font-semibold tabular-nums">
+          {formatPrice(row.quoted_price)}
         </td>
         <td>
-          <div className="flex flex-col items-start gap-1">
+          <div className="flex flex-col items-start gap-2">
             <span
               data-testid={`repair-status-${row.id}`}
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${REPAIR_STATUS_BADGE[row.status]}`}
+              className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${REPAIR_STATUS_BADGE[row.status]}`}
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-current" />
               {REPAIR_STATUS_LABEL[row.status]}
             </span>
             {isInSteps && (
-              <div className="flex gap-1">
+              <div className="flex gap-1.5">
                 {prevStep && (
                   <button
                     type="button"
                     onClick={() => handleSetStatus(prevStep)}
                     disabled={settingStatus}
                     data-testid={`repair-status-back-${row.id}`}
-                    className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-40"
+                    className="ucom-secondary px-3 disabled:opacity-40"
                   >
                     ย้อนกลับ
                   </button>
@@ -86,7 +85,7 @@ function Row({
                     onClick={() => handleSetStatus(nextStep)}
                     disabled={settingStatus}
                     data-testid={`repair-status-forward-${row.id}`}
-                    className="ucom-primary !rounded-full px-2 py-1 text-xs disabled:opacity-40"
+                    className={`${FORWARD_BUTTON} disabled:opacity-40`}
                   >
                     {REPAIR_STATUS_LABEL[nextStep as RepairStatus]}
                   </button>
@@ -97,24 +96,24 @@ function Row({
         </td>
         <td>
           {row.status !== "collected" && (
-            <div className="flex flex-col items-start gap-1 min-w-[120px]">
+            <div className="flex min-w-40 flex-col items-start gap-1">
               {row.part_paid_at && !isEditingPartCost ? (
                 <div data-testid={`repair-part-paid-${row.id}`}>
-                  <div className="text-sm text-success">กรอกแล้ว</div>
-                  <div className="text-xs text-ink-muted">
+                  <span className="inline-flex rounded-full bg-success-bg px-3 py-1 text-sm font-semibold text-success">กรอกแล้ว</span>
+                  <div className="mt-1 text-sm text-muted-foreground tabular-nums">
                     {new Date(row.part_paid_at).toLocaleDateString("th-TH", { dateStyle: "short" })}
                   </div>
-                  {cash.isActive ? <Link href="/cash" className="text-xs underline">ให้เจ้าของแก้ไขพร้อมเหตุผล</Link> : <button
+                  {cash.isActive ? <Link href="/cash" className={TEXT_LINK}>ให้เจ้าของแก้ไขพร้อมเหตุผล</Link> : <button
                     type="button"
                     onClick={() => setIsEditingPartCost(true)}
                     data-testid={`repair-part-cost-edit-${row.id}`}
-                    className="text-xs text-ink-muted underline"
+                    className={TEXT_LINK}
                   >
                     แก้ไข
                   </button>}
                 </div>
               ) : (
-                <div className="flex flex-wrap items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <input
                     type="number"
                     inputMode="decimal"
@@ -123,10 +122,11 @@ function Row({
                     value={partCostDraft}
                     onChange={(e) => setPartCostDraft(e.target.value)}
                     placeholder="ต้นทุนอะไหล่"
+                    aria-label="ต้นทุนอะไหล่ (บาท)"
                     data-testid={`repair-part-cost-input-${row.id}`}
-                    className="ucom-field w-24 px-2 py-1.5 text-sm"
+                    className="ucom-field w-28 px-3 text-sm tabular-nums"
                   />
-                  <select aria-label="จ่ายค่าอะไหล่จาก" value={partPaidFrom} onChange={(e) => setPartPaidFrom(e.target.value as PartPaidFrom | "")} data-testid={`repair-part-paid-from-${row.id}`} className="ucom-field px-2 py-1.5 text-sm">
+                  <select aria-label="จ่ายค่าอะไหล่จาก" value={partPaidFrom} onChange={(e) => setPartPaidFrom(e.target.value as PartPaidFrom | "")} data-testid={`repair-part-paid-from-${row.id}`} className="ucom-field px-3 text-sm">
                     <option value="">วิธีจ่าย</option>
                     {cash.isActive ? <><option value="drawer">เงินเก๊ะ</option><option value="pending">เงินรอฝาก</option></> : <option value="cash">เงินสด</option>}
                     <option value="transfer">โอน</option>
@@ -136,7 +136,7 @@ function Row({
                     onClick={handleSavePartCost}
                     disabled={savingPartCost || !canSavePartCost}
                     data-testid={`repair-part-cost-save-${row.id}`}
-                    className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-30"
+                    className="ucom-secondary px-4 disabled:opacity-40"
                   >
                     บันทึก
                   </button>
@@ -147,7 +147,7 @@ function Row({
                         setIsEditingPartCost(false);
                         setPartCostDraft("");
                       }}
-                      className="ucom-secondary !rounded-full px-2 py-1 text-xs"
+                      className="ucom-secondary px-4"
                     >
                       ยกเลิก
                     </button>
@@ -159,21 +159,20 @@ function Row({
         </td>
         <td>
           {isInSteps && (
-            <div className="flex flex-col items-start gap-1 min-w-[100px]">
+            <div className="flex min-w-32 flex-col items-stretch gap-1">
               <button
                 type="button"
                 onClick={() => setShowCloseDialog(!showCloseDialog)}
                 data-testid={`repair-close-${row.id}`}
-                className="ucom-secondary !rounded-full px-2 py-1 text-sm"
+                className="ucom-primary px-4"
               >
                 ปิดงาน/ออกบิล
               </button>
-              
               <button
                 type="button"
                 onClick={() => setShowAbandonConfirm(true)}
                 data-testid={`repair-abandon-${row.id}`}
-                className="ucom-danger border-0 px-0 py-1 text-sm underline"
+                className={ABANDON_LINK}
               >
                 ลูกค้าทิ้ง
               </button>
@@ -201,7 +200,7 @@ export function RepairTableHead() {
         <th>วันที่รับ</th>
         <th>ลูกค้า</th>
         <th>เครื่อง/อาการ</th>
-        <th>ราคาที่ตกลง</th>
+        <th className="text-right">ราคาที่ตกลง</th>
         <th>สถานะ</th>
         <th>ต้นทุนอะไหล่</th>
         <th>จัดการ</th>
@@ -239,7 +238,7 @@ export function RepairTable({
           </tbody>
         </table>
       </div>
-      <div className="space-y-2 md:hidden">
+      <div className="space-y-3 md:hidden">
         {rows.map((row) => (
           <RepairRowCard
             key={row.id}

@@ -18,13 +18,22 @@ import { cashWrite, withReceivingIntake } from "@/lib/cash/client";
 import { prepareReceipt, sendRepairReceipt } from "@/lib/cash/receipt";
 import { parseMoney } from "@/lib/cash/money";
 
+type StatusFilter = "open" | "collected" | "abandoned" | "all";
+
+const STATUS_FILTERS: [StatusFilter, string][] = [
+  ["open", "เปิดอยู่"],
+  ["collected", "รับแล้ว"],
+  ["abandoned", "ลูกค้าทิ้ง"],
+  ["all", "ทั้งหมด"],
+];
+
 export default function RepairsPage() {
   const supabase = createClient();
 
   const [rows, setRows] = useState<RepairRow[]>([]);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
-  const [statusFilter, setStatusFilter] = useState<"open" | "collected" | "abandoned" | "all">("open");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [total, setTotal] = useState(0);
@@ -119,7 +128,7 @@ export default function RepairsPage() {
       title="งานซ่อม"
       description={`${total.toLocaleString("th-TH")} งานตามตัวกรองปัจจุบัน`}
       actions={
-        <button type="button" onClick={() => setIsIntakeOpen(true)} data-testid="open-intake-form" className="ucom-primary px-[18px] py-2.5">
+        <button type="button" onClick={() => setIsIntakeOpen(true)} data-testid="open-intake-form" className="ucom-primary h-11 px-5">
           + รับงานซ่อมใหม่
         </button>
       }
@@ -129,62 +138,37 @@ export default function RepairsPage() {
       <IntakeForm open={isIntakeOpen} onClose={() => setIsIntakeOpen(false)} onSave={createJob} />
 
       <div className="ucom-toolbar">
-        <div className="flex flex-wrap gap-1 rounded-full bg-sunken p-1">
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter("open");
-              setPage(1);
-            }}
-            data-testid="filter-open"
-            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "open" ? "bg-brand-ink text-white font-semibold" : "text-ink-muted"}`}
-          >
-            เปิดอยู่
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter("collected");
-              setPage(1);
-            }}
-            data-testid="filter-collected"
-            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "collected" ? "bg-brand-ink text-white font-semibold" : "text-ink-muted"}`}
-          >
-            รับแล้ว
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter("abandoned");
-              setPage(1);
-            }}
-            data-testid="filter-abandoned"
-            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "abandoned" ? "bg-brand-ink text-white font-semibold" : "text-ink-muted"}`}
-          >
-            ลูกค้าทิ้ง
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter("all");
-              setPage(1);
-            }}
-            data-testid="filter-all"
-            className={`rounded-full px-4 py-1.5 text-sm ${statusFilter === "all" ? "bg-brand-ink text-white font-semibold" : "text-ink-muted"}`}
-          >
-            ทั้งหมด
-          </button>
+        <div className="flex max-w-full gap-1 overflow-x-auto rounded-full bg-muted p-1 [scrollbar-width:none]">
+          {STATUS_FILTERS.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => {
+                setStatusFilter(value);
+                setPage(1);
+              }}
+              data-testid={`filter-${value}`}
+              aria-pressed={statusFilter === value}
+              className={`h-10 shrink-0 rounded-full px-4 text-sm font-semibold whitespace-nowrap ${statusFilter === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-        <input
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          placeholder="ค้นหาชื่อ/เครื่อง/เบอร์"
-          data-testid="repair-search"
-          className="ucom-field ml-auto w-full !rounded-full px-3.5 py-2 text-sm md:w-80"
-        />
+        <label className="ml-auto flex w-full items-center gap-2 rounded-xl border border-input bg-card px-3.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25 md:w-80">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true" className="size-4 shrink-0 text-muted-foreground"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
+          <span className="sr-only">ค้นหางานซ่อม</span>
+          <input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="ค้นหาชื่อ/เครื่อง/เบอร์"
+            data-testid="repair-search"
+            className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+        </label>
       </div>
 
       {isLoading && rows.length === 0 ? (
@@ -209,7 +193,7 @@ export default function RepairsPage() {
           setPage(1);
         }}
       />
-      <p className="ucom-info">
+      <p className="text-sm text-muted-foreground">
         “ลูกค้าทิ้ง” คือการตัดงานทิ้ง ไม่ใช่การยกเลิกงาน — แถวจะไม่ถูกลบและกดกลับไปสถานะอื่นไม่ได้
       </p>
     </PageFrame>

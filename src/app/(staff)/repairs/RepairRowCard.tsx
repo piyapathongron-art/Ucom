@@ -1,11 +1,13 @@
 "use client";
 
-import { REPAIR_STATUS_BADGE, REPAIR_STATUS_LABEL, type PartPaidFrom, type RepairRow, type RepairStatus } from "./types";
+import { ABANDON_LINK, FORWARD_BUTTON, REPAIR_STATUS_BADGE, REPAIR_STATUS_LABEL, TEXT_LINK, formatPrice, type PartPaidFrom, type RepairRow, type RepairStatus } from "./types";
 import type { CloseJobPayload } from "./CloseJobDialog";
 import { RepairDialogs } from "./RepairDialogs";
 import { useRepairRowActions } from "./useRepairRowActions";
 import Link from "next/link";
 
+// The phone layout of one job. Test IDs stay on the desktop row only: e2e runs at desktop width,
+// and a second copy here would make every test ID ambiguous.
 export function RepairRowCard({
   row,
   onSetStatus,
@@ -41,135 +43,128 @@ export function RepairRowCard({
   } = useRepairRowActions({ row, onSetStatus, onSetPartCost });
 
   return (
-    <div className="ucom-surface space-y-3 p-4">
-      <div className="flex justify-between items-start">
-        <div>
-          <div className="font-medium text-sm text-ink">{row.customer_name}</div>
-          {row.customer_phone && <div className="text-xs text-ink-muted">{row.customer_phone}</div>}
+    <article className="space-y-3 rounded-xl bg-card p-4 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-semibold">{row.customer_name}</div>
+          <div className="text-sm text-muted-foreground tabular-nums">
+            {row.customer_phone ? `${row.customer_phone} · ` : ""}รับ {receivedAtStr}
+          </div>
         </div>
-        <div className="text-xs text-ink-muted">{receivedAtStr}</div>
-      </div>
-
-      <div>
-        <div className="text-sm text-ink">{row.device_desc}</div>
-        {row.symptom && <div className="text-xs text-ink-muted">{row.symptom}</div>}
-      </div>
-
-      <div className="flex justify-between items-center text-sm">
-        <span className="text-ink-muted">ราคาที่ตกลง:</span>
-        <span className="text-ink font-medium">
-          {row.quoted_price != null ? row.quoted_price.toLocaleString() : "-"}
+        <span className={`inline-flex shrink-0 items-center rounded-full px-3 py-1 text-sm font-semibold ${REPAIR_STATUS_BADGE[row.status]}`}>
+          {REPAIR_STATUS_LABEL[row.status]}
         </span>
       </div>
 
-      <div className="flex flex-col gap-2 pt-2 border-t border-border">
-        <div className="flex justify-between items-center">
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${REPAIR_STATUS_BADGE[row.status]}`}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-            {REPAIR_STATUS_LABEL[row.status]}
-          </span>
-          {isInSteps && (
-            <div className="flex gap-2">
-              {prevStep && (
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-semibold">{row.device_desc}</div>
+          {row.symptom && <div className="text-sm text-muted-foreground">{row.symptom}</div>}
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="text-sm text-muted-foreground">ราคาที่ตกลง</div>
+          <div className="font-bold tabular-nums">{formatPrice(row.quoted_price)}</div>
+        </div>
+      </div>
+
+      {isInSteps && (
+        <div className="flex gap-2">
+          {prevStep && (
+            <button
+              type="button"
+              onClick={() => handleSetStatus(prevStep)}
+              disabled={settingStatus}
+              className="ucom-secondary px-4 disabled:opacity-40"
+            >
+              ย้อนกลับ
+            </button>
+          )}
+          {nextStep && (
+            <button
+              type="button"
+              onClick={() => handleSetStatus(nextStep)}
+              disabled={settingStatus}
+              className={`${FORWARD_BUTTON} flex-1 justify-center disabled:opacity-40`}
+            >
+              {REPAIR_STATUS_LABEL[nextStep as RepairStatus]}
+            </button>
+          )}
+        </div>
+      )}
+
+      {row.status !== "collected" && (
+        <div className="space-y-2 border-t border-border pt-3">
+          <div className="text-sm font-semibold">ต้นทุนอะไหล่</div>
+          {row.part_paid_at && !isEditingPartCost ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="inline-flex rounded-full bg-success-bg px-3 py-1 text-sm font-semibold text-success">กรอกแล้ว</span>
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {new Date(row.part_paid_at).toLocaleDateString("th-TH", { dateStyle: "short" })}
+              </span>
+              {cash.isActive ? <Link href="/cash" className={TEXT_LINK}>ให้เจ้าของแก้ไขพร้อมเหตุผล</Link> : <button
+                type="button"
+                onClick={() => setIsEditingPartCost(true)}
+                className={TEXT_LINK}
+              >
+                แก้ไข
+              </button>}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={partCostDraft}
+                onChange={(e) => setPartCostDraft(e.target.value)}
+                placeholder="จำนวนเงิน"
+                aria-label="ต้นทุนอะไหล่ (บาท)"
+                className="ucom-field min-w-0 px-3 text-sm tabular-nums"
+              />
+              <select aria-label="จ่ายค่าอะไหล่จาก" value={partPaidFrom} onChange={(e) => setPartPaidFrom(e.target.value as PartPaidFrom | "")} className="ucom-field min-w-0 px-3 text-sm">
+                <option value="">วิธีจ่าย</option>
+                {cash.isActive ? <><option value="drawer">เงินเก๊ะ</option><option value="pending">เงินรอฝาก</option></> : <option value="cash">เงินสด</option>}
+                <option value="transfer">โอน</option>
+              </select>
+              <button
+                type="button"
+                onClick={handleSavePartCost}
+                disabled={savingPartCost || !canSavePartCost}
+                className={`ucom-secondary px-4 disabled:opacity-40 ${isEditingPartCost ? "" : "col-span-2"}`}
+              >
+                บันทึก
+              </button>
+              {isEditingPartCost && (
                 <button
                   type="button"
-                  onClick={() => handleSetStatus(prevStep)}
-                  disabled={settingStatus}
-                  className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-40"
+                  onClick={() => {
+                    setIsEditingPartCost(false);
+                    setPartCostDraft("");
+                  }}
+                  className="ucom-secondary px-4"
                 >
-                  ย้อนกลับ
-                </button>
-              )}
-              {nextStep && (
-                <button
-                  type="button"
-                  onClick={() => handleSetStatus(nextStep)}
-                  disabled={settingStatus}
-                  className="ucom-primary !rounded-full px-2 py-1 text-xs disabled:opacity-40"
-                >
-                  {REPAIR_STATUS_LABEL[nextStep as RepairStatus]}
+                  ยกเลิก
                 </button>
               )}
             </div>
           )}
         </div>
-
-        {row.status !== "collected" && (
-          <div className="flex flex-wrap justify-between items-center gap-2 mt-1">
-            <span className="text-sm text-ink-muted">ต้นทุนอะไหล่:</span>
-            {row.part_paid_at && !isEditingPartCost ? (
-              <div className="flex items-center gap-2">
-                <div className="text-sm text-success">กรอกแล้ว</div>
-                <div className="text-xs text-ink-muted">
-                  ({new Date(row.part_paid_at).toLocaleDateString("th-TH", { dateStyle: "short" })})
-                </div>
-                {cash.isActive ? <Link href="/cash" className="text-xs underline">ให้เจ้าของแก้ไขพร้อมเหตุผล</Link> : <button
-                  type="button"
-                  onClick={() => setIsEditingPartCost(true)}
-                  className="ucom-secondary !rounded-full px-2 py-1 text-xs"
-                >
-                  แก้ไข
-                </button>}
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  value={partCostDraft}
-                  onChange={(e) => setPartCostDraft(e.target.value)}
-                  placeholder="จำนวนเงิน"
-                  className="ucom-field w-24 px-2 py-1.5 text-sm"
-                />
-                <select aria-label="จ่ายค่าอะไหล่จาก" value={partPaidFrom} onChange={(e) => setPartPaidFrom(e.target.value as PartPaidFrom | "")} data-testid={`repair-part-paid-from-${row.id}`} className="ucom-field px-2 py-1.5 text-sm">
-                  <option value="">วิธีจ่าย</option>
-                  {cash.isActive ? <><option value="drawer">เงินเก๊ะ</option><option value="pending">เงินรอฝาก</option></> : <option value="cash">เงินสด</option>}
-                  <option value="transfer">โอน</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={handleSavePartCost}
-                  disabled={savingPartCost || !canSavePartCost}
-                  className="ucom-secondary !rounded-full px-2 py-1 text-xs disabled:opacity-30"
-                >
-                  บันทึก
-                </button>
-                {isEditingPartCost && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsEditingPartCost(false);
-                      setPartCostDraft("");
-                    }}
-                    className="ucom-secondary !rounded-full px-2 py-1 text-xs"
-                  >
-                    ยกเลิก
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
       {isInSteps && (
-        <div className="flex justify-between items-center pt-2 border-t border-border">
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
           <button
             type="button"
             onClick={() => setShowCloseDialog(!showCloseDialog)}
-            className="ucom-secondary !rounded-full px-2 py-1 text-sm"
+            className="ucom-primary flex-1 px-4"
           >
             ปิดงาน/ออกบิล
           </button>
-
           <button
             type="button"
             onClick={() => setShowAbandonConfirm(true)}
-            className="ucom-danger border-0 px-0 py-1 text-sm underline"
+            className={`${ABANDON_LINK} px-2`}
           >
             ลูกค้าทิ้ง
           </button>
@@ -185,6 +180,6 @@ export function RepairRowCard({
         onCloseJob={onCloseJob}
         onAbandon={() => handleSetStatus("abandoned")}
       />
-    </div>
+    </article>
   );
 }

@@ -17,11 +17,13 @@ export function WalletFundDialog({ wallets, onClose, onSaved }: {
   const [amount, setAmount] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const isOpened = wallets.find((w) => w.carrier_id === carrier)?.is_initialized;
+  const selected = wallets.find((w) => w.carrier_id === carrier);
+  const isOpened = selected?.is_initialized;
+  const value = Number(amount);
+  const balanceAfter = isOpened && amount && Number.isFinite(value) && value > 0 ? (selected?.balance ?? 0) + value : null;
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    const value = Number(amount);
     if (!carrier || !Number.isFinite(value) || value <= 0 || !/^\d+(\.\d{1,2})?$/.test(amount)) {
       setFormError("กรุณากรอกยอดเติมเงินมากกว่า 0 บาท (ทศนิยมไม่เกิน 2 ตำแหน่ง)");
       return;
@@ -43,28 +45,36 @@ export function WalletFundDialog({ wallets, onClose, onSaved }: {
     onClose();
   }
 
+  const label = "mb-1.5 block text-sm font-semibold";
   return (
     <Modal
       open
       onClose={onClose}
       title="เติมเงินเข้าวอลเล็ต"
       footer={<>
-        <button type="button" onClick={onClose} className="ucom-secondary px-5 py-2.5">ยกเลิก</button>
-        <button type="submit" form="wallet-fund-form" data-testid="topup-submit" disabled={saving || !isOpened} className="ucom-primary px-5 py-2.5 disabled:opacity-50">บันทึกเติมเงิน</button>
+        <button type="button" onClick={onClose} className="ucom-secondary h-12 px-6">ยกเลิก</button>
+        <button type="submit" form="wallet-fund-form" data-testid="topup-submit" disabled={saving || !isOpened} className="ucom-primary h-12 px-6">{saving ? "กำลังบันทึก..." : "บันทึกเติมเงิน"}</button>
       </>}
     >
-      <form id="wallet-fund-form" onSubmit={(e) => void submit(e)} className="space-y-3">
-        <p className="text-xs text-ink-muted">ยอดสะสมและยอดใช้ไปนับเฉพาะหลังตั้งยอดจริงครั้งแรก</p>
-        <label className="block space-y-1 text-xs font-semibold text-ink-muted"><span>ผู้ให้บริการ</span>
-          <select data-testid="topup-carrier" value={carrier} onChange={(e) => setCarrier(e.target.value)} className="ucom-field w-full px-4 py-2.5 text-sm">
+      <form id="wallet-fund-form" onSubmit={(e) => void submit(e)} className="space-y-4">
+        <p className="text-sm text-muted-foreground">ยอดสะสมและยอดใช้ไปนับเฉพาะหลังตั้งยอดจริงครั้งแรก</p>
+        <label className="block"><span className={label}>ผู้ให้บริการ</span>
+          <select data-testid="topup-carrier" value={carrier} onChange={(e) => setCarrier(e.target.value)} className="ucom-field h-12 w-full px-4 text-base">
             {wallets.map((w) => <option key={w.carrier_id} value={w.carrier_id ?? ""}>{w.name}</option>)}
           </select>
+          {selected && isOpened && <span className="mt-1.5 block text-sm text-muted-foreground tabular-nums">คงเหลือ ฿{(selected.balance ?? 0).toLocaleString("th-TH")}</span>}
         </label>
-        <label className="block space-y-1 text-xs font-semibold text-ink-muted"><span>จำนวนเงินเติม (บาท)</span>
-          <input type="number" min="0.01" step="any" data-testid="topup-amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="ucom-field w-full px-4 py-2.5 text-sm" placeholder="0.00" />
+        <label className="block"><span className={label}>จำนวนเงินเติม (บาท)</span>
+          <input type="number" inputMode="decimal" min="0.01" step="any" data-testid="topup-amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="ucom-field h-13 w-full px-4 text-lg font-bold tabular-nums" placeholder="0.00" />
         </label>
-        {!isOpened && <p className="text-sm text-warning">ค่ายนี้ยังไม่ตั้งยอดตั้งต้น</p>}
-        {formError && <p role="alert" className="text-sm text-warning">{formError}</p>}
+        {balanceAfter !== null && (
+          <p className="flex justify-between gap-3 rounded-xl bg-accent px-4 py-3 text-sm text-accent-foreground">
+            <span>ยอดหลังเติม</span>
+            <span className="font-bold tabular-nums">฿{balanceAfter.toLocaleString("th-TH", { maximumFractionDigits: 2 })}</span>
+          </p>
+        )}
+        {!isOpened && <p className="rounded-xl bg-warning-bg px-4 py-3 text-sm font-semibold text-warning">ค่ายนี้ยังไม่ตั้งยอดตั้งต้น ตั้งยอดในการ์ดวอลเล็ตก่อนเติมเงิน</p>}
+        {formError && <p role="alert" className="rounded-xl bg-danger-bg px-4 py-3 text-sm font-semibold text-danger">{formError}</p>}
       </form>
     </Modal>
   );
